@@ -8,10 +8,10 @@ fi
 echo "=== Starting Basileia Checkout ==="
 echo "DB_HOST=$DB_HOST"
 
-# Generate encryption key (fixed for production)
-APP_KEY="base64:$(php -r 'echo base64_encode(hash("sha256", "basileia-checkout-secret-key-2026", true));')"
+# Fixed APP_KEY (deterministic)
+APP_KEY="base64:YmFzaWxlaWEtY2hlY2tvdXQtc2VjcmV0LWtleS0yMDI2"
 
-# Write .env file with key already set
+# Write .env file
 cat > .env << EOF
 APP_NAME=Basileia
 APP_ENV=production
@@ -30,7 +30,7 @@ QUEUE_CONNECTION=sync
 DEFAULT_GATEWAY=asaas
 EOF
 
-echo "APP_KEY generated"
+echo "APP_KEY set"
 
 # Create dirs
 mkdir -p storage/framework/sessions storage/framework/cache/data storage/framework/views storage/logs
@@ -50,25 +50,28 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# Create admin user and reset lock
+# Create admin user via direct SQL to avoid tinker issues
 echo "Creating admin user..."
-php artisan tinker --execute='
-    $user = App\Models\User::updateOrCreate(
-        ["email" => "admin@checkout.com"],
+php artisan db:table users 2>&1 | head -1
+ADMIN_PASS=$(php -r "echo password_hash('BasileiaCheck@2026!99[]09', PASSWORD_BCRYPT);")
+php artisan tinker --execute="
+    DB::table('users')->updateOrInsert(
+        ['email' => 'admin@checkout.com'],
         [
-            "name" => "Admin",
-            "password" => bcrypt("BasileiaCheck@2026!99[]09"),
-            "role" => "super_admin",
-            "status" => "active",
-            "email_verified_at" => now(),
-            "failed_login_attempts" => 0,
-            "locked_until" => null,
-            "must_change_password" => false,
-            "password_changed_at" => now(),
+            'name' => 'Admin',
+            'password' => '$ADMIN_PASS',
+            'role' => 'super_admin',
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'failed_login_attempts' => 0,
+            'locked_until' => null,
+            'must_change_password' => false,
+            'password_changed_at' => now(),
+            'updated_at' => now(),
         ]
     );
-    echo "Admin: " . $user->email . PHP_EOL;
-' 2>&1 || true
+    echo 'Admin user created/updated' . PHP_EOL;
+" 2>&1 || echo "WARNING: Could not create admin user"
 
 # Start server
 echo "Starting server on port 8000..."
