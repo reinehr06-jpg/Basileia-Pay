@@ -26,6 +26,9 @@ QUEUE_CONNECTION=sync
 DEFAULT_GATEWAY=asaas
 ENVEOF
 
+echo "Generating APP_KEY..."
+php artisan key:generate --force 2>&1
+
 echo "Running migrations..."
 php artisan migrate --force --no-interaction 2>&1 || {
     echo "WARNING: Migration failed - check DB_HOST above"
