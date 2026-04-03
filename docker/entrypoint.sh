@@ -1,5 +1,4 @@
 #!/bin/bash
-set -e
 
 echo "=== Basileia Checkout Starting ==="
 
@@ -12,7 +11,6 @@ fi
 echo "DB_HOST=$REAL_DB_HOST"
 echo "DB_PORT=${DB_PORT:-5432}"
 echo "DB_DATABASE=${DB_DATABASE:-checkout}"
-echo "DB_USERNAME=${DB_USERNAME:-postgres}"
 
 # Generate .env
 cat > .env << ENVEOF
@@ -43,10 +41,15 @@ mkdir -p storage/framework/views
 mkdir -p storage/logs
 chmod -R 755 storage bootstrap/cache
 
-echo "Running migrations..."
-php artisan migrate --force --no-interaction 2>&1 || {
-    echo "WARNING: Migration failed - check DB_HOST=$REAL_DB_HOST"
-}
+echo "Waiting for database connection..."
+for i in $(seq 1 60); do
+    if php artisan migrate --force --no-interaction 2>&1; then
+        echo "Migrations completed!"
+        break
+    fi
+    echo "Database not ready, retrying in 2s... ($i/60)"
+    sleep 2
+done
 
 echo "Creating default admin user..."
 php artisan tinker --execute="
@@ -60,7 +63,7 @@ php artisan tinker --execute="
             'email_verified_at' => now(),
         ]
     );
-    echo 'Admin user: ' . \$user->email . PHP_EOL;
+    echo 'Admin: ' . \$user->email . PHP_EOL;
 " 2>&1 || echo "WARNING: Could not create admin user"
 
 echo "Starting Laravel on port 8000..."
