@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\CheckoutWebhookController;
 use App\Http\Controllers\Api\V1\WebhookController;
+use App\Http\Controllers\Api\V1\CardTokenizationController;
 use App\Http\Controllers\AsaasWebhookController;
 
 Route::prefix('v1')->group(function () {
@@ -21,6 +22,9 @@ Route::prefix('v1')->group(function () {
     
     // Webhook do Checkout (envia para sistemas externos como Basileia Vendas)
     Route::post('webhooks/checkout', [CheckoutWebhookController::class, 'handle']);
+
+    // Card tokenization (frontend -> backend -> gateway)
+    Route::post('tokenize', [CardTokenizationController::class, 'tokenize']);
 
     // Auth
     Route::post('auth/login', [AuthController::class, 'login']);

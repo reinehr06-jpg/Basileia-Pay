@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basileia - Pagamento</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/js/card-engine.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#667eea,#764ba2,#6b3fa0);padding:16px}
+        .main-card{width:920px;min-height:560px;border-radius:22px;overflow:hidden;background:#fff;box-shadow:0 20px 60px rgba(80,40,140,0.15);display:grid;grid-template-columns:42% 58%;position:relative}
+        .left-panel{background:linear-gradient(145deg,#5a1d9a,#7b2ff7,#9944dd);padding:30px 30px 22px;display:flex;flex-direction:column;position:relative;overflow:hidden}
+        .left-panel::before{content:'';position:absolute;top:-40%;right:-30%;width:80%;height:80%;background:radial-gradient(circle,rgba(255,255,255,0.08),transparent 70%);pointer-events:none}
+        .brand{display:flex;align-items:center;gap:11px;margin-bottom:14px;position:relative;z-index:2}
+        .brand-logo{width:38px;height:38px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .brand-text{color:#fff;font-size:21px;font-weight:700}
+        .plan-badge{display:inline-block;padding:6px 15px;border-radius:999px;background:rgba(255,255,255,0.18);color:#fff;font-size:10px;font-weight:600;letter-spacing:0.5px;margin-bottom:14px;width:fit-content;position:relative;z-index:2}
+        .plan-title{color:#fff;font-size:18px;font-weight:700;line-height:1.1;margin-bottom:4px;position:relative;z-index:2}
+        .price-row{display:flex;align-items:baseline;gap:4px;color:#fff;margin-bottom:16px;position:relative;z-index:2}
+        .price-currency{font-size:12px;font-weight:500}
+        .price-value{font-size:18px;font-weight:800;line-height:1}
+        .price-period{font-size:10px;font-weight:500;opacity:0.85;text-transform:uppercase;letter-spacing:0.3px}
+        .features{display:flex;flex-direction:column;gap:18px;position:relative;z-index:2;margin-bottom:auto}
+        .feature-item{display:grid;grid-template-columns:23px 1fr;column-gap:11px;align-items:start;padding:3px 0}
+        .feature-icon{width:23px;height:23px;border-radius:50%;background:#54d28a;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin-top:1px}
+        .feature-title{color:#fff;font-size:13px;font-weight:600}
+        .feature-desc{color:rgba(255,255,255,0.82);font-size:11px;margin-top:2px;line-height:1.35}
+        .left-bottom{position:relative;z-index:2;margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1)}
+        .left-security-title{color:#fff;font-size:12px;font-weight:600}
+        .left-security-desc{color:rgba(255,255,255,0.8);font-size:9px;margin-top:2px}
+        .card-brands{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.92);padding:6px 12px;border-radius:8px;margin-top:8px;width:fit-content;flex-wrap:wrap}
+        .brand-icon-img{height:16px;width:auto}
+        .right-panel{background:#fbf8fc;padding:20px 28px 44px;display:flex;flex-direction:column;position:relative}
+        .lang-bar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+        .lang-bar-label{color:#6b5f80;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+        .lang-bar select{height:28px;padding:0 22px 0 8px;border:1px solid #ddd7e8;border-radius:7px;background:#fff;color:#3f3558;font-size:10px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b5f80' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;max-width:180px}
+        .lang-bar select option{background:#fff;color:#3f3558}
+        .lang-bar select:focus{outline:none;border-color:#7b2ff7}
+        .form-title{color:#221749;font-size:16px;font-weight:700;margin-bottom:6px}
+        .payment-via{display:flex;align-items:center;gap:6px;margin-bottom:10px}
+        .payment-label{color:#817796;font-size:9px;font-weight:500}
+        .payment-chip{padding:3px 8px;border-radius:5px;background:linear-gradient(90deg,#7b35f4,#9b59b6);color:#fff;font-size:8px;font-weight:600}
+        .form-label{display:block;color:#43395d;font-size:9px;font-weight:500;margin-bottom:3px}
+        .form-input{width:100%;height:34px;border:1px solid #e1dbe9;border-radius:8px;background:#fbf9fd;color:#2b2340;padding:0 10px;font-size:11px;font-family:'Inter',sans-serif;transition:border-color 0.2s,box-shadow 0.2s}
+        .form-input::placeholder{color:#a99fbb;text-transform:none}
+        .form-input:focus{outline:none;border-color:#7b2ff7;box-shadow:0 0 0 2px rgba(123,47,247,0.08)}
+        .form-input.input-error{border-color:#ef4444;box-shadow:0 0 0 2px rgba(239,68,68,0.1)}
+        .form-input.input-valid{border-color:#22c55e;box-shadow:0 0 0 2px rgba(34,197,94,0.1)}
+        .form-helper{color:#9d94ae;font-size:8px;margin-top:2px;margin-bottom:5px}
+        .form-error{color:#ef4444;font-size:8px;margin-top:2px;margin-bottom:5px;display:none}
+        .form-error.visible{display:block}
+        .form-group{margin-bottom:5px}
+        .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+        .cta-button{width:100%;height:38px;border:none;border-radius:10px;background:linear-gradient(90deg,#7b2ff7,#a855f7);color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s,opacity 0.2s;box-shadow:0 6px 16px rgba(123,47,247,0.25);margin-top:5px;font-family:'Inter',sans-serif}
+        .cta-button:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(123,47,247,0.35)}
+        .cta-button:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+        .security-footer{display:flex;align-items:center;gap:5px;color:#3ca95c;font-size:9px;font-weight:500;margin-top:8px;margin-bottom:4px}
+        .footer-note{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);color:#9b8fb5;font-size:8px;white-space:nowrap}
+        .card-scene{perspective:1000px;width:100%;max-width:260px;height:155px;margin:0 auto 14px;cursor:pointer}
+        .card-inner{position:relative;width:100%;height:100%;transition:transform 0.7s cubic-bezier(0.4,0.2,0.2,1);transform-style:preserve-3d}
+        .card-inner.is-flipped{transform:rotateY(180deg)}
+        .card-face{position:absolute;width:100%;height:100%;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:14px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.2)}
+        .card-front{display:flex;flex-direction:column;justify-content:space-between;padding:16px;color:#fff;background:linear-gradient(135deg,#0d0d0d,#1a1a1a,#222)}
+        .card-back{transform:rotateY(180deg);display:flex;flex-direction:column;justify-content:center}
+        .card-back-bg{position:absolute;top:0;left:0;right:0;bottom:0}
+        .card-back-magnetic{height:34px;background:rgba(0,0,0,0.6);margin-top:22px}
+        .card-back-strip{height:26px;background:rgba(255,255,255,0.9);margin:10px 14px;border-radius:5px;display:flex;align-items:center;justify-content:flex-end;padding:0 10px;position:relative}
+        .card-back-strip .cvc-display{font-family:'Share Tech Mono',monospace;font-size:13px;color:#333;letter-spacing:2px;font-weight:700}
+        .card-back-strip .cvc-highlight{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:36px;height:20px;border:2px dashed rgba(255,255,255,0.8);border-radius:3px;pointer-events:none;animation:cvcPulse 1.5s ease-in-out infinite}
+        @keyframes cvcPulse{0%,100%{border-color:rgba(255,255,255,0.5)}50%{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,0.4)}}
+        .card-back-info{padding:0 12px;font-size:6px;color:rgba(255,255,255,0.7);line-height:1.4}
+        .card-top-row{display:flex;justify-content:space-between;align-items:flex-start}
+        .card-chip{width:34px;height:25px;border-radius:5px;background:linear-gradient(135deg,#f0c040,#d4a020);position:relative;overflow:hidden}
+        .card-chip::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(0,0,0,0.15)}
+        .card-chip::after{content:'';position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(0,0,0,0.15)}
+        .card-contactless{width:22px;height:22px;opacity:0.7}
+        .card-contactless svg{width:100%;height:100%}
+        .card-brand-logo{height:26px;display:flex;align-items:center}
+        .card-brand-logo svg{height:100%;width:auto}
+        .card-number-display{font-family:'Share Tech Mono',monospace;font-size:15px;letter-spacing:2px;text-shadow:0 1px 2px rgba(0,0,0,0.2);word-spacing:6px}
+        .card-bottom-row{display:flex;justify-content:space-between;align-items:flex-end}
+        .card-holder-display{font-size:9px;text-transform:uppercase;letter-spacing:1px;opacity:0.9;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .card-holder-label{font-size:5px;text-transform:uppercase;letter-spacing:1px;opacity:0.6;margin-bottom:1px}
+        .card-expiry-display{text-align:right}
+        .card-expiry-label{font-size:5px;text-transform:uppercase;letter-spacing:1px;opacity:0.6;margin-bottom:1px}
+        .card-expiry-value{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1px}
+        .card-shine{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent 40%,transparent 60%,rgba(255,255,255,0.05));pointer-events:none}
+        .card-pattern{position:absolute;top:0;left:0;right:0;bottom:0;opacity:0.08;background-image:radial-gradient(circle at 20% 50%,rgba(255,255,255,0.3),transparent 50%),radial-gradient(circle at 80% 20%,rgba(255,255,255,0.2),transparent 40%);pointer-events:none}
+        .brand-visa{background:linear-gradient(135deg,#1a1f71,#2b3990,#3b4fb0,#1a1f71)}
+        .brand-mastercard{background:linear-gradient(135deg,#252525,#333,#eb001b,#f79e1b,#ff5f00)}
+        .brand-amex{background:linear-gradient(135deg,#006fcf,#0091d4,#00a1e0)}
+        .brand-elo{background:linear-gradient(135deg,#0047bb,#0066cc,#ffcb05)}
+        .brand-hipercard{background:linear-gradient(135deg,#822124,#a0292d,#6b1a1d)}
+        .brand-diners{background:linear-gradient(135deg,#004a97,#0066cc,#0088ee)}
+        .brand-discover{background:linear-gradient(135deg,#ff6000,#ff8800,#ffaa33)}
+        .brand-jcb{background:linear-gradient(135deg,#0e4c96,#1a6bc4,#00b050)}
+        .brand-cabal{background:linear-gradient(135deg,#003366,#005599,#0077cc)}
+        .brand-banescard{background:linear-gradient(135deg,#006633,#009944,#00cc55)}
+        .brand-default{background:linear-gradient(135deg,#0d0d0d,#1a1a1a,#222)}
+        .card-scene:hover .card-inner{transform:rotateY(5deg) rotateX(-3deg)}
+        .card-scene:hover .card-inner.is-flipped{transform:rotateY(185deg) rotateX(-3deg)}
+        .demo-notice{position:fixed;bottom:10px;right:10px;background:rgba(0,0,0,0.7);color:#fff;padding:5px 10px;border-radius:7px;font-size:9px;z-index:999;backdrop-filter:blur(10px)}
+        @media(max-width:768px){.main-card{grid-template-columns:1fr;width:100%;min-height:auto}.left-panel{padding:18px 16px}.right-panel{padding:16px}.plan-title{font-size:22px}.price-value{font-size:24px}.card-scene{max-width:240px;height:145px}}
+    </style>
+</head>
+<body x-data="checkoutData()">
+    <section class="main-card">
+        <div class="left-panel">
+            <div class="brand"><div class="brand-logo"><img src="/img/basileia-logo.png" alt="Basileia" style="width:34px;height:auto;object-fit:contain"></div><div class="brand-text">Basileia</div></div>
+            <div class="plan-badge" x-text="t.badge"></div>
+            <h1 class="plan-title" x-text="t.plan"></h1>
+            <div class="price-row">
+                <span class="price-currency" x-text="cc.symbol"></span>
+                <span class="price-value" x-text="priceVal"></span>
+                <span class="price-period" x-text="t.billing"></span>
+            </div>
+            <div class="features">
+                <div class="feature-item"><div class="feature-icon">✓</div><div><div class="feature-title" x-text="t.feat1t"></div><div class="feature-desc" x-text="t.feat1d"></div></div></div>
+                <div class="feature-item"><div class="feature-icon">✓</div><div><div class="feature-title" x-text="t.feat2t"></div><div class="feature-desc" x-text="t.feat2d"></div></div></div>
+                <div class="feature-item"><div class="feature-icon">✓</div><div><div class="feature-title" x-text="t.feat3t"></div><div class="feature-desc" x-text="t.feat3d"></div></div></div>
+                <div class="feature-item"><div class="feature-icon">✓</div><div><div class="feature-title" x-text="t.feat4t"></div><div class="feature-desc" x-text="t.feat4d"></div></div></div>
+                <div class="feature-item"><div class="feature-icon">✓</div><div><div class="feature-title" x-text="t.feat5t"></div><div class="feature-desc" x-text="t.feat5d"></div></div></div>
+                <div class="feature-item"><div class="feature-icon">✓</div><div><div class="feature-title" x-text="t.feat6t"></div><div class="feature-desc" x-text="t.feat6d"></div></div></div>
+            </div>
+            <div class="left-bottom">
+                <div class="left-security-title" x-text="t.secureLeft"></div>
+                <div class="left-security-desc" x-text="t.secureLeftDesc"></div>
+                <div class="card-brands">
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('visa')"><rect width="80" height="30" rx="4" fill="#fff"/><text x="40" y="22" font-size="20" font-weight="800" fill="#1A1F71" text-anchor="middle" font-family="Arial" font-style="italic">VISA</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('mastercard')"><rect width="80" height="30" rx="4" fill="#fff"/><circle cx="32" cy="15" r="9" fill="#EB001B"/><circle cx="48" cy="15" r="9" fill="#F79E1B" opacity="0.9"/><path d="M40 8.5a9 9 0 0 1 0 13z" fill="#FF5F00"/></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('elo')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="14" y="8" width="20" height="14" rx="2" fill="#FFCB05"/><text x="24" y="19" font-size="9" font-weight="800" fill="#0047BB" text-anchor="middle" font-family="Arial">ELO</text><rect x="38" y="8" width="28" height="14" rx="2" fill="#0047BB"/><text x="52" y="19" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">CRED</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('amex')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#006FCF"/><text x="40" y="19" font-size="10" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">AMEX</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('hipercard')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#822124"/><text x="40" y="19" font-size="9" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">HIPERCARD</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('diners')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="8" fill="#004A97"/><text x="40" y="19" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">Diners Club</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('discover')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#FF6000"/><text x="40" y="19" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">DISCOVER</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('jcb')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="16" height="16" rx="2" fill="#0E4C96"/><rect x="32" y="7" width="16" height="16" rx="2" fill="#00B050"/><rect x="52" y="7" width="16" height="16" rx="2" fill="#E60012"/><text x="40" y="19" font-size="7" font-weight="700" fill="#333" text-anchor="middle" font-family="Arial">JCB</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('unionpay')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#E60012"/><text x="40" y="19" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">UnionPay</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('maestro')"><rect width="80" height="30" rx="4" fill="#fff"/><circle cx="32" cy="15" r="9" fill="#006FCF"/><circle cx="48" cy="15" r="9" fill="#E60012" opacity="0.85"/><path d="M40 8.5a9 9 0 0 1 0 13z" fill="#9B4F96"/></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('cabal')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#003366"/><text x="40" y="19" font-size="10" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">CABAL</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('rupay')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#005BA1"/><text x="40" y="19" font-size="9" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">RuPay</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('verve')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#00843D"/><text x="40" y="19" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">VERVE</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('mada')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#004D6E"/><text x="40" y="19" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">mada</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('mir')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#00A651"/><text x="40" y="19" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">МИР</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('cb')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#0055A4"/><text x="40" y="19" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">CB</text></svg>
+                    <svg class="brand-icon-img" viewBox="0 0 80 30" x-show="brands.includes('girocard')"><rect width="80" height="30" rx="4" fill="#fff"/><rect x="12" y="7" width="56" height="16" rx="3" fill="#0066B2"/><text x="40" y="19" font-size="8" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">girocard</text></svg>
+                </div>
+            </div>
+        </div>
+        <div class="right-panel">
+            <div class="lang-bar">
+                <span class="lang-bar-label">🌐 Idioma / País</span>
+                <select @change="setCountry($event.target.value)" x-model="country">
+                    <template x-for="c in countries" :key="c.code"><option :value="c.code" x-text="c.flag+' '+c.name"></option></template>
+                </select>
+            </div>
+            <h2 class="form-title" x-text="t.title"></h2>
+            <div class="payment-via"><span class="payment-label" x-text="t.via"></span><span class="payment-chip" x-text="t.chip"></span></div>
+            <div class="card-scene" @click="isFlipped=!isFlipped">
+                <div class="card-inner" :class="{'is-flipped':isFlipped}">
+                    <div class="card-face card-front" :class="'brand-'+detectedBrand">
+                        <div class="card-pattern"></div><div class="card-shine"></div>
+                        <div class="card-top-row">
+                            <div style="display:flex;align-items:center;gap:8px"><div class="card-chip"></div><div class="card-contactless"><svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2"><path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8 8 0 0 0 0-14"/><path d="M15.5 21.5a11 11 0 0 0 0-19"/></svg></div></div>
+                            <div class="card-brand-logo">
+                                <template x-if="detectedBrand==='visa'"><svg viewBox="0 0 80 30"><text x="40" y="22" font-size="18" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial" font-style="italic">VISA</text></svg></template>
+                                <template x-if="detectedBrand==='mastercard'"><svg viewBox="0 0 80 30"><circle cx="30" cy="15" r="10" fill="#EB001B" opacity="0.9"/><circle cx="50" cy="15" r="10" fill="#F79E1B" opacity="0.9"/><path d="M40 7.5a10 10 0 0 1 0 15z" fill="#FF5F00" opacity="0.8"/></svg></template>
+                                <template x-if="detectedBrand==='amex'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="13" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">AMEX</text></svg></template>
+                                <template x-if="detectedBrand==='elo'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="16" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">ELO</text></svg></template>
+                                <template x-if="detectedBrand==='hipercard'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="10" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">HIPER</text></svg></template>
+                                <template x-if="detectedBrand==='diners'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="10" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">DINERS</text></svg></template>
+                                <template x-if="detectedBrand==='discover'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="11" font-weight="700" fill="#fff" text-anchor="middle" font-family="Arial">DISCOVER</text></svg></template>
+                                <template x-if="detectedBrand==='jcb'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="14" font-weight="800" fill="#fff" text-anchor="middle" font-family="Arial">JCB</text></svg></template>
+                                <template x-if="detectedBrand==='default'"><svg viewBox="0 0 80 30"><text x="40" y="20" font-size="12" font-weight="700" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Arial">CARD</text></svg></template>
+                            </div>
+                        </div>
+                        <div class="card-number-display" x-text="dispNum"></div>
+                        <div class="card-bottom-row">
+                            <div><div class="card-holder-label">CARD HOLDER</div><div class="card-holder-display" x-text="dispHolder"></div></div>
+                            <div class="card-expiry-display"><div class="card-expiry-label">EXPIRES</div><div class="card-expiry-value" x-text="dispExpiry"></div></div>
+                        </div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div class="card-back-bg" :class="'brand-'+detectedBrand"></div>
+                        <div class="card-back-magnetic"></div>
+                        <div class="card-back-strip"><span class="cvc-display" x-text="dispCvv"></span><div class="cvc-highlight"></div></div>
+                        <div class="card-back-info" x-text="t.backInfo"></div>
+                    </div>
+                </div>
+            </div>
+            <form @submit.prevent="handleSubmit($event)" :key="country">
+                <div class="form-group"><label class="form-label" x-text="t.emailLabel"></label><input type="email" class="form-input" x-bind:placeholder="t.emailPh" required><div class="form-helper" x-text="t.emailHelper"></div></div>
+                <div class="form-group"><label class="form-label" x-text="t.cardLabel"></label><input type="text" class="form-input" :class="vc('number')" maxlength="19" x-bind:placeholder="t.cardPh" required @input="onCard($event)"><div class="form-error" :class="{visible:vs.number==='invalid'}"><span x-show="cd&&cd.reason==='luhn_failed'" x-text="t.errLuhn"></span><span x-show="cd&&cd.reason==='invalid_length'" x-text="t.errLen"></span><span x-show="cd&&cd.reason==='brand_not_found'" x-text="t.errBrand"></span></div></div>
+                <div class="form-row">
+                    <div><label class="form-label" x-text="t.expiryLabel"></label><input type="text" class="form-input" :class="vc('expiry')" maxlength="5" x-bind:placeholder="t.expiryPh" required @input="onExpiry($event)"><div class="form-error" :class="{visible:vs.expiry==='invalid'}" x-text="t.errExpiry"></div></div>
+                    <div><label class="form-label" x-text="t.cvcLabel"></label><input type="text" class="form-input" :class="vc('cvv')" x-bind:maxlength="cd?.cvvLength||3" x-bind:placeholder="t.cvcPh" required @input="onCvv($event)" @focus="isFlipped=true" @blur="isFlipped=false"></div>
+                </div>
+                <div class="form-group" style="margin-top:3px"><label class="form-label" x-text="t.nameLabel"></label><input type="text" class="form-input" :class="vc('holder')" x-bind:placeholder="t.namePh" required @input="onName($event)"></div>
+                <div class="form-group" x-show="showDoc"><label class="form-label" x-text="docLabel"></label><input type="text" class="form-input" x-bind:placeholder="docPh" :maxlength="docMax" required></div>
+                <button type="submit" class="cta-button" :disabled="isProcessing"><span x-show="isProcessing" x-text="t.processing"></span><span x-show="!isProcessing" x-text="t.btn+' '+cc.symbol+' '+priceVal"></span></button>
+            </form>
+            <div class="security-footer"><svg width="12" height="12" fill="none" stroke="#3ca95c" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span x-text="t.secure"></span></div>
+        </div>
+        <div class="footer-note" x-text="t.footer"></div>
+    </section>
+    <div class="demo-notice">🧪 Demo</div>
+    <script>
+    function checkoutData(){return{
+        country:'BR',
+        countries:[
+            {code:'BR',flag:'🇧🇷',name:'Brasil',lang:'pt',currency:'BRL',symbol:'R$',base:197.99,doc:true,docLabel:'CPF',docPh:'000.000.000-00',docMax:14,brands:['visa','mastercard','elo','amex']},
+            {code:'US',flag:'🇺🇸',name:'United States',lang:'en',currency:'USD',symbol:'$',base:39.90,doc:false,brands:['visa','mastercard','amex','discover']},
+            {code:'PT',flag:'🇵🇹',name:'Portugal',lang:'pt',currency:'EUR',symbol:'€',base:36.90,doc:true,docLabel:'NIF',docPh:'123456789',docMax:9,brands:['visa','mastercard','amex','elo']},
+            {code:'ES',flag:'🇪🇸',name:'España',lang:'es',currency:'EUR',symbol:'€',base:36.90,doc:true,docLabel:'DNI/NIE',docPh:'12345678A',docMax:9,brands:['visa','mastercard','amex','discover']},
+            {code:'GB',flag:'🇬🇧',name:'United Kingdom',lang:'en',currency:'GBP',symbol:'£',base:29.90,doc:false,brands:['visa','mastercard','amex','discover']},
+            {code:'FR',flag:'🇫🇷',name:'France',lang:'fr',currency:'EUR',symbol:'€',base:36.90,doc:false,brands:['visa','mastercard','amex','cb']},
+            {code:'DE',flag:'🇩🇪',name:'Deutschland',lang:'de',currency:'EUR',symbol:'€',base:36.90,doc:false,brands:['visa','mastercard','amex','girocard']},
+            {code:'IT',flag:'🇮🇹',name:'Italia',lang:'it',currency:'EUR',symbol:'€',base:36.90,doc:true,docLabel:'Codice Fiscale',docPh:'RSSMRA80A01H501Z',docMax:16,brands:['visa','mastercard','amex','discover']},
+            {code:'MX',flag:'🇲🇽',name:'México',lang:'es',currency:'MXN',symbol:'MX$',base:499,doc:true,docLabel:'RFC',docPh:'AAAA000000AAA',docMax:13,brands:['visa','mastercard','amex','discover']},
+            {code:'AR',flag:'🇦🇷',name:'Argentina',lang:'es',currency:'ARS',symbol:'ARS$',base:24990,doc:true,docLabel:'CUIT',docPh:'20-12345678-9',docMax:13,brands:['visa','mastercard','amex','cabal']},
+            {code:'JP',flag:'🇯🇵',name:'Japan',lang:'ja',currency:'JPY',symbol:'¥',base:4990,doc:false,brands:['visa','mastercard','jcb','amex']},
+            {code:'CN',flag:'🇨🇳',name:'China',lang:'zh',currency:'CNY',symbol:'¥',base:199,doc:false,brands:['unionpay','visa','mastercard','jcb']},
+            {code:'IN',flag:'🇮🇳',name:'India',lang:'en',currency:'INR',symbol:'₹',base:2499,doc:true,docLabel:'PAN',docPh:'ABCDE1234F',docMax:10,brands:['visa','mastercard','amex','rupay']},
+            {code:'NG',flag:'🇳🇬',name:'Nigeria',lang:'en',currency:'NGN',symbol:'₦',base:29900,doc:true,docLabel:'NIN',docPh:'12345678901',docMax:11,brands:['visa','mastercard','amex','verve']},
+            {code:'SA',flag:'🇸🇦',name:'السعودية',lang:'ar',currency:'SAR',symbol:'ر.س',base:149.90,doc:false,brands:['visa','mastercard','amex','mada']},
+            {code:'RU',flag:'🇷🇺',name:'Россия',lang:'ru',currency:'RUB',symbol:'₽',base:2990,doc:false,brands:['visa','mastercard','mir','mir']},
+            {code:'NL',flag:'🇳🇱',name:'Nederland',lang:'nl',currency:'EUR',symbol:'€',base:36.90,doc:false,brands:['visa','mastercard','amex','maestro']},
+            {code:'AU',flag:'🇦🇺',name:'Australia',lang:'en',currency:'AUD',symbol:'A$',base:49.90,doc:false,brands:['visa','mastercard','amex','discover']},
+            {code:'CA',flag:'🇨🇦',name:'Canada',lang:'en',currency:'CAD',symbol:'C$',base:49.90,doc:false,brands:['visa','mastercard','amex','discover']},
+            {code:'KR',flag:'🇰🇷',name:'South Korea',lang:'ko',currency:'KRW',symbol:'₩',base:39900,doc:false,brands:['visa','mastercard','jcb','amex']}
+        ],
+        i18n:{
+            pt:{badge:'PLANO PROFISSIONAL ATIVADO',plan:'Plano Mensal',billing:'COBRANÇA MENSAL',title:'Pagamento Seguro',via:'PAGAMENTO VIA:',chip:'CARTÃO DE CRÉDITO',emailLabel:'E-MAIL DE ACESSO',emailHelper:'Receba suas credenciais neste e-mail',emailPh:'seu@email.com',cardLabel:'NÚMERO DO CARTÃO',cardPh:'0000 0000 0000 0000',expiryLabel:'EXPIRAÇÃO',expiryPh:'mm/aa',cvcLabel:'CVC',cvcPh:'123',nameLabel:'NOME NO CARTÃO',namePh:'nome completo',docLabel:'CPF',docPh:'000.000.000-00',btn:'Assinar por',processing:'Processando...',secure:'Pagamento 100% Seguro',secureLeft:'Pagamento 100% Seguro',secureLeftDesc:'Dados protegidos com criptografia SSL.',feat1t:'Acesso imediato ao painel',feat1d:'Credenciais enviadas no seu e-mail.',feat2t:'Assistente IA no WhatsApp',feat2d:'Atenda membros 24h com inteligência artificial.',feat3t:'Gestão completa de membros',feat3d:'Cadastros, trilha de crescimento e árvore genealógica.',feat4t:'Relatórios em tempo real',feat4d:'Acompanhe presença e engajamento da sua igreja.',feat5t:'Sem taxa de configuração',feat5d:'Comece a usar agora, sem custos extras.',feat6t:'Suporte prioritário',feat6d:'Atendimento rápido quando você precisar.',errLuhn:'Número inválido',errLen:'Tamanho incorreto',errBrand:'Bandeira não identificada',errExpiry:'Data inválida ou expirada',footer:'© 2024 Basileia Vendas',backInfo:'Cartão propriedade do emissor. Em caso de perda, ligue para o SAC.'},
+            en:{badge:'PROFESSIONAL PLAN ACTIVATED',plan:'Monthly Plan',billing:'MONTHLY BILLING',title:'Secure Payment',via:'PAYMENT METHOD:',chip:'CREDIT CARD',emailLabel:'ACCESS EMAIL',emailHelper:'Receive credentials at this email',emailPh:'your@email.com',cardLabel:'CARD NUMBER',cardPh:'0000 0000 0000 0000',expiryLabel:'EXPIRY',expiryPh:'mm/yy',cvcLabel:'CVC',cvcPh:'123',nameLabel:'NAME ON CARD',namePh:'full name',docLabel:'DOCUMENT',docPh:'document number',btn:'Subscribe for',processing:'Processing...',secure:'100% Secure Payment',secureLeft:'100% Secure Payment',secureLeftDesc:'Data protected with SSL encryption.',feat1t:'Instant dashboard access',feat1d:'Credentials sent to your email.',feat2t:'AI Assistant on WhatsApp',feat2d:'Serve members 24/7 with artificial intelligence.',feat3t:'Complete member management',feat3d:'Registrations, growth tracking and family tree.',feat4t:'Real-time reports',feat4d:'Track attendance and church engagement.',feat5t:'No setup fee',feat5d:'Start now, no extra costs.',feat6t:'Priority support',feat6d:'Fast assistance when you need it.',errLuhn:'Invalid number',errLen:'Incorrect length',errBrand:'Brand not identified',errExpiry:'Invalid or expired date',footer:'© 2024 Basileia Vendas',backInfo:'Card property of issuer. If lost, call customer service.'},
+            es:{badge:'PLAN PROFESIONAL ACTIVADO',plan:'Plan Mensual',billing:'FACTURACIÓN MENSUAL',title:'Pago Seguro',via:'MÉTODO DE PAGO:',chip:'TARJETA DE CRÉDITO',emailLabel:'EMAIL DE ACCESO',emailHelper:'Reciba sus credenciales en este email',emailPh:'su@email.com',cardLabel:'NÚMERO DE TARJETA',cardPh:'0000 0000 0000 0000',expiryLabel:'VENCIMIENTO',expiryPh:'mm/aa',cvcLabel:'CVC',cvcPh:'123',nameLabel:'NOMBRE EN TARJETA',namePh:'nombre completo',docLabel:'DOCUMENTO',docPh:'número de documento',btn:'Suscribir por',processing:'Procesando...',secure:'Pago 100% Seguro',secureLeft:'Pago 100% Seguro',secureLeftDesc:'Datos protegidos con cifrado SSL.',feat1t:'Acceso inmediato al panel',feat1d:'Credenciales enviadas a su email.',feat2t:'Asistente IA en WhatsApp',feat2d:'Atienda miembros 24/7 con inteligencia artificial.',feat3t:'Gestión completa de miembros',feat3d:'Registros, seguimiento de crecimiento y árbol genealógico.',feat4t:'Notificaciones ilimitadas',feat4d:'Comunicación directa por WhatsApp, sin grupos.',feat5t:'Control de células y asistencia',feat5d:'Reportes automáticos en tiempo real.',feat6t:'Actualizaciones incluidas',feat6d:'Mejoras continuas sin costo adicional.',errLuhn:'Número inválido',errLen:'Tamaño incorrecto',errBrand:'Marca no identificada',errExpiry:'Fecha inválida o expirada',footer:'© 2024 Basileia Vendas',backInfo:'Tarjeta propiedad del emisor. En caso de pérdida, llame al SAC.'},
+            fr:{badge:'PLAN PROFESSIONNEL ACTIVÉ',plan:'Plan Mensuel',billing:'FACTURATION MENSUELLE',title:'Paiement Sécurisé',via:'PAIEMENT VIA:',chip:'CARTE DE CRÉDIT',emailLabel:'EMAIL D\'ACCÈS',emailHelper:'Recevez vos identifiants à cet email',emailPh:'votre@email.com',cardLabel:'NUMÉRO DE CARTE',cardPh:'0000 0000 0000 0000',expiryLabel:'EXPIRATION',expiryPh:'mm/aa',cvcLabel:'CVC',cvcPh:'123',nameLabel:'NOM SUR LA CARTE',namePh:'nom complet',docLabel:'DOCUMENT',docPh:'numéro de document',btn:'S\'abonner pour',processing:'Traitement...',secure:'Paiement 100% Sécurisé',secureLeft:'Paiement 100% Sécurisé',secureLeftDesc:'Données protégées par cryptage SSL.',feat1t:'Accès immédiat au tableau de bord',feat1d:'Identifiants envoyés par e-mail.',feat2t:'Assistant IA sur WhatsApp',feat2d:'Servez les membres 24h/24 avec l\'IA.',feat3t:'Gestion complète des membres',feat3d:'Inscriptions, suivi de croissance et arbre généalogique.',feat4t:'Notifications illimitées',feat4d:'Communication WhatsApp directe, sans groupes.',feat5t:'Contrôle des cellules et présence',feat5d:'Rapports automatiques en temps réel.',feat6t:'Mises à jour incluses',feat6d:'Améliorations continues sans frais supplémentaires.',errLuhn:'Numéro invalide',errLen:'Longueur incorrecte',errBrand:'Marque non identifiée',errExpiry:'Date invalide ou expirée',footer:'© 2024 Basileia Vendas',backInfo:'Carte propriété de l\'émetteur. En cas de perte, appelez le SAC.'},
+            de:{badge:'PROFI-PLAN AKTIVIERT',plan:'Monatsplan',billing:'MONATLICHE RECHNUNG',title:'Sichere Zahlung',via:'ZAHLUNGSMETHODE:',chip:'KREDITKARTE',emailLabel:'ZUGANGS-E-MAIL',emailHelper:'Erhalten Sie Ihre Anmeldedaten per E-Mail',emailPh:'ihre@email.com',cardLabel:'KARTENNUMMER',cardPh:'0000 0000 0000 0000',expiryLabel:'ABLAUF',expiryPh:'mm/jj',cvcLabel:'CVC',cvcPh:'123',nameLabel:'NAME AUF KARTE',namePh:'vollständiger name',docLabel:'DOKUMENT',docPh:'dokumentennummer',btn:'Abonnieren für',processing:'Verarbeitung...',secure:'100% Sichere Zahlung',secureLeft:'100% Sichere Zahlung',secureLeftDesc:'Daten durch SSL-Verschlüsselung geschützt.',feat1t:'Sofortiger Dashboard-Zugang',feat1d:'Zugangsdaten per E-Mail.',feat2t:'KI-Assistent auf WhatsApp',feat2d:'Mitglieder 24/7 mit KI betreuen.',feat3t:'Vollständige Mitgliederverwaltung',feat3d:'Registrierungen, Wachstumsverfolgung und Stammbaum.',feat4t:'Unbegrenzte Benachrichtigungen',feat4d:'Direkte WhatsApp-Kommunikation, keine Gruppen.',feat5t:'Zellgruppen- & Anwesenheitskontrolle',feat5d:'Automatische Echtzeit-Berichte.',feat6t:'Updates inklusive',feat6d:'Laufende Verbesserungen ohne Mehrkosten.',errLuhn:'Ungültige Nummer',errLen:'Falsche Länge',errBrand:'Marke nicht erkannt',errExpiry:'Ungültiges oder abgelaufenes Datum',footer:'© 2024 Basileia Vendas',backInfo:'Karte im Eigentum des Ausstellers. Bei Verlust rufen Sie den Kundendienst an.'},
+            it:{badge:'PIANO PROFESSIONALE ATTIVATO',plan:'Piano Mensile',billing:'FATTURAZIONE MENSILE',title:'Pagamento Sicuro',via:'METODO DI PAGAMENTO:',chip:'CARTA DI CREDITO',emailLabel:'EMAIL DI ACCESSO',emailHelper:'Ricevi le tue credenziali a questa email',emailPh:'tua@email.com',cardLabel:'NUMERO CARTA',cardPh:'0000 0000 0000 0000',expiryLabel:'SCADENZA',expiryPh:'mm/aa',cvcLabel:'CVC',cvcPh:'123',nameLabel:'NOME SULLA CARTA',namePh:'nome completo',docLabel:'DOCUMENTO',docPh:'numero documento',btn:'Abbonati per',processing:'Elaborazione...',secure:'Pagamento 100% Sicuro',secureLeft:'Pagamento 100% Sicuro',secureLeftDesc:'Dati protetti con crittografia SSL.',feat1t:'Accesso immediato al pannello',feat1d:'Credenziali inviate via e-mail.',feat2t:'Assistente IA su WhatsApp',feat2d:'Servi i membri 24/7 con intelligenza artificiale.',feat3t:'Gestione completa dei membri',feat3d:'Registrazioni, monitoraggio crescita e albero genealogico.',feat4t:'Notifiche illimitate',feat4d:'Comunicazione WhatsApp diretta, senza gruppi.',feat5t:'Controllo cellule e presenze',feat5d:'Report automatici in tempo reale.',feat6t:'Aggiornamenti inclusi',feat6d:'Miglioramenti continui senza costi aggiuntivi.',errLuhn:'Numero non valido',errLen:'Lunghezza errata',errBrand:'Marca non identificata',errExpiry:'Data non valida o scaduta',footer:'© 2024 Basileia Vendas',backInfo:'Carta di proprietà dell\'emittente. In caso di smarrimento, chiamare il SAC.'},
+            ja:{badge:'プロフェッショナルプラン有効',plan:'月額プラン',billing:'月額請求',title:'安全な支払い',via:'お支払い方法:',chip:'クレジットカード',emailLabel:'アクセスメール',emailHelper:'このメールで認証情報を受信',emailPh:'your@email.com',cardLabel:'カード番号',cardPh:'0000 0000 0000 0000',expiryLabel:'有効期限',expiryPh:'mm/yy',cvcLabel:'CVC',cvcPh:'123',nameLabel:'カード名義',namePh:'氏名',docLabel:'書類',docPh:'書類番号',btn:'購読する',processing:'処理中...',secure:'100%安全な支払い',secureLeft:'100%安全な支払い',secureLeftDesc:'SSL暗号化でデータを保護。',feat1t:'即時ダッシュボードアクセス',feat1d:'認証情報をメールで送信。',feat2t:'WhatsApp AIアシスタント',feat2d:'AIでメンバーを24時間対応。',feat3t:'完全なメンバー管理',feat3d:'登録、成長追跡、家系図。',feat4t:'無制限の通知',feat4d:'グループ不要の直接WhatsApp通信。',feat5t:'セルグループ・出席管理',feat5d:'自動リアルタイムレポート。',feat6t:'アップデート込み',feat6d:'追加費用なしで継続的な改善。',errLuhn:'無効な番号',errLen:'長さが不正',errBrand:'ブランド不明',errExpiry:'無効または期限切れ',footer:'© 2024 Basileia Vendas',backInfo:'カードは発行機関の財産です。紛失の場合はお問い合わせください。'},
+            zh:{badge:'专业计划已激活',plan:'月度计划',billing:'月度账单',title:'安全支付',via:'支付方式:',chip:'信用卡',emailLabel:'访问邮箱',emailHelper:'在此邮箱接收凭据',emailPh:'your@email.com',cardLabel:'卡号',cardPh:'0000 0000 0000 0000',expiryLabel:'有效期',expiryPh:'mm/yy',cvcLabel:'CVC',cvcPh:'123',nameLabel:'持卡人姓名',namePh:'全名',docLabel:'证件',docPh:'证件号码',btn:'订阅',processing:'处理中...',secure:'100%安全支付',secureLeft:'100%安全支付',secureLeftDesc:'数据受SSL加密保护。',feat1t:'即时访问仪表盘',feat1d:'凭证通过邮件发送。',feat2t:'WhatsApp AI助手',feat2d:'AI全天候服务会员。',feat3t:'完整会员管理',feat3d:'注册、成长追踪和家谱。',feat4t:'无限通知',feat4d:'直接WhatsApp沟通，无需群组。',feat5t:'小组与出勤管理',feat5d:'自动实时报告。',feat6t:'包含更新',feat6d:'持续改进，无额外费用。',errLuhn:'无效号码',errLen:'长度不正确',errBrand:'品牌未识别',errExpiry:'无效或已过期',footer:'© 2024 Basileia Vendas',backInfo:'卡片归发卡机构所有。如丢失，请联系客服。'},
+            ko:{badge:'프로페셔널 플랜 활성화',plan:'월간 플랜',billing:'월간 청구',title:'안전한 결제',via:'결제 방법:',chip:'신용카드',emailLabel:'접속 이메일',emailHelper:'이 이메일로 자격 증명 수신',emailPh:'your@email.com',cardLabel:'카드 번호',cardPh:'0000 0000 0000 0000',expiryLabel:'만료일',expiryPh:'mm/yy',cvcLabel:'CVC',cvcPh:'123',nameLabel:'카드 이름',namePh:'전체 이름',docLabel:'문서',docPh:'문서 번호',btn:'구독하기',processing:'처리 중...',secure:'100% 안전 결제',secureLeft:'100% 안전 결제',secureLeftDesc:'SSL 암호화로 데이터 보호.',feat1t:'즉시 대시보드 액세스',feat1d:'이메일로 자격 증명 발송.',feat2t:'WhatsApp AI 비서',feat2d:'AI로 24시간 회원 대응.',feat3t:'완전한 회원 관리',feat3d:'등록, 성장 추적 및 가계도.',feat4t:'무제한 알림',feat4d:'그룹 없이 직접 WhatsApp 소통.',feat5t:'셀 그룹 및 출석 관리',feat5d:'자동 실시간 보고서.',feat6t:'업데이트 포함',feat6d:'추가 비용 없이 지속적 개선.',errLuhn:'잘못된 번호',errLen:'잘못된 길이',errBrand:'브랜드 미확인',errExpiry:'잘못되었거나 만료됨',footer:'© 2024 Basileia Vendas',backInfo:'카드는 발급 기관의 재산입니다. 분실 시 고객센터로 연락하십시오.'},
+            ru:{badge:'ПРОФЕССИОНАЛЬНЫЙ ПЛАН АКТИВИРОВАН',plan:'Ежемесячный план',billing:'ЕЖЕМЕСЯЧНАЯ ОПЛАТА',title:'Безопасная оплата',via:'СПОСОБ ОПЛАТЫ:',chip:'КРЕДИТНАЯ КАРТА',emailLabel:'EMAIL ДОСТУПА',emailHelper:'Получите учетные данные на этот email',emailPh:'your@email.com',cardLabel:'НОМЕР КАРТЫ',cardPh:'0000 0000 0000 0000',expiryLabel:'СРОК',expiryPh:'mm/yy',cvcLabel:'CVC',cvcPh:'123',nameLabel:'ИМЯ НА КАРТЕ',namePh:'полное имя',docLabel:'ДОКУМЕНТ',docPh:'номер документа',btn:'Подписаться за',processing:'Обработка...',secure:'100% Безопасная оплата',secureLeft:'100% Безопасная оплата',secureLeftDesc:'Данные защищены SSL-шифрованием.',feat1t:'Мгновенный доступ к панели',feat1d:'Учётные данные на email.',feat2t:'AI-ассистент в WhatsApp',feat2d:'Обслуживание участников 24/7 с ИИ.',feat3t:'Полное управление участниками',feat3d:'Регистрация, отслеживание роста и генеалогия.',feat4t:'Безлимитные уведомления',feat4d:'Прямая связь через WhatsApp без групп.',feat5t:'Контроль групп и посещаемости',feat5d:'Автоматические отчёты в реальном времени.',feat6t:'Обновления включены',feat6d:'Постоянные улучшения без доплат.',errLuhn:'Неверный номер',errLen:'Неверная длина',errBrand:'Бренд не определен',errExpiry:'Неверная или истекшая дата',footer:'© 2024 Basileia Vendas',backInfo:'Карта является собственностью эмитента. При утере обратитесь в службу поддержки.'},
+            ar:{badge:'الخطة المهنية مفعّلة',plan:'الخطة الشهرية',billing:'الفوترة الشهرية',title:'الدفع الآمن',via:'طريقة الدفع:',chip:'بطاقة ائتمان',emailLabel:'البريد الإلكتروني',emailHelper:'استلم بياناتك على هذا البريد',emailPh:'your@email.com',cardLabel:'رقم البطاقة',cardPh:'0000 0000 0000 0000',expiryLabel:'تاريخ الانتهاء',expiryPh:'mm/yy',cvcLabel:'CVC',cvcPh:'123',nameLabel:'الاسم على البطاقة',namePh:'الاسم الكامل',docLabel:'المستند',docPh:'رقم المستند',btn:'اشترك بـ',processing:'جارٍ المعالجة...',secure:'دفع آمن 100%',secureLeft:'دفع آمن 100%',secureLeftDesc:'البيانات محمية بتشفير SSL.',feat1t:'وصول فوري للوحة التحكم',feat1d:'بيانات الدخول عبر البريد.',feat2t:'مساعد ذكي على واتساب',feat2d:'خدمة الأعضاء 24/7 بالذكاء الاصطناعي.',feat3t:'إدارة كاملة للأعضاء',feat3d:'تسجيلات وتتبع النمو وشجرة العائلة.',feat4t:'إشعارات غير محدودة',feat4d:'تواصل مباشر عبر واتساب بدون مجموعات.',feat5t:'التحكم في الخلايا والحضور',feat5d:'تقارير تلقائية فورية.',feat6t:'التحديثات مشمولة',feat6d:'تحسينات مستمرة بدون تكلفة إضافية.',errLuhn:'رقم غير صالح',errLen:'طول غير صحيح',errBrand:'العلامة غير معروفة',errExpiry:'تاريخ غير صالح أو منتهي',footer:'© 2024 Basileia Vendas',backInfo:'البطاقة ملك للمُصدر. في حال الفقدان، اتصل بخدمة العملاء.'}
+        },
+        cardNumber:'',cardExpiry:'',cardCvv:'',cardHolder:'',
+        detectedBrand:'default',cd:null,isFlipped:false,isProcessing:false,
+        vs:{number:'',expiry:'',cvv:'',holder:''},
+        get cc(){return this.countries.find(x=>x.code===this.country)||this.countries[0]},
+        get cl(){return this.cc.lang||'pt'},
+        get t(){return this.i18n[this.cl]||this.i18n.pt},
+        get brands(){return this.cc.brands||['visa','mastercard','elo','amex']},
+        get priceVal(){try{return this.cc.base.toLocaleString(this.cl+'-'+this.cc.code,{minimumFractionDigits:2,maximumFractionDigits:2})}catch(e){return this.cc.base.toFixed(2).replace('.',',')}},
+        get showDoc(){return this.cc.doc},
+        get docLabel(){return this.cc.docLabel||this.t.docLabel},
+        get docPh(){return this.cc.docPh||this.t.docPh},
+        get docMax(){return this.cc.docMax||20},
+        get dispNum(){if(!this.cardNumber)return'•••• •••• •••• ••••';const d=this.cardNumber.replace(/\D/g,'').substring(0,19);const g=(d.match(/.{1,4}/g)||[]).join(' ');return g.padEnd(19,'•')},
+        get dispExpiry(){return this.cardExpiry||'mm/aa'},
+        get dispHolder(){return this.cardHolder?this.cardHolder.toUpperCase():'FULL NAME'},
+        get dispCvv(){return this.cardCvv||'•••'},
+        setCountry(c){this.country=c;document.documentElement.lang=this.cl+'-'+c},
+        onCard(e){const r=e.target.value.replace(/\D/g,'').substring(0,19);this.cardNumber=r;const d=r.replace(/\D/g,'');const g=(d.match(/.{1,4}/g)||[]).join(' ');e.target.value=g;if(window.CardEngine){this.cd=window.CardEngine.detectCard(r);if(r.length>=6&&this.cd.brand&&this.cd.brand!=='unknown')this.detectedBrand=this.cd.brand;else this.detectedBrand='default';if(this.cd.brand==='unknown')this.vs.number='invalid';else if(this.cd.valid)this.vs.number='valid';else if(r.length>=6)this.vs.number='partial';else this.vs.number=''}else{if(r.length>=6){if(/^4/.test(d))this.detectedBrand='visa';else if(/^5[1-5]/.test(d)||/^2[2-7]/.test(d))this.detectedBrand='mastercard';else if(/^3[47]/.test(d))this.detectedBrand='amex';else if(/^(636368|438935|504175|451416|636297|5067|4576|4011)/.test(d))this.detectedBrand='elo';else if(/^(606282|3841)/.test(d))this.detectedBrand='hipercard';else this.detectedBrand='default'}else this.detectedBrand='default'}},
+        onExpiry(e){let r=e.target.value.replace(/\D/g,'').substring(0,4);if(r.length>=2){let m=parseInt(r.substring(0,2));if(m>12)m=12;if(m<1&&r.substring(0,2)!=='0')m=1;r=String(m).padStart(2,'0')+r.substring(2);r=r.substring(0,2)+'/'+r.substring(2)}this.cardExpiry=r;e.target.value=r;if(r.length===5){const[m,y]=r.split('/');const n=new Date();const ey=2000+parseInt(y),em=parseInt(m);if(em<1||em>12)this.vs.expiry='invalid';else if(ey<n.getFullYear()||(ey===n.getFullYear()&&em<n.getMonth()+1))this.vs.expiry='invalid';else this.vs.expiry='valid'}else this.vs.expiry=''},
+        onCvv(e){const mx=this.cd?.cvvLength||3;const r=e.target.value.replace(/\D/g,'').substring(0,mx);this.cardCvv=r;e.target.value=r;if(r.length===mx)this.vs.cvv='valid';else if(r.length>0)this.vs.cvv='partial';else this.vs.cvv=''},
+        onName(e){this.cardHolder=e.target.value.replace(/[^a-zA-Z\s]/g,'').toUpperCase();this.vs.holder=this.cardHolder.trim().length>=3?'valid':''},
+        vc(f){const s=this.vs[f];return s==='valid'?'input-valid':s==='invalid'?'input-error':''},
+        handleSubmit(e){e.preventDefault();if(this.isProcessing)return;this.isProcessing=true;setTimeout(()=>{alert('✅ Token gerado!\nBandeira: '+(this.cd?.brand||'?')+'\nÚltimos 4: '+this.cardNumber.slice(-4));this.isProcessing=false},1500)}
+    }}
+    </script>
+</body>
+</html>

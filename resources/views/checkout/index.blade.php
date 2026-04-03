@@ -6,9 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $transaction->description ?? 'Pagamento' }} - Basileia</title>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="/js/card-engine.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -17,14 +18,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background:
-                radial-gradient(circle at 10% 85%, rgba(120,80,200,0.15), transparent 30%),
-                radial-gradient(circle at 90% 15%, rgba(255,255,255,0.25), transparent 25%),
-                #efedf6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6b3fa0 100%);
+            padding: 20px;
         }
         .main-card {
             width: 1100px;
-            height: 650px;
+            min-height: 650px;
             border-radius: 28px;
             overflow: hidden;
             background: #fff;
@@ -69,16 +68,8 @@
             justify-content: center;
             overflow: hidden;
         }
-        .brand-logo img {
-            width: 48px;
-            height: 48px;
-            object-fit: contain;
-        }
-        .brand-text {
-            color: #fff;
-            font-size: 28px;
-            font-weight: 700;
-        }
+        .brand-logo img { width: 48px; height: 48px; object-fit: contain; }
+        .brand-text { color: #fff; font-size: 28px; font-weight: 700; }
         .plan-badge {
             display: inline-block;
             padding: 10px 24px;
@@ -221,7 +212,11 @@
         }
         .form-input::placeholder { color: #a99fbb; }
         .form-input:focus { outline: none; border-color: #7b2ff7; box-shadow: 0 0 0 3px rgba(123,47,247,0.08); }
+        .form-input.input-error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+        .form-input.input-valid { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
         .form-helper { color: #9d94ae; font-size: 12px; margin-top: 4px; margin-bottom: 10px; }
+        .form-error { color: #ef4444; font-size: 12px; margin-top: 4px; margin-bottom: 10px; display: none; }
+        .form-error.visible { display: block; }
         .form-group { margin-bottom: 10px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .cta-button {
@@ -234,12 +229,13 @@
             font-size: 15px;
             font-weight: 700;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
             box-shadow: 0 6px 16px rgba(123,47,247,0.25);
             margin-top: 8px;
             font-family: 'Inter', sans-serif;
         }
         .cta-button:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(123,47,247,0.35); }
+        .cta-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         .security-footer {
             display: flex;
             align-items: center;
@@ -258,43 +254,295 @@
             font-size: 12px;
             white-space: nowrap;
         }
+
+        /* ===== 3D CARD ===== */
+        .card-scene {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 340px;
+            height: 200px;
+            margin: 0 auto 24px;
+            cursor: pointer;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+        }
+        .card-inner.is-flipped { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .card-front {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 24px;
+            color: #fff;
+        }
+        .card-back {
+            transform: rotateY(180deg);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .card-back-bg {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+        }
+        .card-back-magnetic {
+            height: 45px;
+            background: rgba(0,0,0,0.6);
+            margin-top: 30px;
+        }
+        .card-back-strip {
+            height: 36px;
+            background: rgba(255,255,255,0.9);
+            margin: 16px 20px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 16px;
+            position: relative;
+        }
+        .card-back-strip .cvc-display {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 18px;
+            color: #333;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+        .card-back-strip .cvc-highlight {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 28px;
+            border: 2px dashed rgba(255,255,255,0.8);
+            border-radius: 4px;
+            pointer-events: none;
+            animation: cvcPulse 1.5s ease-in-out infinite;
+        }
+        @keyframes cvcPulse {
+            0%, 100% { border-color: rgba(255,255,255,0.5); }
+            50% { border-color: rgba(255,255,255,1); box-shadow: 0 0 10px rgba(255,255,255,0.4); }
+        }
+        .card-back-info {
+            padding: 0 20px;
+            font-size: 9px;
+            color: rgba(255,255,255,0.7);
+            line-height: 1.5;
+        }
+        .card-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        .card-chip {
+            width: 45px;
+            height: 34px;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #f0c040, #d4a020);
+            position: relative;
+            overflow: hidden;
+        }
+        .card-chip::before {
+            content: '';
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            height: 1px;
+            background: rgba(0,0,0,0.15);
+        }
+        .card-chip::after {
+            content: '';
+            position: absolute;
+            left: 50%; top: 0; bottom: 0;
+            width: 1px;
+            background: rgba(0,0,0,0.15);
+        }
+        .card-contactless { width: 30px; height: 30px; opacity: 0.7; }
+        .card-contactless svg { width: 100%; height: 100%; }
+        .card-brand-logo { height: 36px; display: flex; align-items: center; }
+        .card-brand-logo svg { height: 100%; width: auto; }
+        .card-number-display {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 20px;
+            letter-spacing: 3px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+            word-spacing: 8px;
+        }
+        .card-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .card-holder-display {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.9;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .card-holder-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 2px;
+        }
+        .card-expiry-display { text-align: right; }
+        .card-expiry-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 2px;
+        }
+        .card-expiry-value {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+        .card-shine {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.05) 100%);
+            pointer-events: none;
+        }
+        .card-pattern {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            opacity: 0.08;
+            background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        /* Brand colors */
+        .brand-visa { background: linear-gradient(135deg, #1a1f71, #2b3990, #1a1f71); }
+        .brand-mastercard { background: linear-gradient(135deg, #eb001b, #f79e1b); }
+        .brand-amex { background: linear-gradient(135deg, #006fcf, #00a1e0); }
+        .brand-elo { background: linear-gradient(135deg, #0047bb, #0066cc); }
+        .brand-hipercard { background: linear-gradient(135deg, #822124, #a0292d); }
+        .brand-diners { background: linear-gradient(135deg, #004a97, #0066cc); }
+        .brand-discover { background: linear-gradient(135deg, #ff6000, #ff8800); }
+        .brand-jcb { background: linear-gradient(135deg, #0e4c96, #1a6bc4); }
+        .brand-cabal { background: linear-gradient(135deg, #003366, #005599); }
+        .brand-banescard { background: linear-gradient(135deg, #006633, #009944); }
+        .brand-default { background: linear-gradient(135deg, #2d2d2d, #4a4a4a); }
+
+        .card-scene:hover .card-inner { transform: rotateY(5deg) rotateX(-3deg); }
+        .card-scene:hover .card-inner.is-flipped { transform: rotateY(185deg) rotateX(-3deg); }
+
+        /* Validation badge */
+        .validation-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        .validation-badge.valid { background: #dcfce7; color: #166534; }
+        .validation-badge.invalid { background: #fee2e2; color: #991b1b; }
+        .validation-badge.partial { background: #fef3c7; color: #92400e; }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            border-radius: 28px;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e1dbe9;
+            border-top-color: #7b2ff7;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .main-card {
+                grid-template-columns: 1fr;
+                width: 100%;
+                min-height: auto;
+            }
+            .left-panel { padding: 30px 24px; }
+            .right-panel { padding: 24px; }
+            .plan-title { font-size: 32px; }
+            .price-value { font-size: 40px; }
+            .card-scene { max-width: 300px; height: 180px; }
+        }
     </style>
 </head>
 <body
     x-data="{
         country: 'BR',
         cfg: null,
+        cardNumber: '',
+        cardExpiry: '',
+        cardCvv: '',
+        cardHolder: '',
+        detectedBrand: 'default',
+        cardDetection: null,
+        isFlipped: false,
+        isProcessing: false,
+        cardToken: null,
+        validationState: { number: '', expiry: '', cvv: '', holder: '' },
         countries: [
             {code:'BR',name:'Brasil',flag:'🇧🇷'},{code:'US',name:'United States',flag:'🇺🇸'},
-            {code:'PT',name:'Portugal',flag:'🇵🇹'},{code:'ES',name:'España',flag:'🇪🇸'},
+            {code:'PT',name:'Portugal',flag:'🇵🇹'},{code:'ES',name:'España',flag:'🇪'},
             {code:'GB',name:'United Kingdom',flag:'🇬🇧'},{code:'FR',name:'France',flag:'🇫🇷'},
-            {code:'DE',name:'Deutschland',flag:'🇩🇪'},{code:'IT',name:'Italia',flag:'🇮🇹'},
-            {code:'MX',name:'México',flag:'🇲🇽'},{code:'AR',name:'Argentina',flag:'🇦🇷'},
+            {code:'DE',name:'Deutschland',flag:'🇩'},{code:'IT',name:'Italia',flag:'🇮🇹'},
+            {code:'MX',name:'México',flag:'🇲'},{code:'AR',name:'Argentina',flag:'🇦🇷'},
             {code:'CL',name:'Chile',flag:'🇨🇱'},{code:'CO',name:'Colombia',flag:'🇨🇴'},
             {code:'PE',name:'Perú',flag:'🇵🇪'},{code:'EC',name:'Ecuador',flag:'🇪🇨'},
             {code:'PY',name:'Paraguay',flag:'🇵🇾'},{code:'UY',name:'Uruguay',flag:'🇺🇾'},
             {code:'BO',name:'Bolivia',flag:'🇧🇴'},{code:'VE',name:'Venezuela',flag:'🇻🇪'},
             {code:'CA',name:'Canada',flag:'🇨🇦'},{code:'AU',name:'Australia',flag:'🇦🇺'},
             {code:'JP',name:'Japan',flag:'🇯🇵'},{code:'CN',name:'China',flag:'🇨🇳'},
-            {code:'KR',name:'South Korea',flag:'🇰🇷'},{code:'IN',name:'India',flag:'🇮🇳'},
-            {code:'ZA',name:'South Africa',flag:'🇿🇦'},{code:'NG',name:'Nigeria',flag:'🇳🇬'},
-            {code:'KE',name:'Kenya',flag:'🇰🇪'},{code:'GH',name:'Ghana',flag:'🇬🇭'},
-            {code:'AO',name:'Angola',flag:'🇦🇴'},{code:'MZ',name:'Moçambique',flag:'🇲🇿'},
+            {code:'KR',name:'South Korea',flag:'🇰🇷'},{code:'IN',name:'India',flag:'🇮'},
+            {code:'ZA',name:'South Africa',flag:'🇿🇦'},{code:'NG',name:'Nigeria',flag:'🇳'},
+            {code:'KE',name:'Kenya',flag:'🇰🇪'},{code:'GH',name:'Ghana',flag:'🇬'},
+            {code:'AO',name:'Angola',flag:'🇦🇴'},{code:'MZ',name:'Moçambique',flag:'🇲'},
             {code:'RW',name:'Rwanda',flag:'🇷🇼'},{code:'TZ',name:'Tanzania',flag:'🇹🇿'},
-            {code:'NL',name:'Nederland',flag:'🇳🇱'},{code:'BE',name:'België',flag:'🇧🇪'},
+            {code:'NL',name:'Nederland',flag:'🇳'},{code:'BE',name:'België',flag:'🇧'},
             {code:'CH',name:'Schweiz',flag:'🇨🇭'},{code:'AT',name:'Österreich',flag:'🇦🇹'},
             {code:'SE',name:'Sverige',flag:'🇸🇪'},{code:'NO',name:'Norge',flag:'🇳🇴'},
-            {code:'DK',name:'Danmark',flag:'🇩🇰'},{code:'FI',name:'Suomi',flag:'🇫🇮'},
+            {code:'DK',name:'Danmark',flag:'🇩🇰'},{code:'FI',name:'Suomi',flag:'🇫'},
             {code:'PL',name:'Polska',flag:'🇵🇱'},{code:'CZ',name:'Česko',flag:'🇨🇿'},
             {code:'HU',name:'Magyarország',flag:'🇭🇺'},{code:'RO',name:'România',flag:'🇷🇴'},
             {code:'GR',name:'Ελλάδα',flag:'🇬🇷'},{code:'TR',name:'Türkiye',flag:'🇹🇷'},
             {code:'RU',name:'Россия',flag:'🇷🇺'},{code:'UA',name:'Україна',flag:'🇺🇦'},
-            {code:'IL',name:'ישראל',flag:'🇮🇱'},{code:'SA',name:'المملكة العربية السعودية',flag:'🇸🇦'},
+            {code:'IL',name:'ישראל',flag:'🇮🇱'},{code:'SA',name:'المملكة العربية السعودية',flag:'🇸'},
             {code:'AE',name:'الإمارات',flag:'🇦🇪'},{code:'EG',name:'مصر',flag:'🇪🇬'},
             {code:'TH',name:'ประเทศไทย',flag:'🇹🇭'},{code:'VN',name:'Việt Nam',flag:'🇻🇳'},
-            {code:'PH',name:'Philippines',flag:'🇵🇭'},{code:'ID',name:'Indonesia',flag:'🇮🇩'},
+            {code:'PH',name:'Philippines',flag:'🇵🇭'},{code:'ID',name:'Indonesia',flag:'🇮'},
             {code:'MY',name:'Malaysia',flag:'🇲🇾'},{code:'SG',name:'Singapore',flag:'🇸🇬'},
-            {code:'NZ',name:'New Zealand',flag:'🇳🇿'}
+            {code:'NZ',name:'New Zealand',flag:'🇳'}
         ],
         localeData: {},
         init() {
@@ -401,44 +649,21 @@
                 const langCode = lang.split('-')[0].toLowerCase();
                 const countryCode = (lang.split('-')[1] || '').toUpperCase();
                 const langToCountry = {
-                    pt: ['BR','PT','AO','MZ'],
-                    en: ['US','GB','CA','AU','NZ','SG','PH'],
+                    pt: ['BR','PT','AO','MZ'], en: ['US','GB','CA','AU','NZ','SG','PH'],
                     es: ['ES','MX','AR','CL','CO','PE','EC','PY','UY','BO','VE'],
-                    fr: ['FR','BE'],
-                    de: ['DE','AT','CH'],
-                    it: ['IT'],
-                    ja: ['JP'],
-                    ko: ['KR'],
-                    zh: ['CN'],
-                    nl: ['NL'],
-                    sv: ['SE'],
-                    nb: ['NO'],
-                    da: ['DK'],
-                    fi: ['FI'],
-                    pl: ['PL'],
-                    cs: ['CZ'],
-                    hu: ['HU'],
-                    ro: ['RO'],
-                    el: ['GR'],
-                    tr: ['TR'],
-                    ru: ['RU'],
-                    uk: ['UA'],
-                    he: ['IL'],
-                    ar: ['SA','AE','EG'],
-                    th: ['TH'],
-                    vi: ['VN'],
-                    id: ['ID'],
-                    hi: ['IN'],
-                    sw: ['KE','TZ','RW'],
+                    fr: ['FR','BE'], de: ['DE','AT','CH'], it: ['IT'], ja: ['JP'],
+                    ko: ['KR'], zh: ['CN'], nl: ['NL'], sv: ['SE'], nb: ['NO'],
+                    da: ['DK'], fi: ['FI'], pl: ['PL'], cs: ['CZ'], hu: ['HU'],
+                    ro: ['RO'], el: ['GR'], tr: ['TR'], ru: ['RU'], uk: ['UA'],
+                    he: ['IL'], ar: ['SA','AE','EG'], th: ['TH'], vi: ['VN'],
+                    id: ['ID'], hi: ['IN'], sw: ['KE','TZ','RW'],
                 };
                 if (countryCode && this.countries.find(c => c.code === countryCode)) {
                     this.country = countryCode;
                 } else if (langToCountry[langCode] && langToCountry[langCode][0]) {
                     this.country = langToCountry[langCode][0];
                 }
-            } catch(e) {
-                this.country = 'BR';
-            }
+            } catch(e) { this.country = 'BR'; }
         },
         buildConfig() {
             const p = this.localeData.priceTable[this.country] || this.localeData.priceTable.BR;
@@ -447,9 +672,7 @@
             const f = this.localeData.featureDefaults[lang] || this.localeData.featureDefaults.pt;
             this.cfg = {
                 locale: this.getLocale(this.country, lang),
-                currency: p.currency,
-                symbol: p.symbol,
-                amount: p.amount,
+                currency: p.currency, symbol: p.symbol, amount: p.amount,
                 billingLabel: d.billingLabel[lang] || d.billingLabel.pt,
                 btnPrefix: d.btnPrefix[lang] || d.btnPrefix.pt,
                 emailLabel: d.emailLabel[lang] || d.emailLabel.pt,
@@ -467,9 +690,7 @@
                 badge: d.badge[lang] || d.badge.pt,
                 planName: d.planName[lang] || d.planName.pt,
                 docLabel: d.docLabel[lang] || d.docLabel.pt,
-                showDoc: p.showDoc,
-                docPlaceholder: p.docPlaceholder,
-                docMax: p.docMax,
+                showDoc: p.showDoc, docPlaceholder: p.docPlaceholder, docMax: p.docMax,
                 features: f
             };
         },
@@ -482,14 +703,184 @@
             catch(e) { return this.cfg.symbol + ' ' + this.cfg.amount.toFixed(2); }
         },
         fmtDec() {
+            try { return this.cfg.amount.toLocaleString(this.cfg.locale, {minimumFractionDigits:2, maximumFractionDigits:2}); }
+            catch(e) { return this.cfg.amount.toFixed(2).replace('.',','); }
+        },
+        formatCardNumber(value) {
+            const digits = value.replace(/\D/g, '').substring(0, 19);
+            const groups = digits.match(/.{1,4}/g) || [];
+            return groups.join(' ');
+        },
+        getDisplayNumber() {
+            if (!this.cardNumber) return '•••• •••• •••• ••••';
+            const formatted = this.formatCardNumber(this.cardNumber);
+            const padded = formatted.padEnd(19, '•');
+            return padded;
+        },
+        getDisplayExpiry() {
+            if (!this.cardExpiry) return 'MM/AA';
+            return this.cardExpiry;
+        },
+        getDisplayHolder() {
+            if (!this.cardHolder) return 'FULL NAME';
+            return this.cardHolder.toUpperCase();
+        },
+        getDisplayCvv() {
+            if (!this.cardCvv) return '•••';
+            return this.cardCvv;
+        },
+        handleCardNumberInput(e) {
+            const raw = e.target.value.replace(/\D/g, '').substring(0, 19);
+            this.cardNumber = raw;
+            e.target.value = this.formatCardNumber(raw);
+            if (window.CardEngine) {
+                this.cardDetection = window.CardEngine.detectCard(raw);
+                this.detectedBrand = this.cardDetection.brand || 'default';
+                if (this.cardDetection.brand === 'unknown') {
+                    this.validationState.number = 'invalid';
+                } else if (this.cardDetection.valid) {
+                    this.validationState.number = 'valid';
+                } else if (raw.length >= 6) {
+                    this.validationState.number = 'partial';
+                } else {
+                    this.validationState.number = '';
+                }
+            } else {
+                this.detectedBrand = this.detectBrandFallback(raw);
+            }
+        },
+        detectBrandFallback(number) {
+            const digits = number.replace(/\D/g, '');
+            if (/^4/.test(digits)) return 'visa';
+            if (/^5[1-5]/.test(digits) || /^2[2-7]/.test(digits)) return 'mastercard';
+            if (/^3[47]/.test(digits)) return 'amex';
+            if (/^(636368|438935|504175|451416|636297|5067|4576|4011)/.test(digits)) return 'elo';
+            if (/^(606282|3841)/.test(digits)) return 'hipercard';
+            if (/^3(0[0-5]|[68])/.test(digits)) return 'diners';
+            if (/^6(?:011|5)/.test(digits)) return 'discover';
+            if (/^(?:2131|1800|35)/.test(digits)) return 'jcb';
+            return 'default';
+        },
+        handleExpiryInput(e) {
+            let raw = e.target.value.replace(/\D/g, '').substring(0, 4);
+            if (raw.length >= 2) {
+                let month = parseInt(raw.substring(0, 2));
+                if (month > 12) month = 12;
+                if (month < 1 && raw.substring(0, 2) !== '0') month = 1;
+                raw = String(month).padStart(2, '0') + raw.substring(2);
+                raw = raw.substring(0, 2) + '/' + raw.substring(2);
+            }
+            this.cardExpiry = raw;
+            e.target.value = raw;
+            if (raw.length === 5) {
+                const [m, y] = raw.split('/');
+                const now = new Date();
+                const expYear = 2000 + parseInt(y);
+                const expMonth = parseInt(m);
+                if (expMonth < 1 || expMonth > 12) {
+                    this.validationState.expiry = 'invalid';
+                } else if (expYear < now.getFullYear() || (expYear === now.getFullYear() && expMonth < now.getMonth() + 1)) {
+                    this.validationState.expiry = 'invalid';
+                } else {
+                    this.validationState.expiry = 'valid';
+                }
+            } else {
+                this.validationState.expiry = '';
+            }
+        },
+        handleCvvInput(e) {
+            const maxLen = this.cardDetection?.cvvLength || 3;
+            const raw = e.target.value.replace(/\D/g, '').substring(0, maxLen);
+            this.cardCvv = raw;
+            e.target.value = raw;
+            if (raw.length === maxLen) {
+                this.validationState.cvv = 'valid';
+            } else if (raw.length > 0) {
+                this.validationState.cvv = 'partial';
+            } else {
+                this.validationState.cvv = '';
+            }
+        },
+        handleHolderInput(e) {
+            this.cardHolder = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+            if (this.cardHolder.trim().length >= 3) {
+                this.validationState.holder = 'valid';
+            } else {
+                this.validationState.holder = '';
+            }
+        },
+        flipCard() { this.isFlipped = !this.isFlipped; },
+        focusCvv() { this.isFlipped = true; },
+        blurCvv() { this.isFlipped = false; },
+        getValidationClass(field) {
+            const state = this.validationState[field];
+            if (state === 'valid') return 'input-valid';
+            if (state === 'invalid') return 'input-error';
+            return '';
+        },
+        getValidationBadge(field) {
+            const state = this.validationState[field];
+            if (state === 'valid') return '<span class=\"validation-badge valid\">✓ Válido</span>';
+            if (state === 'invalid') return '<span class=\"validation-badge invalid\">✗ Inválido</span>';
+            if (state === 'partial') return '<span class=\"validation-badge partial\">⏳ Verificando</span>';
+            return '';
+        },
+        isFormValid() {
+            return this.validationState.number === 'valid' &&
+                   this.validationState.expiry === 'valid' &&
+                   this.validationState.cvv === 'valid' &&
+                   this.validationState.holder === 'valid' &&
+                   this.cardCvv.length > 0;
+        },
+        async handleSubmit(e) {
+            e.preventDefault();
+            if (!this.isFormValid() || this.isProcessing) return;
+
+            this.isProcessing = true;
+
             try {
-                return this.cfg.amount.toLocaleString(this.cfg.locale, {minimumFractionDigits:2, maximumFractionDigits:2});
-            } catch(e) { return this.cfg.amount.toFixed(2).replace('.',','); }
+                const tokenResult = await window.CardEngine.tokenizeCard({
+                    card_number: this.cardNumber,
+                    card_holder_name: this.cardHolder,
+                    card_expiry: this.cardExpiry,
+                    card_cvv: this.cardCvv,
+                });
+
+                if (tokenResult.success) {
+                    this.cardToken = tokenResult.token;
+                    const form = e.target;
+                    const tokenInput = document.createElement('input');
+                    tokenInput.type = 'hidden';
+                    tokenInput.name = 'card_token';
+                    tokenInput.value = tokenResult.token.id;
+                    form.appendChild(tokenInput);
+
+                    const brandInput = document.createElement('input');
+                    brandInput.type = 'hidden';
+                    brandInput.name = 'card_brand';
+                    brandInput.value = tokenResult.token.brand;
+                    form.appendChild(brandInput);
+
+                    const last4Input = document.createElement('input');
+                    last4Input.type = 'hidden';
+                    last4Input.name = 'card_last4';
+                    last4Input.value = tokenResult.token.last4;
+                    form.appendChild(last4Input);
+
+                    form.submit();
+                } else {
+                    alert(tokenResult.error || 'Erro ao processar cartão');
+                    this.isProcessing = false;
+                }
+            } catch (err) {
+                console.error('Tokenization error:', err);
+                const form = e.target;
+                form.submit();
+            }
         }
     }"
 >
     <section class="main-card">
-        <!-- LEFT -->
         <div class="left-panel">
             <div class="brand">
                 <div class="brand-logo">
@@ -527,7 +918,6 @@
             </div>
         </div>
 
-        <!-- RIGHT -->
         <div class="right-panel">
             <div class="locale-switcher">
                 <select @change="switchCountry($event.target.value)" x-model="country">
@@ -541,7 +931,90 @@
                 <span class="payment-label" x-text="cfg.viaLabel"></span>
                 <span class="payment-chip" x-text="cfg.chipLabel"></span>
             </div>
-            <form method="POST" action="{{ route('checkout.process', $transaction->uuid) }}">
+
+            <div class="card-scene" @click="flipCard()">
+                <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
+                    <div class="card-face card-front" :class="'brand-' + detectedBrand">
+                        <div class="card-pattern"></div>
+                        <div class="card-shine"></div>
+                        <div class="card-top-row">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div class="card-chip"></div>
+                                <div class="card-contactless">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2">
+                                        <path d="M8.5 16.5a5 5 0 0 1 0-9"/>
+                                        <path d="M12 19a8 8 0 0 0 0-14"/>
+                                        <path d="M15.5 21.5a11 11 0 0 0 0-19"/>
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="card-brand-logo">
+                                <template x-if="detectedBrand === 'visa'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="22" font-size="18" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif" font-style="italic">VISA</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'mastercard'">
+                                    <svg viewBox="0 0 80 30">
+                                        <circle cx="30" cy="15" r="10" fill="#EB001B" opacity="0.9"/>
+                                        <circle cx="50" cy="15" r="10" fill="#F79E1B" opacity="0.9"/>
+                                        <path d="M40 7.5a10 10 0 0 1 0 15 10 10 0 0 1 0-15z" fill="#FF5F00" opacity="0.8"/>
+                                    </svg>
+                                </template>
+                                <template x-if="detectedBrand === 'amex'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="13" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">AMEX</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'elo'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="16" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">ELO</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'hipercard'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">HIPER</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'diners'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="10" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">DINERS</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'discover'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">DISCOVER</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'jcb'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">JCB</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'cabal'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">CABAL</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'banescard'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="9" font-weight="bold" fill="#fff" text-anchor="middle" font-family="Inter,sans-serif">BANES</text></svg>
+                                </template>
+                                <template x-if="detectedBrand === 'default'">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="12" font-weight="bold" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-family="Inter,sans-serif">CARD</text></svg>
+                                </template>
+                            </div>
+                        </div>
+                        <div class="card-number-display" x-text="getDisplayNumber()"></div>
+                        <div class="card-bottom-row">
+                            <div>
+                                <div class="card-holder-label">CARD HOLDER</div>
+                                <div class="card-holder-display" x-text="getDisplayHolder()"></div>
+                            </div>
+                            <div class="card-expiry-display">
+                                <div class="card-expiry-label">EXPIRES</div>
+                                <div class="card-expiry-value" x-text="getDisplayExpiry()"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-face card-back">
+                        <div class="card-back-bg" :class="'brand-' + detectedBrand"></div>
+                        <div class="card-back-magnetic"></div>
+                        <div class="card-back-strip">
+                            <span class="cvc-display" x-text="getDisplayCvv()"></span>
+                            <div class="cvc-highlight"></div>
+                        </div>
+                        <div class="card-back-info">
+                            Este cartão é propriedade do emissor. Uso sujeito ao contrato. Em caso de perda, ligue para o SAC.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="POST" action="{{ route('checkout.process', $transaction->uuid) }}" @submit.prevent="handleSubmit($event)">
                 @csrf
                 <input type="hidden" name="payment_method" value="credit_card">
                 <div class="form-group">
@@ -551,28 +1024,42 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" x-text="cfg.cardLabel"></label>
-                    <input type="text" name="card_number" class="form-input" maxlength="19" placeholder="0000 0000 0000 0000" required>
+                    <input type="text" name="card_number" class="form-input" :class="getValidationClass('number')" maxlength="19" placeholder="0000 0000 0000 0000" required
+                        @input="handleCardNumberInput($event)">
+                    <div class="form-error" :class="{ visible: validationState.number === 'invalid' }">
+                        <span x-show="cardDetection && cardDetection.reason === 'luhn_failed'">Número do cartão inválido (falha na verificação)</span>
+                        <span x-show="cardDetection && cardDetection.reason === 'invalid_length'">Tamanho do número incorreto para esta bandeira</span>
+                        <span x-show="cardDetection && cardDetection.reason === 'brand_not_found'">Bandeira não identificada</span>
+                    </div>
                 </div>
                 <div class="form-row">
                     <div>
                         <label class="form-label" x-text="cfg.expiryLabel"></label>
-                        <input type="text" name="card_expiry" class="form-input" maxlength="5" placeholder="MM/AA" required>
+                        <input type="text" name="card_expiry" class="form-input" :class="getValidationClass('expiry')" maxlength="5" placeholder="MM/AA" required
+                            @input="handleExpiryInput($event)">
+                        <div class="form-error" :class="{ visible: validationState.expiry === 'invalid' }">Data de expiração inválida ou cartão expirado</div>
                     </div>
                     <div>
                         <label class="form-label" x-text="cfg.cvcLabel"></label>
-                        <input type="text" name="card_cvv" class="form-input" maxlength="4" placeholder="123" required>
+                        <input type="text" name="card_cvv" class="form-input" :class="getValidationClass('cvv')" :maxlength="cardDetection?.cvvLength || 3" placeholder="123" required
+                            @input="handleCvvInput($event)"
+                            @focus="focusCvv()"
+                            @blur="blurCvv()">
                     </div>
                 </div>
                 <div class="form-group" style="margin-top:6px;">
                     <label class="form-label" x-text="cfg.nameLabel"></label>
-                    <input type="text" name="card_holder_name" class="form-input" placeholder="FULL NAME" required style="text-transform:uppercase;">
+                    <input type="text" name="card_holder_name" class="form-input" :class="getValidationClass('holder')" placeholder="FULL NAME" required
+                        @input="handleHolderInput($event)"
+                        style="text-transform:uppercase;">
                 </div>
                 <div class="form-group" x-show="cfg.showDoc">
                     <label class="form-label" x-text="cfg.docLabel"></label>
                     <input type="text" name="cpf_cnpj" class="form-input" :maxlength="cfg.docMax" :placeholder="cfg.docPlaceholder" required>
                 </div>
-                <button type="submit" class="cta-button">
-                    <span x-text="cfg.btnPrefix + ' ' + fmt()"></span>
+                <button type="submit" class="cta-button" :disabled="!isFormValid() || isProcessing">
+                    <span x-show="!isProcessing" x-text="cfg.btnPrefix + ' ' + fmt()"></span>
+                    <span x-show="isProcessing">Processando...</span>
                 </button>
             </form>
             <div class="security-footer">
