@@ -8,8 +8,8 @@ fi
 echo "=== Starting Basileia Checkout ==="
 echo "DB_HOST=$DB_HOST"
 
-# Generate encryption key
-APP_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
+# Generate encryption key (fixed for production)
+APP_KEY="base64:$(php -r 'echo base64_encode(hash("sha256", "basileia-checkout-secret-key-2026", true));')"
 
 # Write .env file with key already set
 cat > .env << EOF
@@ -50,9 +50,25 @@ for i in $(seq 1 30); do
     sleep 2
 done
 
-# Create admin user
+# Create admin user and reset lock
 echo "Creating admin user..."
-php artisan tinker --execute='App\Models\User::firstOrCreate(["email"=>"admin@checkout.com"],["name"=>"Admin","password"=>bcrypt("Admin@123"),"role"=>"super_admin","status"=>"active","email_verified_at"=>now()]);' 2>&1 || true
+php artisan tinker --execute='
+    $user = App\Models\User::updateOrCreate(
+        ["email" => "admin@checkout.com"],
+        [
+            "name" => "Admin",
+            "password" => bcrypt("BasileiaCheck@2026!99[]09"),
+            "role" => "super_admin",
+            "status" => "active",
+            "email_verified_at" => now(),
+            "failed_login_attempts" => 0,
+            "locked_until" => null,
+            "must_change_password" => false,
+            "password_changed_at" => now(),
+        ]
+    );
+    echo "Admin: " . $user->email . PHP_EOL;
+' 2>&1 || true
 
 # Start server
 echo "Starting server on port 8000..."
