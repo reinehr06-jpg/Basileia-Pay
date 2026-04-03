@@ -1,15 +1,18 @@
 #!/bin/bash
 set -e
 
-echo "Waiting for database..."
-for i in $(seq 1 30); do
-    php artisan db:show --tries=1 2>/dev/null && break
-    echo "Database not ready, waiting... ($i/30)"
-    sleep 2
-done
+echo "=== Basileia Checkout Starting ==="
+echo "DB_HOST=$DB_HOST"
+echo "DB_DATABASE=$DB_DATABASE"
+echo "APP_ENV=$APP_ENV"
+
+echo "Clearing all caches..."
+rm -rf bootstrap/cache/*.php 2>/dev/null || true
 
 echo "Running migrations..."
-php artisan migrate --force --no-interaction 2>&1 || echo "Migration warning: some migrations may have failed"
+php artisan migrate --force --no-interaction 2>&1 || {
+    echo "WARNING: Migration failed, continuing anyway..."
+}
 
-echo "Starting application..."
+echo "Starting Laravel on port 8000..."
 exec "$@"
