@@ -7,12 +7,15 @@ fi
 
 echo "=== Starting Basileia Checkout ==="
 echo "DB_HOST=$DB_HOST"
-echo "DB_DATABASE=${DB_DATABASE:-checkout}"
 
-# Write .env file
+# Generate encryption key
+APP_KEY="base64:$(php -r 'echo base64_encode(random_bytes(32));')"
+
+# Write .env file with key already set
 cat > .env << EOF
 APP_NAME=Basileia
 APP_ENV=production
+APP_KEY=$APP_KEY
 APP_DEBUG=true
 APP_URL=http://localhost:8000
 DB_CONNECTION=pgsql
@@ -27,12 +30,14 @@ QUEUE_CONNECTION=sync
 DEFAULT_GATEWAY=asaas
 EOF
 
-# Generate key
-php artisan key:generate --force 2>&1
+echo "APP_KEY generated"
 
 # Create dirs
 mkdir -p storage/framework/sessions storage/framework/cache/data storage/framework/views storage/logs
 chmod -R 755 storage bootstrap/cache
+
+# Clear config cache
+rm -rf bootstrap/cache/*.php 2>/dev/null || true
 
 # Wait for DB and run migrations
 echo "Running migrations..."
