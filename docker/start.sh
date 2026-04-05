@@ -76,5 +76,5 @@ php artisan tinker --execute="
 " 2>&1 || echo "WARNING: Could not create admin user"
 
 # Start server
-echo "Starting server on port 8000..."
+echo "Starting artisan server on port 8000 (bind 0.0.0.0)..."
 exec php artisan serve --host=0.0.0.0 --port=8000

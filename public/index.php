@@ -1,5 +1,16 @@
 <?php
 
+// DIRECT DIAGNOSTIC PING
+if ($_SERVER['REQUEST_URI'] === '/api/ping-direct') {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'status' => 'PONG_DIRECT',
+        'server' => 'CheckOut-Internal-Debug-v2',
+        'timestamp' => date('Y-m-d H:i:s')
+    ]);
+    exit;
+}
+
 use Illuminate\Http\Request;
 
 error_reporting(E_ALL);
