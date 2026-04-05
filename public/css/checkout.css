@@ -205,9 +205,9 @@ table tbody tr:last-child td { border-bottom: none; }
 .filter-group input,
 .filter-group select {
     width: 100%;
-    padding: 8px 12px;
+    padding: 10px 14px;
     border: 1px solid var(--border-light);
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.85rem;
     font-family: var(--font);
     color: var(--text-primary);
@@ -219,12 +219,146 @@ table tbody tr:last-child td { border-bottom: none; }
 .filter-group select:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 3px rgba(76, 29, 149, 0.1);
+    box-shadow: 0 0 0 4px rgba(76, 29, 149, 0.1);
+    background: white;
 }
 
 .filter-actions {
     display: flex;
     gap: 8px;
+}
+
+/* === Enhanced Buttons === */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    transition: var(--transition);
+    border: none;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 12px rgba(76, 29, 149, 0.3);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(76, 29, 149, 0.4);
+}
+
+.btn-secondary {
+    background: white;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.75rem;
+}
+
+/* === Modern Cards === */
+.modern-card {
+    background: white;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.modern-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: rgba(76, 29, 149, 0.2);
+}
+
+.modern-card-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.modern-card-header h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.modern-card-body {
+    padding: 24px;
+}
+
+/* === Gradient KPI Cards === */
+.kpi-gradient {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    border: none;
+}
+
+.kpi-gradient .label {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.kpi-gradient .value {
+    color: white;
+}
+
+.kpi-gradient .kpi-icon {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* === Glow Effects === */
+.glow-success {
+    box-shadow: 0 0 20px rgba(22, 197, 94, 0.2);
+}
+
+.glow-warning {
+    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+.glow-danger {
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+/* === Empty States === */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--text-muted);
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.3;
+}
+
+.empty-state h4 {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 0.9rem;
 }
 
 /* === Page Header === */

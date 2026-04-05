@@ -2,7 +2,15 @@
 
 use Illuminate\Http\Request;
 
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 define('LARAVEL_START', microtime(true));
+
+// Force debug mode
+$_ENV['APP_DEBUG'] = 'true';
+$_SERVER['APP_DEBUG'] = 'true';
+putenv('APP_DEBUG=true');
 
 // Determine if the application is in maintenance mode...
 if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php')) {
