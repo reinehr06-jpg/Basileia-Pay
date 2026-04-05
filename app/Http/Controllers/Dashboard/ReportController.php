@@ -107,9 +107,15 @@ class ReportController extends Controller
         return Response::stream($callback, 200, $headers);
     }
 
-    private function buildSummary(int $companyId, ?string $dateFrom = null, ?string $dateTo = null): array
+    private function buildSummary(?int $companyId, ?string $dateFrom = null, ?string $dateTo = null): array
     {
-        $query = Transaction::whereHas('integration', fn ($q) => $q->where('company_id', $companyId));
+        $query = Transaction::query();
+
+        if ($companyId) {
+            $query->whereHas('integration', fn ($q) => $q->where('company_id', $companyId));
+        } elseif (!Auth::user()->isSuperAdmin()) {
+            $query->whereRaw('1=0');
+        }
 
         if ($dateFrom) {
             $query->where('created_at', '>=', $dateFrom);
@@ -132,7 +138,15 @@ class ReportController extends Controller
 
         $approvalRate = $total > 0 ? round(($approved / $total) * 100, 2) : 0;
 
-        $paymentMethods = Transaction::whereHas('integration', fn ($q) => $q->where('company_id', $companyId))
+        $methodsQuery = Transaction::query();
+
+        if ($companyId) {
+            $methodsQuery->whereHas('integration', fn ($q) => $q->where('company_id', $companyId));
+        } elseif (!Auth::user()->isSuperAdmin()) {
+            $methodsQuery->whereRaw('1=0');
+        }
+
+        $paymentMethods = $methodsQuery
             ->when($dateFrom, fn ($q) => $q->where('created_at', '>=', $dateFrom))
             ->when($dateTo, fn ($q) => $q->where('created_at', '<=', $dateTo . ' 23:59:59'))
             ->selectRaw('payment_method, COUNT(*) as total, SUM(amount) as total_amount')
