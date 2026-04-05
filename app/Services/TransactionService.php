@@ -94,6 +94,13 @@ class TransactionService
         return $transaction;
     }
 
+    public function findByUuid(string $uuid, Integration $integration): ?Transaction
+    {
+        return Transaction::where('uuid', $uuid)
+            ->where('company_id', $integration->company_id)
+            ->first();
+    }
+
     public function list(array $filters): Builder
     {
         $query = Transaction::query()->orderByDesc('created_at');
@@ -142,10 +149,19 @@ class TransactionService
         return $query;
     }
 
-    public function cancel(string $uuid): Transaction
+    public function listPaginated(array $filters, int $perPage = 15)
     {
-        return DB::transaction(function () use ($uuid) {
-            $transaction = $this->getById($uuid);
+        return $this->list($filters)->paginate($perPage);
+    }
+
+    public function cancel(string $uuid, Integration $integration): Transaction
+    {
+        return DB::transaction(function () use ($uuid, $integration) {
+            $transaction = $this->findByUuid($uuid, $integration);
+
+            if (!$transaction) {
+                throw new RuntimeException("Transaction [{$uuid}] not found or access denied.");
+            }
 
             if (!in_array($transaction->status, [PaymentStatus::PENDING->value, PaymentStatus::APPROVED->value])) {
                 throw new RuntimeException("Transaction [{$uuid}] cannot be cancelled in current status [{$transaction->status}].");
@@ -159,10 +175,14 @@ class TransactionService
         });
     }
 
-    public function refund(string $uuid, ?float $amount = null): Transaction
+    public function refund(string $uuid, Integration $integration, ?float $amount = null): Transaction
     {
-        return DB::transaction(function () use ($uuid, $amount) {
-            $transaction = $this->getById($uuid);
+        return DB::transaction(function () use ($uuid, $integration, $amount) {
+            $transaction = $this->findByUuid($uuid, $integration);
+
+            if (!$transaction) {
+                throw new RuntimeException("Transaction [{$uuid}] not found or access denied.");
+            }
 
             if ($transaction->status !== PaymentStatus::APPROVED->value) {
                 throw new RuntimeException("Transaction [{$uuid}] cannot be refunded in current status [{$transaction->status}].");
