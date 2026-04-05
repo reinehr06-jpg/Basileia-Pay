@@ -15,6 +15,8 @@ class AuthenticateApi
         Log::debug('AuthenticateApi: handle() started', [
             'url' => $request->fullUrl(),
             'method' => $request->method(),
+            'ip' => $request->ip(),
+            'ua' => $request->userAgent()
         ]);
 
         $apiKey = $request->bearerToken() 

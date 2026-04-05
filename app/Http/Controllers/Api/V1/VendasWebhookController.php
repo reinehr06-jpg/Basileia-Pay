@@ -33,9 +33,12 @@ class VendasWebhookController extends Controller
                 Log::warning('Vendas Webhook: Invalid signature', [
                     'integration_id' => $integration->id,
                     'expected' => $expectedSignature,
-                    'received' => $signature
+                    'received' => $signature,
+                    'body_len' => strlen($rawBody),
+                    'body_sample' => substr($rawBody, 0, 100),
+                    'secret_sample' => substr($secret, 0, 4) . '***'
                 ]);
-                return response()->json(['error' => 'Invalid signature'], 403);
+                return response()->json(['error' => 'Invalid signature'], 401);
             }
         }
 
