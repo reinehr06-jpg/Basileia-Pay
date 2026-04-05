@@ -28,17 +28,29 @@ class VendasWebhookController extends Controller
         if ($secret && $signature) {
             $rawBody = $request->getContent();
             $expectedSignature = hash_hmac('sha256', $rawBody, $secret);
+            
+            // Try fallback: sign request input if raw body didn't match
+            $fallbackBody = json_encode($request->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+            $fallbackSignature = hash_hmac('sha256', $fallbackBody, $secret);
 
-            if (!hash_equals($expectedSignature, $signature)) {
+            if (!hash_equals($expectedSignature, $signature) && !hash_equals($fallbackSignature, $signature)) {
                 Log::warning('Vendas Webhook: Invalid signature', [
                     'integration_id' => $integration->id,
-                    'expected' => $expectedSignature,
+                    'expected_raw' => $expectedSignature,
+                    'expected_json' => $fallbackSignature,
                     'received' => $signature,
                     'body_len' => strlen($rawBody),
-                    'body_sample' => substr($rawBody, 0, 100),
-                    'secret_sample' => substr($secret, 0, 4) . '***'
                 ]);
-                return response()->json(['error' => 'Invalid signature'], 401);
+
+                return response()->json([
+                    'error' => 'Invalid signature',
+                    'debug' => [
+                        'received_signature' => $signature,
+                        'expected_if_raw' => $expectedSignature,
+                        'expected_if_json' => $fallbackSignature,
+                        'received_body_len' => strlen($rawBody),
+                    ]
+                ], 401);
             }
         }
 
