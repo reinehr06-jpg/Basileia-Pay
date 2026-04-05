@@ -3,119 +3,137 @@
 @section('title', 'Editar Gateway: ' . $gateway->name)
 
 @section('content')
-<div class="page-header animate-up" style="animation-delay: 0.1s;">
-    <div class="header-left">
-        <a href="{{ route('dashboard.gateways.index') }}" class="btn btn-secondary btn-sm" style="margin-bottom: 10px;">
-            <i class="fas fa-arrow-left"></i> Voltar
-        </a>
-        <h2>Editar Gateway: {{ $gateway->name }}</h2>
+<div class="animate-up" style="max-width: 900px; margin: 0 auto;">
+    <div style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+            <a href="{{ route('dashboard.gateways.index') }}" style="text-decoration: none; color: var(--primary); font-weight: 800; font-size: 0.75rem; display: flex; align-items: center; gap: 6px; margin-bottom: 8px;">
+                <i class="fas fa-arrow-left"></i> VOLTAR PARA LISTA
+            </a>
+            <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--bg-sidebar); letter-spacing: -0.5px;">Editar Gateway</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">Modifique as credenciais de {{ ucfirst($gateway->type ?? 'Asaas') }} para sua empresa.</p>
+        </div>
+        <div style="width: 64px; height: 64px; background: rgba(124, 58, 237, 0.1); color: var(--primary); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">
+            <i class="fas fa-edit"></i>
+        </div>
     </div>
-</div>
 
-<div class="card animate-up" style="animation-delay: 0.2s; max-width: 800px;">
-    <form action="{{ route('dashboard.gateways.update', $gateway->id) }}" method="POST" class="settings-form">
+    <form action="{{ route('dashboard.gateways.update', $gateway->id) }}" method="POST">
         @csrf
         @method('PUT')
         
-        <div class="form-group">
-            <label for="name">Nome do Gateway</label>
-            <input type="text" name="name" id="name" class="form-control" placeholder="Ex: Asaas Produção" required value="{{ old('name', $gateway->name) }}">
-        </div>
-
-        <div class="form-group">
-            <label for="slug">Plataforma</label>
-            <input type="text" id="platform" class="form-control" readonly value="{{ ucfirst($gateway->slug ?? 'Asaas') }}">
-        </div>
-
-        <div class="form-group">
-            <label for="slug">Identificador (Slug)</label>
-            <input type="text" name="slug" id="slug" class="form-control" readonly value="{{ $gateway->slug }}">
-            <p class="form-help">O identificador não pode ser alterado após a criação.</p>
-        </div>
-
-        <div class="form-section">
-            <h4>Configurações de API</h4>
-            <div class="form-group">
-                <label for="api_key">Nova API Key (Deixe vazio para manter a atual)</label>
-                <input type="password" name="config[api_key]" id="api_key" class="form-control" placeholder="Clique para alterar a chave">
-            </div>
-
-            <div class="form-group">
-                <label for="api_secret">Novo API Secret (Opcional)</label>
-                <input type="password" name="config[api_secret]" id="api_secret" class="form-control" placeholder="Clique para alterar o segredo">
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label class="checkbox-container">
-                        <input type="checkbox" name="config[sandbox]" value="1" {{ old('config.sandbox', $gateway->config['sandbox'] ?? false) ? 'checked' : '' }}>
-                        <span class="checkmark"></span>
-                        Ambiente de Testes (Sandbox)
-                    </label>
+        <div class="card" style="padding: 40px; border-radius: 28px; border: 1px solid var(--border); box-shadow: var(--shadow-lg); background: #fff;">
+            
+            <!-- SECTION: Identificação -->
+            <div style="margin-bottom: 40px;">
+                <h4 style="font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 24px; height: 2px; background: var(--primary); border-radius: 2px;"></div>
+                    1. Identificação do Sistema
+                </h4>
+                
+                <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px;">
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px;">Nome Interno</label>
+                        <input type="text" name="name" required placeholder="Ex: Asaas - Loja Principal" value="{{ old('name', $gateway->name) }}" style="width: 100%; height: 52px; padding: 0 20px; border-radius: 14px; border: 1px solid var(--border); background: #f8fafc; font-size: 0.95rem; font-weight: 600; outline: none; transition: all 0.2s ease;">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px;">Plataforma Ativa</label>
+                        <input type="text" readonly value="{{ ucfirst($gateway->type ?? 'Asaas') }}" style="width: 100%; height: 52px; padding: 0 20px; border-radius: 14px; border: 1px solid var(--border); background: #f1f5f9; font-size: 0.95rem; font-weight: 800; color: var(--primary); outline: none;">
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="form-section" id="webhook-section" style="display: none; margin-top: 24px; padding: 24px; background: rgba(124, 58, 237, 0.03); border: 1px dashed var(--primary); border-radius: 16px;">
-            <h4 style="color: var(--primary); margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
-                <i class="fas fa-tower-broadcast"></i> Configuração de Webhook
-            </h4>
-            
-            <div class="form-group">
-                <label>URL de Notificação (Endpoint)</label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="webhook-url-display" class="form-control" readonly style="background: #f1f5f9; cursor: default; font-family: monospace; font-size: 0.8rem; flex: 1;">
-                    <button type="button" onclick="copyWebhookUrl()" class="btn" style="background: var(--bg-sidebar); color: white; padding: 0 16px; border-radius: 10px; font-size: 0.75rem; font-weight: 800;">
-                       <i class="fas fa-copy"></i> COPIAR
-                    </button>
+            <!-- SECTION: Credenciais de API -->
+            <div style="margin-bottom: 40px;">
+                <h4 style="font-size: 0.75rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 24px; height: 2px; background: var(--primary); border-radius: 2px;"></div>
+                    2. Segurança de Conexão (API)
+                </h4>
+
+                <div style="display: grid; gap: 24px;">
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; letter-spacing: 0.5px;">Nova API Key (Opcional)</label>
+                        <input type="password" name="config[api_key]" placeholder="Deixe em branco para manter a atual" style="width: 100%; height: 52px; padding: 0 20px; border-radius: 14px; border: 1px solid var(--border); background: #f8fafc; font-size: 0.95rem; font-weight: 600;">
+                    </div>
+
+                    <div style="display: flex; gap: 30px; align-items: center; background: #f8fafc; padding: 20px; border-radius: 18px; border: 1px solid var(--border-light); justify-content: space-between;">
+                        <div style="display: flex; gap: 30px;">
+                            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-main);">
+                                <input type="checkbox" name="is_default" value="1" {{ $gateway->is_default ? 'checked' : '' }} style="width: 20px; height: 20px; accent-color: var(--primary);">
+                                Gateway Padrão
+                            </label>
+                            <div style="width: 1px; height: 24px; background: var(--border);"></div>
+                            <label style="display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.85rem; font-weight: 700; color: var(--text-main);">
+                                <input type="checkbox" name="config[sandbox]" value="1" {{ ($gateway->getConfig('sandbox') == '1') ? 'checked' : '' }} style="width: 20px; height: 20px; accent-color: var(--primary);">
+                                Ambiente Sandbox
+                            </label>
+                        </div>
+                        
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            @if($gateway->status === 'active')
+                                <span style="background: #ecfdf5; color: #10b981; padding: 6px 12px; border-radius: 8px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">Gateway Ativo</span>
+                            @else
+                                <span style="background: #fef2f2; color: #ef4444; padding: 6px 12px; border-radius: 8px; font-size: 0.65rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px;">Gateway Pausado</span>
+                            @endif
+                        </div>
+                    </div>
                 </div>
-                <p class="form-help">Cole esta URL nas configurações de Webhook do seu painel Asaas.</p>
             </div>
 
-            <div class="form-group">
-                <label for="webhook_token">API Secret / Webhook Token (Novo)</label>
-                <input type="password" name="config[webhook_token]" id="webhook_token" class="form-control" placeholder="Mudar segredo do webhook">
-                <p class="form-help">Mantenha em branco para não alterar a chave de validação atual.</p>
-            </div>
-        </div>
+            <!-- SECTION: Webhook Evolution -->
+            <div id="webhook-section" style="display: none; margin-bottom: 30px;">
+                <h4 style="font-size: 0.75rem; font-weight: 900; color: var(--elite-purple); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 24px; display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 24px; height: 2px; background: var(--elite-purple); border-radius: 2px;"></div>
+                    3. Automação / Webhook
+                </h4>
 
-        <div class="form-row" style="margin-top: 24px;">
-            <div class="form-group">
-                <label class="checkbox-container">
-                    <input type="checkbox" name="is_default" value="1" {{ old('is_default', $gateway->is_default) ? 'checked' : '' }}>
-                    <span class="checkmark"></span>
-                    Definir como gateway padrão
-                </label>
+                <div style="background: #0f172a; padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); box-shadow: var(--shadow-xl);">
+                    <div style="margin-bottom: 24px;">
+                        <label style="display: block; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 12px; letter-spacing: 1px;">Endpoint do seu Painel Asaas</label>
+                        <div style="display: flex; background: rgba(255,255,255,0.03); border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); overflow: hidden;">
+                            <input type="text" id="webhook-url-display" readonly style="flex: 1; min-width: 0; background: transparent; border: none; color: #818cf8; padding: 16px 20px; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; outline: none;">
+                            <button type="button" onclick="copyWebhookUrl()" class="btn" style="background: var(--primary); color: white; border-radius: 0; padding: 0 24px; font-size: 0.75rem; font-weight: 900;">
+                                <i class="fas fa-copy"></i> COPIAR
+                            </button>
+                        </div>
+                        <p style="font-size: 0.75rem; color: #475569; margin-top: 10px; font-weight: 600;">
+                            <i class="fas fa-info-circle"></i> Cole este endereço nas configurações de webhook da plataforma.
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: block; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: #64748b; margin-bottom: 12px; letter-spacing: 1px;">Novo API Secret / Webhook Token (Opcional)</label>
+                        <input type="password" name="config[webhook_token]" placeholder="Digite para mudar o segredo" style="width: 100%; height: 52px; padding: 0 20px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03); color: white; font-size: 0.95rem; outline: none;">
+                    </div>
+                </div>
             </div>
-            
-            <div class="form-group">
-                <label class="checkbox-container">
-                    <input type="checkbox" name="is_active" value="1" {{ old('is_active', $gateway->is_active) ? 'checked' : '' }}>
-                    <span class="checkmark"></span>
-                    Gateway Ativo
-                </label>
+
+            <!-- ACTIONS -->
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button type="submit" class="btn" style="height: 60px; flex: 1; background: var(--primary); color: white; font-weight: 900; font-size: 0.95rem; border-radius: 18px; box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.4);">
+                    <i class="fas fa-save" style="font-size: 1.1rem;"></i> SALVAR ALTERAÇÕES DO GATEWAY
+                </button>
             </div>
         </div>
-@push('scripts')
+    </form>
+</div>
+
+@stack('scripts')
 <script>
-    const slug = "{{ $gateway->slug }}";
-    const webhookSection = document.getElementById('webhook-section');
-    const webhookUrlDisplay = document.getElementById('webhook-url-display');
-    const baseUrl = "{{ url('/api/webhooks/gateway') }}";
+    document.addEventListener('DOMContentLoaded', function() {
+        const type = "{{ $gateway->type }}";
+        const webhookSection = document.getElementById('webhook-section');
+        const webhookUrlDisplay = document.getElementById('webhook-url-display');
+        const baseUrl = "{{ url('/api/webhooks/gateway') }}";
 
-    function updateWebhookSection() {
-        if (['asaas', 'stripe', 'pagseguro'].includes(slug)) {
+        if (['asaas', 'stripe', 'pagseguro', 'mercadopago'].includes(type)) {
             webhookSection.style.display = 'block';
-            webhookUrlDisplay.value = `${baseUrl}/${slug}`;
-        } else {
-            webhookSection.style.display = 'none';
+            webhookUrlDisplay.value = `${baseUrl}/${type}`;
         }
-    }
-
-    updateWebhookSection();
+    });
 
     function copyWebhookUrl() {
-        webhookUrlDisplay.select();
+        const display = document.getElementById('webhook-url-display');
+        display.select();
         document.execCommand('copy');
         
         const btn = event.currentTarget;
@@ -125,17 +143,8 @@
         
         setTimeout(() => {
             btn.innerHTML = originalText;
-            btn.style.background = 'var(--bg-sidebar)';
+            btn.style.background = 'var(--primary)';
         }, 2000);
     }
 </script>
-@endpush
-
-        <div class="form-actions">
-            <button type="submit" class="btn btn-primary btn-lg">
-                <i class="fas fa-save"></i> Salvar Alterações
-            </button>
-        </div>
-    </form>
-</div>
 @endsection
