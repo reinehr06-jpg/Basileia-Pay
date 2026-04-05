@@ -55,7 +55,7 @@
             <div class="sidebar-section">
                 <div class="sidebar-section-title">Operação</div>
                 <ul class="sidebar-nav">
-                    <li><a href="{{ route('dashboard.index') }}" class="{{ request()->routeIs('dashboard.index') ? 'active' : '' }}"><i class="fas fa-chart-line"></i><span>Dashboard</span></a></li>
+                    <li><a href="{{ route('dashboard.index') }}" class="{{ request()->routeIs('dashboard.index') ? 'active' : '' }}"><i class="fas fa-chart-line"></i><span>Início</span></a></li>
                     <li><a href="{{ route('dashboard.transactions') }}" class="{{ request()->routeIs('dashboard.transactions*') ? 'active' : '' }}"><i class="fas fa-exchange-alt"></i><span>Transações</span></a></li>
                     <li><a href="{{ route('dashboard.events.index') }}" class="{{ request()->routeIs('dashboard.events*') ? 'active' : '' }}"><i class="fas fa-link"></i><span>Links de Pagto</span></a></li>
                 </ul>
@@ -91,7 +91,7 @@
             <header class="topbar">
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
-                    <span class="topbar-title">@yield('title', 'Dashboard')</span>
+                    <span class="topbar-title">@yield('title', 'Início')</span>
                 </div>
                 <div class="topbar-actions">
                     <span class="topbar-user" style="font-weight: 700; color: var(--primary);">{{ auth()->user()->name ?? 'Usuário' }}</span>

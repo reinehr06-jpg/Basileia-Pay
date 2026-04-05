@@ -58,7 +58,7 @@
             <h3 style="font-size: 0.9rem; font-weight: 800;">Volume 7 Dias</h3>
             <span class="badge badge-primary" style="font-size: 0.6rem;">Real Time</span>
         </div>
-        <canvas id="volumeChart" style="height: 180px;"></canvas>
+        <canvas id="volumeChart" style="height: 140px;"></canvas>
     </div>
 
     <div class="card animate-up" style="animation-delay: 0.7s; padding: 15px;">
