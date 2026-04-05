@@ -28,7 +28,10 @@
             height: 56px; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
             border-bottom: 1px solid var(--border); display: flex; align-items: center; 
             padding: 0 24px; position: sticky; top: 0; z-index: 50; justify-content: space-between;
-        }
+        .dropdown-menu.show { display: block !important; }
+        .dropdown-menu a:hover { background: #f8fafc; }
+        .hamburger { border: none; background: none; color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 8px; display: none; }
+        @media (max-width: 1024px) { .hamburger { display: block; } }
     </style>
     @stack('styles')
 </head>
@@ -92,16 +95,55 @@
             <header class="topbar">
                 <div style="display: flex; align-items: center; gap: 16px;">
                     <button class="hamburger" onclick="document.getElementById('sidebar').classList.toggle('open')"><i class="fas fa-bars"></i></button>
-                    <span class="topbar-title">@yield('title', 'Início')</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: var(--bg-main); color: var(--primary); padding: 4px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 800;">BASILEIA SECURE</span>
+                        <i class="fas fa-chevron-right" style="font-size: 0.6rem; color: var(--text-muted);"></i>
+                        <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">@yield('title', 'Início')</span>
+                    </div>
                 </div>
-                <div class="topbar-actions">
-                    <span class="topbar-user" style="font-weight: 700; color: var(--primary);">{{ auth()->user()->name ?? 'Usuário' }}</span>
-                    <form method="POST" action="{{ route('logout') }}" style="display: inline;">
-                        @csrf
-                        <button type="submit" class="topbar-logout" style="border: none; background: none; color: #f87171; font-weight: 700; cursor: pointer; padding: 6px 12px;">Sair</button>
-                    </form>
+                <div class="topbar-actions" style="display: flex; align-items: center; gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <div style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);"></div>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #475569;">SISTEMA ONLINE</span>
+                    </div>
+                    <div style="height: 20px; width: 1px; background: var(--border);"></div>
+                    <span class="topbar-user" style="font-weight: 700; color: var(--primary); font-size: 0.8rem;">{{ auth()->user()->name ?? 'Usuário' }}</span>
                 </div>
             </header>
+
+            <div class="elite-header">
+                <div>
+                    <h1>@yield('title', 'Dashboard')</h1>
+                    <div class="elite-breadcrumb">
+                        <span>Workspace</span>
+                        <i class="fas fa-chevron-right" style="font-size: 0.5rem;"></i>
+                        <span>{{ auth()->user()->company->name ?? 'Minha Empresa' }}</span>
+                        <i class="fas fa-chevron-right" style="font-size: 0.5rem;"></i>
+                        <span style="color: #fff; font-weight: 800;">@yield('title', 'Início')</span>
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    @yield('header_actions')
+                    
+                    <div style="position: relative; display: inline-block;">
+                        <button onclick="this.nextElementSibling.classList.toggle('show')" style="background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 10px; font-weight: 800; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-download"></i> EXPORTAR <i class="fas fa-chevron-down" style="font-size: 0.6rem;"></i>
+                        </button>
+                        <div class="dropdown-menu" style="position: absolute; right: 0; top: 110%; background: white; border: 1px solid var(--border); border-radius: 12px; min-width: 160px; box-shadow: var(--shadow-lg); display: none; z-index: 100;">
+                            <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; color: var(--text-main); text-decoration: none; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid var(--border-light);">
+                                <i class="fas fa-file-pdf" style="color: #ef4444;"></i> PDF Document
+                            </a>
+                            <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; color: var(--text-main); text-decoration: none; font-size: 0.85rem; font-weight: 700; border-bottom: 1px solid var(--border-light);">
+                                <i class="fas fa-file-excel" style="color: #10b981;"></i> Excel Template
+                            </a>
+                            <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 12px 16px; color: var(--text-main); text-decoration: none; font-size: 0.85rem; font-weight: 700;">
+                                <i class="fas fa-file-csv" style="color: #64748b;"></i> CSV (Raw Data)
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <main class="page-content">
                 @if(session('success'))
                     <div class="alert alert-success animate-up"><i class="fas fa-check-circle"></i> {{ session('success') }}</div>

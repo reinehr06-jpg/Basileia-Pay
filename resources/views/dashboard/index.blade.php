@@ -2,19 +2,7 @@
 @section('title', 'Dashboard')
 
 @section('content')
-<!-- Welcome Basileia Header -->
-<div class="animate-up" style="animation-delay: 0.1s; margin-bottom: 20px;">
-    <div style="display: flex; align-items: center; justify-content: space-between;">
-        <div>
-            <h1 style="font-size: 1.25rem; font-weight: 900; color: var(--text-primary); letter-spacing: -0.5px;">Olá, {{ Auth::user()->name ?? 'Admin' }} 👋</h1>
-            <p style="font-size: 0.8rem; color: var(--text-muted);">Resultados consolidados de {{ now()->translatedFormat('F Y') }}.</p>
-        </div>
-        <div class="topbar-user" style="background: var(--success-bg); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.1);">
-            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
-            Operacional
-        </div>
-    </div>
-</div>
+<!-- Welcome Basileia Header removed (now in layout) -->
 
 <!-- KPI Grid High-Density -->
 <div class="kpi-grid">
@@ -52,13 +40,18 @@
 </div>
 
 <!-- Main Grid: Charts & Insights -->
-<div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 20px; margin-bottom: 20px;">
-    <div class="card animate-up" style="animation-delay: 0.6s; padding: 15px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-            <h3 style="font-size: 0.9rem; font-weight: 800;">Volume 7 Dias</h3>
-            <span class="badge badge-primary" style="font-size: 0.6rem;">Real Time</span>
+<div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px;">
+    <div class="card animate-up" style="animation-delay: 0.6s; padding: 20px; height: 320px; display: flex; flex-direction: column;">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 8px; height: 8px; background: var(--primary); border-radius: 50%;"></div>
+                <h3 style="font-size: 0.9rem; font-weight: 800;">Volume Transacionado (7 dias)</h3>
+            </div>
+            <span class="badge" style="background: var(--primary-glow); color: var(--primary); font-size: 0.6rem;">ATUALIZADO AGORA</span>
         </div>
-        <canvas id="volumeChart" style="height: 140px;"></canvas>
+        <div style="flex: 1; min-height: 0;">
+            <canvas id="volumeChart"></canvas>
+        </div>
     </div>
 
     <div class="card animate-up" style="animation-delay: 0.7s; padding: 15px;">
@@ -134,14 +127,44 @@
                 datasets: [{
                     label: 'Volume (R$)',
                     data: @json($dailyVolumes ?? []),
-                    borderColor: '#4f46e5',
+                    borderColor: '#7c3aed',
                     borderWidth: 3,
-                    backgroundColor: 'rgba(79, 70, 229, 0.05)',
+                    backgroundColor: 'rgba(124, 58, 237, 0.08)',
                     fill: true,
-                    tension: 0.4
+                    tension: 0.4,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#7c3aed',
+                    pointBorderWidth: 2
                 }]
             },
-            options: { maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: { 
+                maintainAspectRatio: false, 
+                responsive: true,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#111827',
+                        titleFont: { size: 10, weight: 'bold' },
+                        bodyFont: { size: 12 },
+                        padding: 12,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    y: { 
+                        beginAtZero: true, 
+                        grid: { color: 'rgba(0,0,0,0.03)' },
+                        ticks: { font: { size: 10 } }
+                    },
+                    x: { 
+                        grid: { display: false },
+                        ticks: { font: { size: 10 } }
+                    }
+                }
+            }
         });
     });
 </script>
