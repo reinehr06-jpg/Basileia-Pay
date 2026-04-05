@@ -34,7 +34,7 @@ class VendasWebhookController extends Controller
             $fallbackSignature = hash_hmac('sha256', $fallbackBody, $secret);
 
             if (!hash_equals($expectedSignature, $signature) && !hash_equals($fallbackSignature, $signature)) {
-                Log::warning('Vendas Webhook: Invalid signature', [
+                Log::emergency('Vendas Webhook: Invalid signature', [
                     'integration_id' => $integration->id,
                     'expected_raw' => $expectedSignature,
                     'expected_json' => $fallbackSignature,
@@ -43,12 +43,13 @@ class VendasWebhookController extends Controller
                 ]);
 
                 return response()->json([
-                    'error' => 'Invalid signature',
+                    'error' => 'SIGNATURE_FAIL_DEBUG_MODE',
                     'debug' => [
                         'received_signature' => $signature,
                         'expected_if_raw' => $expectedSignature,
                         'expected_if_json' => $fallbackSignature,
                         'received_body_len' => strlen($rawBody),
+                        'timestamp' => now()->toIso8601String()
                     ]
                 ], 401);
             }

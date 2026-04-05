@@ -12,7 +12,7 @@ class AuthenticateApi
 {
     public function handle(Request $request, Closure $next)
     {
-        Log::debug('AuthenticateApi: handle() started', [
+        Log::emergency('AuthenticateApi: handle() hit', [
             'url' => $request->fullUrl(),
             'method' => $request->method(),
             'ip' => $request->ip(),
