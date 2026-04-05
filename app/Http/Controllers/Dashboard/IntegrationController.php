@@ -43,27 +43,9 @@ class IntegrationController extends Controller
             abort(500, "Erro: Não foi possível carregar o contexto da sua empresa. Verifique se o banco de dados tem ao menos uma empresa cadastrada.");
         }
 
-        $integrations = Integration::where('company_id', $companyId)->get();
-
-        if ($integrations->count() === 1) {
-            return redirect()->route('dashboard.integrations.show', $integrations->first()->id);
-        }
-
-        if ($integrations->count() === 0) {
-            $apiKey = 'ck_live_' . Str::random(32);
-            $newIntegration = Integration::create([
-                'company_id' => $companyId,
-                'name' => 'Basileia Vendas',
-                'slug' => 'basileia-vendas',
-                'base_url' => 'https://vendas.basileia.global',
-                'status' => 'active',
-                'api_key_hash' => hash('sha256', $apiKey),
-                'api_key_prefix' => substr($apiKey, 0, 8),
-                'permissions' => ['all'],
-            ]);
-            return redirect()->route('dashboard.integrations.show', $newIntegration->id)
-                ->with('success', 'Nova integração pronta para configurar. API Key gerada: ' . $apiKey);
-        }
+        $integrations = Integration::where('company_id', $companyId)
+            ->withCount('transactions')
+            ->get();
 
         return view('dashboard.integrations.index', compact('integrations'));
     }
@@ -83,9 +65,10 @@ class IntegrationController extends Controller
             'company_id' => $user->company_id,
             'name' => $request->input('name'),
             'slug' => Str::slug($request->input('name')),
-            'base_url' => $request->input('base_url'),
+            'base_url' => $request->input('base_url') ?? 'https://vendas.basileia.global',
             'api_key_hash' => hash('sha256', $apiKey),
             'api_key_prefix' => substr($apiKey, 0, 8),
+            'permissions' => ['all'],
             'status' => 'active',
         ]);
 

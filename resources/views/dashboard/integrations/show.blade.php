@@ -4,9 +4,14 @@
 @section('content')
 <div class="animate-up" style="max-width: 900px; margin: 0 auto; padding-bottom: 40px;">
     
-    <div style="margin-bottom: 30px; text-align: left;">
-        <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--bg-sidebar); letter-spacing: -1px;">Guia de Integração Basileia Secure</h2>
-        <p style="font-size: 0.9rem; color: var(--text-muted);">Siga os 6 passos abaixo para conectar seu Checkout ao Sistema de Vendas.</p>
+    <div style="margin-bottom: 30px; text-align: left; display: flex; align-items: center; justify-content: space-between;">
+        <div>
+            <h2 style="font-size: 1.5rem; font-weight: 900; color: var(--bg-sidebar); letter-spacing: -1px;">Guia de Integração Basileia Secure</h2>
+            <p style="font-size: 0.9rem; color: var(--text-muted);">Siga os 6 passos abaixo para conectar o sistema <strong>{{ $integration->name }}</strong>.</p>
+        </div>
+        <a href="{{ route('dashboard.integrations.index') }}" style="text-decoration: none; color: var(--text-muted); font-size: 0.85rem; font-weight: 800; display: flex; align-items: center; gap: 8px; background: #fff; padding: 8px 16px; border-radius: 10px; border: 1px solid var(--border);">
+            <i class="fas fa-arrow-left"></i> Voltar para Lista
+        </a>
     </div>
 
     <!-- The 6-Step Vertical Guide -->
