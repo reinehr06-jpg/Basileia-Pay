@@ -33,36 +33,17 @@ Route::get('/evento/{slug}', [EventCheckoutController::class, 'show'])->name('ev
 Route::post('/evento/{slug}/pay', [EventCheckoutController::class, 'process'])->name('evento.process');
 Route::get('/evento/{slug}/success', [EventCheckoutController::class, 'success'])->name('evento.success');
 
-// Asaas Checkout (novo fluxo - viaasaas_payment_id)
-Route::get('/pay/asaas/{asaasPaymentId}', [AsaasCheckoutController::class, 'show'])
-    ->name('checkout.asaas.show');
-Route::post('/pay/asaas/{asaasPaymentId}/process', [AsaasCheckoutController::class, 'process'])
-    ->name('checkout.asaas.process');
-Route::get('/pay/asaas/{uuid}/success', [AsaasCheckoutController::class, 'success'])
-    ->name('checkout.asaas.success');
+// Elite Checkout Flow (Basileia Secure)
+Route::prefix('pay')->group(function () {
+    Route::get('/{uuid}', [CheckoutController::class, 'show'])->name('checkout.pay');
+    Route::post('/{uuid}/process', [CheckoutController::class, 'process'])->name('checkout.process');
+    Route::get('/{uuid}/success', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::get('/{uuid}/receipt', [CheckoutController::class, 'receipt'])->name('checkout.receipt');
+});
 
-// Public checkout pages - com segurança
-// Suporta tanto /pay/{uuid} quanto /checkout/{uuid}
-Route::middleware([RateLimitCheckout::class])->group(function () {
-    Route::get('/pay/{token}', [CheckoutPageController::class, 'show'])
-        ->name('checkout.show')
-        ->middleware(CheckTransactionAccess::class);
-    
-    Route::post('/pay/{token}/process', [CheckoutPageController::class, 'process'])
-        ->name('checkout.process')
-        ->middleware(CheckTransactionAccess::class);
-    
-    Route::get('/pay/{token}/success', [CheckoutPageController::class, 'success'])->name('checkout.success');
-    Route::get('/pay/{token}/status', [PaymentStatusController::class, 'show'])->name('checkout.status');
-
-    // Rotas alternativas com /checkout
-    Route::get('/checkout/{uuid}', [CheckoutPageController::class, 'show'])
-        ->name('checkout.public')
-        ->middleware(CheckTransactionAccess::class);
-    
-    Route::post('/checkout/{uuid}/process', [CheckoutPageController::class, 'process'])
-        ->name('checkout.public.process')
-        ->middleware(CheckTransactionAccess::class);
+// Suporte para links antigos de /checkout
+Route::get('/checkout/{uuid}', function($uuid) {
+    return redirect()->route('checkout.pay', $uuid);
 });
 
 // Auth
@@ -105,6 +86,10 @@ Route::prefix('/dashboard')->middleware(['auth'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('dashboard.reports');
     Route::get('/reports/summary', [ReportController::class, 'summary'])->name('dashboard.reports.summary');
     Route::get('/reports/export', [ReportController::class, 'export'])->name('dashboard.reports.export');
+
+    // Configurações do Sistema
+    Route::get('/settings/receipt', [\App\Http\Controllers\Dashboard\ReceiptController::class, 'index'])->name('dashboard.settings.receipt');
+    Route::put('/settings/receipt', [\App\Http\Controllers\Dashboard\ReceiptController::class, 'update'])->name('dashboard.settings.receipt.update');
 
     // Events / Links
     Route::get('/events', [EventController::class, 'index'])->name('dashboard.events.index');

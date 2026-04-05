@@ -12,6 +12,9 @@ use App\Http\Controllers\Api\V1\WebhookController;
 use App\Http\Controllers\AsaasWebhookController;
 
 Route::prefix('v1')->group(function () {
+    // Ingestão de pagamentos do Vendas/Sistemas Externos
+    Route::post('payments/receive', [\App\Http\Controllers\Api\PaymentApiController::class, 'receive']);
+
     // Webhook do Asaas (recebe do gateway)
     Route::post('webhooks/asaas', [WebhookController::class, 'asaas']);
     

@@ -68,6 +68,7 @@
                     <li><a href="{{ route('dashboard.gateways.index') }}" class="{{ request()->routeIs('dashboard.gateways*') ? 'active' : '' }}"><i class="fas fa-wallet"></i><span>Gateways</span></a></li>
                     <li><a href="{{ route('dashboard.integrations.index') }}" class="{{ request()->routeIs('dashboard.integrations*') ? 'active' : '' }}"><i class="fas fa-plug"></i><span>Integrações</span></a></li>
                     <li><a href="{{ route('dashboard.webhooks') }}" class="{{ request()->routeIs('dashboard.webhooks*') ? 'active' : '' }}"><i class="fas fa-tower-broadcast"></i><span>Webhooks</span></a></li>
+                    <li><a href="{{ route('dashboard.settings.receipt') }}" class="{{ request()->routeIs('dashboard.settings.receipt') ? 'active' : '' }}"><i class="fas fa-file-invoice"></i><span>Comprovante</span></a></li>
                 </ul>
             </div>
 
