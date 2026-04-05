@@ -14,6 +14,26 @@
         </a>
     </div>
 
+    @if(session('new_api_key'))
+    <div class="card animate-up" style="background: #fefce8; border: 1px solid #eab308; padding: 20px; border-radius: 16px; margin-bottom: 30px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.1);">
+        <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="width: 40px; height: 40px; background: #fde047; color: #854d0e; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+                <i class="fas fa-key"></i>
+            </div>
+            <div>
+                <h4 style="font-size: 0.95rem; font-weight: 900; color: #854d0e; margin-bottom: 2px;">Sua Nova API Key foi Gerada!</h4>
+                <p style="font-size: 0.8rem; color: #a16207;">Copie agora, ela não aparecerá novamente após recarregar a página.</p>
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; background: #fff; padding: 6px 6px 6px 16px; border-radius: 12px; border: 1px solid #fef08a;">
+            <code style="font-size: 1.1rem; font-weight: 800; color: #854d0e; letter-spacing: 0.5px;">{{ session('new_api_key') }}</code>
+            <button onclick="navigator.clipboard.writeText('{{ session('new_api_key') }}'); alert('Chave Copiada!')" style="background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                <i class="far fa-copy"></i> COPIAR CHAVE
+            </button>
+        </div>
+    </div>
+    @endif
+
     <!-- The 6-Step Vertical Guide -->
     <div style="display: grid; gap: 24px;">
         
