@@ -39,7 +39,7 @@
 <body>
     <div class="layout-wrapper">
         <!-- Compact Sidebar -->
-        <aside class="sidebar">
+        <aside class="sidebar" id="sidebar">
             <div class="sidebar-brand">
                 <h2 style="font-size: 1.4rem; color: #fff;">Basileia</h2>
                 <span style="color: var(--primary); font-weight: 800; font-size: 0.7rem; text-transform: uppercase;">Secure</span>
@@ -156,6 +156,7 @@
             </main>
         </div>
     </div>
+    @stack('scripts')
     @yield('scripts')
 </body>
 </html>

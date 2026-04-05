@@ -51,14 +51,20 @@ class GatewayController extends Controller
         $gateway = Gateway::create([
             'company_id' => $user->company_id,
             'name' => $request->input('name'),
-            'type' => $request->input('slug'), // Map slug to type for compatibility
-            'slug' => $request->input('slug'),
-            'config' => $config,
+            'type' => $request->input('slug'),
+            'status' => 'active',
             'is_default' => $request->boolean('is_default', false),
-            'is_active' => true,
         ]);
 
-        return redirect()->route('dashboard.gateways.show', $gateway->id)
+        if ($request->has('config')) {
+            foreach ($request->input('config') as $key => $value) {
+                if ($value !== null && $value !== '') {
+                    $gateway->setConfig($key, $value);
+                }
+            }
+        }
+
+        return redirect()->route('dashboard.gateways.index')
             ->with('success', 'Gateway adicionado com sucesso.');
     }
 
@@ -73,14 +79,13 @@ class GatewayController extends Controller
             abort(404, 'Gateway não encontrado.');
         }
 
-        $config = $gateway->config ?? [];
-
-        if (isset($config['api_key'])) {
-            $config['api_key'] = $this->maskValue($config['api_key']);
-        }
-
-        if (isset($config['api_secret'])) {
-            $config['api_secret'] = $this->maskValue($config['api_secret']);
+        $config = [];
+        foreach ($gateway->configs as $configModel) {
+            $value = $configModel->decrypted_value;
+            if (in_array($configModel->key, ['api_key', 'api_secret', 'webhook_token'])) {
+                $value = $this->maskValue($value);
+            }
+            $config[$configModel->key] = $value;
         }
 
         $gateway->config_masked = $config;
@@ -123,15 +128,15 @@ class GatewayController extends Controller
                 ->update(['is_default' => false]);
         }
 
-        $data = $request->only(['name', 'is_default', 'is_active']);
-        
-        if ($request->has('config')) {
-            $currentConfig = $gateway->config ?? [];
-            $newConfig = array_filter($request->input('config'), fn($val) => !is_null($val) && $val !== '');
-            $data['config'] = array_merge($currentConfig, $newConfig);
-        }
+        $gateway->update($request->only(['name', 'is_default']));
 
-        $gateway->update($data);
+        if ($request->has('config')) {
+            foreach ($request->input('config') as $key => $value) {
+                if ($value !== null && $value !== '') {
+                    $gateway->setConfig($key, $value);
+                }
+            }
+        }
 
         return redirect()->route('dashboard.gateways.index')
             ->with('success', 'Gateway atualizado com sucesso.');

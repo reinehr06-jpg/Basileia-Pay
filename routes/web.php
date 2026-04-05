@@ -105,3 +105,19 @@ Route::prefix('/dashboard')->middleware(['auth'])->group(function () {
     Route::patch('/sources/{source}/toggle', [SourceConfigController::class, 'toggle'])->name('dashboard.sources.toggle');
     Route::delete('/sources/{source}', [SourceConfigController::class, 'destroy'])->name('dashboard.sources.destroy');
 });
+
+Route::get('/clear-views', function() {
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    \Illuminate\Support\Facades\Artisan::call('optimize:clear');
+    
+    $path = resource_path('views/dashboard/gateways/create.blade.php');
+    $content = file_exists($path) ? "FILE EXISTS: " . substr(file_get_contents($path), 0, 500) : "FILE NOT FOUND";
+    $git = shell_exec('git log -n 1 --oneline 2>&1');
+    
+    return [
+        'message' => "Cache limpo!",
+        'git_status' => $git,
+        'path' => $path,
+        'first_500_chars' => $content
+    ];
+});
