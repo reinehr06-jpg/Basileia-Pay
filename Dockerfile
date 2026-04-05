@@ -17,7 +17,6 @@ RUN composer install --optimize-autoloader --no-interaction --no-scripts
 
 COPY . .
 
-RUN php artisan key:generate \
     && mkdir -p storage/framework/sessions storage/framework/cache/data storage/framework/views storage/logs \
     && chmod -R 755 storage bootstrap/cache
 
