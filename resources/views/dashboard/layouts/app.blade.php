@@ -9,7 +9,27 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <link rel="stylesheet" href="{{ asset('css/checkout.css') }}">
+    <link rel="stylesheet" href="/css/checkout.css?v={{ time() }}">
+    <style>
+        /* INLINED CRITICAL DASHBOARD CSS */
+        :root {
+            --bg-main: #f8fafc;
+            --bg-sidebar: #111827;
+            --primary: #4f46e5;
+            --border: #e2e8f0;
+        }
+        .layout-wrapper { display: flex; min-height: 100vh; background: var(--bg-main); margin: 0; }
+        .sidebar { 
+            width: 220px; background: var(--bg-sidebar); color: white; 
+            position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+        }
+        .main-content { flex: 1; margin-left: 220px; min-height: 100vh; display: flex; flex-direction: column; }
+        .topbar { 
+            height: 56px; background: rgba(255,255,255,0.9); backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border); display: flex; align-items: center; 
+            padding: 0 24px; position: sticky; top: 0; z-index: 50; justify-content: space-between;
+        }
+    </style>
     @stack('styles')
 </head>
 <body>

@@ -2,27 +2,37 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
-use App\Events\PaymentApproved;
-use App\Events\PaymentRefused;
-use App\Events\PaymentOverdue;
-use App\Events\PaymentRefunded;
-use App\Listeners\DispatchWebhookOnPaymentApproved;
-use App\Listeners\DispatchWebhookOnPaymentRefused;
-use App\Listeners\DispatchWebhookOnPaymentOverdue;
-use App\Listeners\DispatchWebhookOnPaymentRefunded;
-use App\Listeners\LogAuditOnPaymentStatusChange;
-use App\Listeners\UpdateTransactionOnPaymentApproved;
 
 class AppServiceProvider extends ServiceProvider
 {
+    /**
+     * Register any application services.
+     */
     public function register(): void
     {
         //
     }
 
+    /**
+     * Bootstrap any application services.
+     */
     public function boot(): void
     {
-        //
+        // Force HTTPS in production to avoid browser "Not Secure" warnings
+        if (config('app.env') === 'production' || !app()->isLocal()) {
+            URL::forceScheme('https');
+        }
+
+        // Trust all proxies for environments like Easypanel / Docker / Nginx
+        \Illuminate\Support\Facades\Request::setTrustedProxies(
+            ['0.0.0.0/0', '::/0'], 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR | 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST | 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT | 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO | 
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_AWS_ELB
+        );
     }
 }
