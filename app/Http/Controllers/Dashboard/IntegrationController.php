@@ -55,9 +55,11 @@ class IntegrationController extends Controller
                 'company_id' => $companyId,
                 'name' => 'Basileia Vendas',
                 'slug' => 'basileia-vendas',
+                'base_url' => 'https://vendas.basileia.global',
                 'status' => 'active',
                 'api_key_hash' => hash('sha256', $apiKey),
                 'api_key_prefix' => substr($apiKey, 0, 8),
+                'permissions' => ['all'],
             ]);
             return redirect()->route('dashboard.integrations.show', $newIntegration->id)
                 ->with('success', 'Nova integração pronta para configurar. API Key gerada: ' . $apiKey);
