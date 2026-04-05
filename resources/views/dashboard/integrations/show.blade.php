@@ -64,8 +64,8 @@
                 <div style="background: #fff; padding: 16px; border-radius: 10px; border: 1px solid var(--border);">
                     <label style="display: block; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Checkout URL (Cole no Vendas)</label>
                     <div style="display: flex; align-items: center; justify-content: space-between;">
-                        <code style="font-weight: 700; color: var(--primary); font-size: 1rem;">{{ config('app.url') }}</code>
-                        <button onclick="navigator.clipboard.writeText('{{ config('app.url') }}'); alert('Copiado!')" style="background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 800; font-size: 0.75rem;"><i class="far fa-copy"></i> Copiar</button>
+                        <code style="font-weight: 700; color: var(--primary); font-size: 1rem;">{{ request()->getSchemeAndHttpHost() }}</code>
+                        <button onclick="navigator.clipboard.writeText('{{ request()->getSchemeAndHttpHost() }}'); alert('Copiado!')" style="background: none; border: none; color: var(--primary); cursor: pointer; font-weight: 800; font-size: 0.75rem;"><i class="far fa-copy"></i> Copiar</button>
                     </div>
                 </div>
 
