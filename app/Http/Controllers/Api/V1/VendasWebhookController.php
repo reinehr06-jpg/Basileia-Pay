@@ -14,57 +14,87 @@ class VendasWebhookController extends Controller
      */
     public function handle(Request $request)
     {
-        // The api.auth middleware has already verified the ck_live_ key
-        // and merged the 'integration' into the request.
-        $integration = $request->get('integration');
+        try {
+            // The api.auth middleware might have already verified the ck_live_ key
+            $integration = $request->get('integration');
 
-        if (!$integration) {
-            return response()->json(['error' => 'Integration context not found'], 401);
-        }
+            // Fallback: If middleware was bypassed (e.g. diagnostic routes), try manual lookup
+            if (!$integration) {
+                $apiKey = $request->header('X-API-Key') ?? $request->header('Authorization');
+                if (str_starts_with($apiKey, 'Bearer ')) {
+                    $apiKey = substr($apiKey, 7);
+                }
 
-        $signature = $request->header('X-Checkout-Signature');
-        $secret = $integration->webhook_secret;
-
-        if ($secret && $signature) {
-            $rawBody = $request->getContent();
-            $expectedSignature = hash_hmac('sha256', $rawBody, $secret);
-            
-            // Try fallback: sign request input if raw body didn't match
-            $fallbackBody = json_encode($request->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-            $fallbackSignature = hash_hmac('sha256', $fallbackBody, $secret);
-
-            if (!hash_equals($expectedSignature, $signature) && !hash_equals($fallbackSignature, $signature)) {
-                Log::emergency('Vendas Webhook: Invalid signature', [
-                    'integration_id' => $integration->id,
-                    'expected_raw' => $expectedSignature,
-                    'expected_json' => $fallbackSignature,
-                    'received' => $signature,
-                    'body_len' => strlen($rawBody),
-                ]);
-
-                return response()->json([
-                    'error' => 'SIGNATURE_FAIL_DEBUG_MODE',
-                    'debug' => [
-                        'received_signature' => $signature,
-                        'expected_if_raw' => $expectedSignature,
-                        'expected_if_json' => $fallbackSignature,
-                        'received_body_len' => strlen($rawBody),
-                        'timestamp' => now()->toIso8601String()
-                    ]
-                ], 401);
+                if ($apiKey) {
+                    $integration = \App\Models\Integration::where('api_key_hash', hash('sha256', $apiKey))
+                        ->where('status', 'active')
+                        ->first();
+                }
             }
+
+            if (!$integration) {
+                Log::warning('Vendas Webhook: Integration context not found', [
+                    'headers' => $request->headers->all(),
+                    'params' => $request->all(),
+                ]);
+                return response()->json(['error' => 'Integration context not found. Ensure X-API-Key is sent.'], 401);
+            }
+
+            $signature = $request->header('X-Checkout-Signature') ?? $request->header('X-Hub-Signature-256');
+            if (str_starts_with($signature, 'sha256=')) {
+                $signature = substr($signature, 7);
+            }
+
+            $secret = $integration->webhook_secret;
+
+            if ($secret && $signature) {
+                $rawBody = $request->getContent();
+                $expectedSignature = hash_hmac('sha256', $rawBody, $secret);
+                
+                // FIXED: Use standardized JSON format for fallback check
+                $jsonPayload = json_encode($request->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+                $expectedJsonSignature = hash_hmac('sha256', $jsonPayload, $secret);
+
+                if (!hash_equals($expectedSignature, $signature) && !hash_equals($expectedJsonSignature, $signature)) {
+                    Log::emergency('Vendas Webhook: Invalid signature', [
+                        'integration_id' => $integration->id,
+                        'received' => $signature,
+                        'expected_raw' => $expectedSignature,
+                        'expected_json' => $expectedJsonSignature,
+                    ]);
+
+                    return response()->json([
+                        'error' => 'Invalid signature',
+                        'debug' => [
+                            'received' => $signature,
+                            'expected_json' => $expectedJsonSignature,
+                            'payload_checked' => $jsonPayload
+                        ]
+                    ], 401);
+                }
+            }
+
+            // Process the payload
+            $payload = $request->all();
+            Log::info('Vendas Webhook received successfully', [
+                'integration_id' => $integration->id,
+                'event' => $payload['event'] ?? 'unknown'
+            ]);
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Notification received'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Vendas Webhook Exception: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Internal Server Error: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Process the payload (e.g. sync settings, external status, etc.)
-        $payload = $request->all();
-        Log::info('Vendas Webhook received successfully', [
-            'integration_id' => $integration->id,
-            'event' => $payload['event'] ?? 'unknown'
-        ]);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Notification received'
-        ]);
     }
 }
