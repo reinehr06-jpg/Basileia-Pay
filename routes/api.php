@@ -83,4 +83,15 @@ Route::prefix('v1')->group(function () {
         $lines = array_slice($file, -100);
         return response(implode('', $lines), 200, ['Content-Type' => 'text/plain']);
     });
+
+    // --- EMERGENCY TEST ROUTES ---
+    
+    // Heartbeat for connectivity test (Bypasses signature and auth)
+    Route::match(['get', 'post'], 'vendas-emergency-test-999', function () {
+        return response()->json([
+            'status' => 'ESTOU VIVO',
+            'server' => 'CheckOut-Internal-Emergency-v999',
+            'timestamp' => now()->toIso8601String()
+        ]);
+    });
 });
