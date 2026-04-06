@@ -34,18 +34,20 @@ Route::get('/evento/{slug}', [EventCheckoutController::class, 'show'])->name('ev
 Route::post('/evento/{slug}/pay', [EventCheckoutController::class, 'process'])->name('evento.process');
 Route::get('/evento/{slug}/success', [EventCheckoutController::class, 'success'])->name('evento.success');
 
-// Elite Checkout Flow (Basileia Secure)
+// Minimalist Checkout Links (secure.basileia.global/{uuid})
+Route::get('/{uuid}', [CheckoutController::class, 'show'])
+    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+    ->name('checkout.pay');
+
 Route::prefix('pay')->group(function () {
-    Route::get('/{uuid}', [CheckoutController::class, 'show'])->name('checkout.pay');
     Route::post('/{uuid}/process', [CheckoutController::class, 'process'])->name('checkout.process');
     Route::get('/{uuid}/success', [CheckoutController::class, 'success'])->name('checkout.success');
     Route::get('/{uuid}/receipt', [CheckoutController::class, 'receipt'])->name('checkout.receipt');
 });
 
-// Suporte para links antigos de /checkout
-Route::get('/checkout/{uuid}', function($uuid) {
-    return redirect()->route('checkout.pay', $uuid);
-});
+// Suporte para links antigos de /checkout e /pay
+Route::get('/checkout/{uuid}', fn($uuid) => redirect()->route('checkout.pay', $uuid));
+Route::get('/pay/{uuid}', fn($uuid) => redirect()->route('checkout.pay', $uuid));
 
 // Auth
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

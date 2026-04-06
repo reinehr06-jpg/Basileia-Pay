@@ -66,7 +66,7 @@ class Transaction extends Model
 
     public function getPaymentUrlAttribute(): string
     {
-        return config('app.url') . '/checkout/' . $this->uuid;
+        return config('app.url') . '/' . $this->uuid;
     }
 
     public function company(): BelongsTo

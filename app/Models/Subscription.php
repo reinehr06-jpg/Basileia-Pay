@@ -33,7 +33,7 @@ class Subscription extends Model
 
     public function getPaymentUrlAttribute(): string
     {
-        return config('app.url') . '/pay/' . $this->uuid;
+        return config('app.url') . '/' . $this->uuid;
     }
 
     public function company(): BelongsTo
