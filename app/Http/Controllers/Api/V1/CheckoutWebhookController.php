@@ -149,9 +149,18 @@ class CheckoutWebhookController extends Controller
         $jsonPayload = json_encode($webhookPayload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         $signature = $secret ? hash_hmac('sha256', $jsonPayload, $secret) : null;
 
+        Log::info('[DIAGNOSTIC_WEBHOOK] Starting dispatch', [
+            'transaction_id' => $transaction->id,
+            'webhook_url' => $integration->webhook_url,
+            'secret_prefix' => $secret ? substr($secret, 0, 8) . '...' : 'NULL',
+            'payload_to_sign' => $jsonPayload,
+            'signature_generated' => $signature,
+        ]);
+
         try {
             $headers = [
                 'Content-Type' => 'application/json',
+                'User-Agent' => 'Checkout/1.0',
             ];
             
             if ($signature) {
@@ -167,13 +176,13 @@ class CheckoutWebhookController extends Controller
                 Log::info('Checkout webhook sent successfully', [
                     'transaction_id' => $transaction->id,
                     'event' => $checkoutEvent,
-                    'webhook_url' => $integration->webhook_url,
                 ]);
             } else {
-                Log::error('Checkout webhook failed', [
+                Log::error('Checkout webhook failed (HTTP_ERROR)', [
                     'transaction_id' => $transaction->id,
                     'status' => $response->status(),
-                    'response' => $response->body(),
+                    'response_body' => $response->body(),
+                    'response_headers' => $response->headers(),
                 ]);
             }
         } catch (\Exception $e) {
