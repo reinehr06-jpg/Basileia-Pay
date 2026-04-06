@@ -150,11 +150,14 @@ class SubscriptionController extends Controller
                 'status' => 'active',
             ]);
 
+            $result = [
+                'uuid' => $subscription->uuid,
+                'payment_url' => $subscription->payment_url,
+            ];
+
             return response()->json([
-                'subscription' => [
-                    'uuid' => $subscription->uuid,
-                    'payment_url' => $subscription->payment_url,
-                ],
+                'subscription' => $result,
+                'transaction' => $result, // Alias for Vendor compatibility
                 'message' => 'Subscription created successfully. Link generated.'
             ], Response::HTTP_CREATED);
 
