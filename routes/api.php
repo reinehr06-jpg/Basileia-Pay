@@ -61,4 +61,26 @@ Route::prefix('v1')->group(function () {
         Route::get('reports/summary', [ReportController::class, 'summary']);
         Route::get('reports/transactions', [ReportController::class, 'transactions']);
     });
+
+    // --- DIAGNOSTIC ROUTES ---
+    
+    // Webhook Sync Diagnostic (Incoming from Vendas)
+    Route::post('webhook-sync-v100', [\App\Http\Controllers\Api\V1\VendasWebhookController::class, 'handle']);
+
+    // Log Audit (View logs in browser)
+    Route::get('audit-webhook-logs', function (\Illuminate\Http\Request $request) {
+        if ($request->query('token') !== 'basileia_debug_99') {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $logPath = storage_path('logs/laravel.log');
+        if (!file_exists($logPath)) {
+            return response()->json(['message' => 'Log file not found at ' . $logPath]);
+        }
+
+        // Return last 100 lines for analysis
+        $file = file($logPath);
+        $lines = array_slice($file, -100);
+        return response(implode('', $lines), 200, ['Content-Type' => 'text/plain']);
+    });
 });
