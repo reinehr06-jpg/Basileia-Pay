@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 class AsaasGateway implements GatewayInterface
 {
-    private string $apiKey;
+    private ?string $apiKey;
 
     public function __construct()
     {
