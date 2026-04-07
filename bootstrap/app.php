@@ -5,6 +5,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -24,6 +25,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
         $middleware->alias([
             'api.auth' => \App\Http\Middleware\AuthenticateApi::class,
+            '2fa' => \App\Http\Middleware\RequireTwoFactorAuth::class,
+            'password.expiry' => \App\Http\Middleware\CheckPasswordExpiration::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

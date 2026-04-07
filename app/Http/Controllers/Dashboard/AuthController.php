@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Dashboard;
 use App\Http\Controllers\Controller;
 use App\Models\LoginAttempt;
 use App\Models\User;
+use App\Services\TwoFactorAuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -15,6 +16,10 @@ class AuthController extends Controller
 {
     private const MAX_FAILED_ATTEMPTS = 5;
     private const LOCKOUT_MINUTES = 30;
+
+    public function __construct(
+        private TwoFactorAuthService $twoFactorService
+    ) {}
 
     public function showLogin()
     {
@@ -101,6 +106,13 @@ class AuthController extends Controller
             if ($user->must_change_password) {
                 return redirect()->route('password.change')
                     ->with('warning', 'Você deve alterar sua senha no primeiro acesso.');
+            }
+
+            if ($user->two_factor_enabled) {
+                $request->session()->put('2fa_required', true);
+                Auth::logout();
+                $request->session()->put('pre_2fa_user_id', $user->id);
+                return redirect()->route('profile.2fa.verify');
             }
 
             return redirect()->intended(route('dashboard.index'));

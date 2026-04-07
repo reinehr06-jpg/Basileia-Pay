@@ -19,6 +19,20 @@ return new class extends Migration
             $table->rememberToken();
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamps();
+
+            // 2FA
+            $table->boolean('two_factor_enabled')->default(false);
+            $table->string('two_factor_secret')->nullable();
+            $table->text('two_factor_codes')->nullable();
+            $table->timestamp('last_auth_at')->nullable();
+
+            // Política de senha
+            $table->boolean('must_change_password')->default(false)->after('password');
+            $table->timestamp('password_changed_at')->nullable()->after('must_change_password');
+
+            // Bloqueio
+            $table->integer('failed_login_attempts')->default(0)->after('password_changed_at');
+            $table->timestamp('locked_until')->nullable()->after('failed_login_attempts');
         });
     }
 

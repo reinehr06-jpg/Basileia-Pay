@@ -19,6 +19,7 @@ use App\Http\Controllers\Dashboard\PasswordController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Middleware\RateLimitCheckout;
 use App\Http\Middleware\CheckTransactionAccess;
+use App\Http\Controllers\Dashboard\ProfileController;
 
 Route::get('/', function (\Illuminate\Http\Request $request) {
     if ($request->has('asaas_payment_id')) {
@@ -28,6 +29,10 @@ Route::get('/', function (\Illuminate\Http\Request $request) {
     }
     return response('Checkout Base - Aguardando Identificador', 200);
 });
+
+Route::get('/checkout/asaas/{asaasPaymentId}', [AsaasCheckoutController::class, 'show'])->name('checkout.asaas.show');
+Route::post('/checkout/asaas/process/{asaasPaymentId}', [AsaasCheckoutController::class, 'process'])->name('checkout.asaas.process');
+Route::get('/checkout/asaas/success/{uuid}', [AsaasCheckoutController::class, 'success'])->name('checkout.asaas.success');
 
 // Public event checkout pages
 Route::get('/evento/{slug}', [EventCheckoutController::class, 'show'])->name('evento.show');
@@ -43,8 +48,16 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::get('/password/change', [PasswordController::class, 'showChangeForm'])->name('password.change')->middleware('auth');
 Route::post('/password/change', [PasswordController::class, 'changePassword'])->middleware('auth');
 
+// 2FA
+Route::get('/profile/2fa/setup', [ProfileController::class, 'show2FASetup'])->name('profile.2fa.setup')->middleware('auth');
+Route::post('/profile/2fa/enable', [ProfileController::class, 'enable2FA'])->name('profile.2fa.enable')->middleware('auth');
+Route::get('/profile/2fa/verify', [ProfileController::class, 'show2FAVerify'])->name('profile.2fa.verify')->middleware('auth');
+Route::post('/profile/2fa/verify', [ProfileController::class, 'verify2FA'])->name('profile.2fa.verify.post')->middleware('auth');
+Route::get('/profile/2fa/disable', [ProfileController::class, 'show2FADisable'])->name('profile.2fa.disable')->middleware('auth');
+Route::post('/profile/2fa/disable', [ProfileController::class, 'disable2FA'])->name('profile.2fa.disable.post')->middleware('auth');
+
 // Dashboard (authenticated)
-Route::prefix('/dashboard')->middleware(['auth'])->group(function () {
+Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 
     // Transactions
@@ -125,3 +138,49 @@ Route::get('/clear-views', function() {
         'first_500_chars' => $content
     ];
 });
+
+// --- ROTA DE DEMONSTRAÇÃO (TEMPORÁRIA) ---
+Route::get('/demo-checkout/{type}/{uuid}', function($type, $uuid) {
+    $resource = \App\Models\Transaction::where('uuid', $uuid)->firstOrFail();
+    $asaasData = [
+        'billingType' => 'CREDIT_CARD',
+        'value' => $resource->amount,
+        'installmentCount' => 12,
+        'description' => $resource->description,
+    ];
+    $customerData = [
+        'name' => $resource->customer->name,
+        'email' => $resource->customer->email,
+        'phone' => $resource->customer->phone,
+        'address' => [
+            'endereco' => 'Av. Paulista',
+            'numero' => '1000',
+            'bairro' => 'Bela Vista',
+            'cidade' => 'São Paulo',
+            'estado' => 'SP',
+            'cep' => '01310-100'
+        ]
+    ];
+    
+    $view = match($type) {
+        'premium' => 'checkout.index',
+        'basileia' => 'checkout.basileia',
+        default => 'checkout.pay',
+    };
+
+    return view($view, [
+        'transaction' => $resource,
+        'asaasData' => $asaasData,
+        'customerData' => $customerData,
+        'pixData' => [],
+        'plano' => 'Plano Mensal',
+        'ciclo' => 'mensal',
+        'features' => [
+            ['t' => 'Pagamento Seguro', 'd' => 'Dados protegidos com criptografia SSL.'],
+            ['t' => 'Processamento Instantâneo', 'd' => 'Confirmação rápida para liberação.'],
+            ['t' => 'Suporte ao Cliente', 'd' => 'Assistência dedicada 24h.'],
+        ]
+    ]);
+});
+
+Route::post('/demo-checkout/basileia/process/{id}', [CheckoutController::class, 'process'])->name('basileia.checkout.process');
