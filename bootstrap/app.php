@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'api.auth' => \App\Http\Middleware\AuthenticateApi::class,
             '2fa' => \App\Http\Middleware\RequireTwoFactorAuth::class,
             'password.expiry' => \App\Http\Middleware\CheckPasswordExpiration::class,
+            'enforce.2fa' => \App\Http\Middleware\EnforceTwoFactorAuth::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
