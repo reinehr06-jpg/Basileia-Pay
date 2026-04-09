@@ -139,12 +139,59 @@
             border-radius: 14px;
             position: relative;
             margin-bottom: 20px;
-            transition: all 0.3s ease;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            color: white;
+        }
+        .card-preview.flipped {
+            transform: rotateY(180deg);
+        }
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 14px;
+            padding: 20px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 20px;
-            color: white;
+        }
+        .card-front {
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            justify-content: space-between;
+        }
+        .card-back {
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
+            transform: rotateY(180deg);
+            justify-content: center;
+            align-items: center;
+        }
+        .card-preview.visa .card-front { background: linear-gradient(135deg, #1A1F71 0%, #2A3F91 100%); }
+        .card-preview.visa .card-back { background: linear-gradient(135deg, #1A1F71 0%, #2A3F91 100%); }
+        .card-preview.mastercard .card-front { background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%); }
+        .card-preview.mastercard .card-back { background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%); }
+        .card-preview.amex .card-front { background: linear-gradient(135deg, #0070d1 0%, #00a0f0 100%); }
+        .card-preview.amex .card-back { background: linear-gradient(135deg, #0070d1 0%, #00a0f0 100%); }
+        .card-preview.elo .card-front { background: linear-gradient(135deg, #0047BB 0%, #FFCB05 100%); }
+        .card-preview.elo .card-back { background: linear-gradient(135deg, #0047BB 0%, #FFCB05 100%); }
+        
+        .cvv-strip {
+            width: 100%;
+            height: 40px;
+            background: #fff;
+            margin-top: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            border-radius: 4px;
+        }
+        .cvv-value {
+            color: #1e1e1e;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 3px;
         }
         .card-preview.default {
             background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
@@ -283,6 +330,7 @@
         cardHolder: '',
         cardExpiry: '',
         cardBrand: 'default',
+        showCvv: false,
         updateCard() {
             const num = this.cardNumber.replace(/\D/g, '');
             if (num.startsWith('4')) this.cardBrand = 'visa';
@@ -290,6 +338,9 @@
             else if (num.match(/^3[47]/)) this.cardBrand = 'amex';
             else if (num.match(/^(4011|4312|4389|4514|4573|4576|5041|5066|5067|5090|6277|6362|6363|6504|6505|6507|6509|6516|6550)/)) this.cardBrand = 'elo';
             else this.cardBrand = 'default';
+        },
+        toggleCvv() {
+            this.showCvv = !this.showCvv;
         },
         countries: [
             {code:'BR',name:'Brasil',flag:'🇧🇷'},{code:'US',name:'EUA',flag:'🇺🇸'},
@@ -332,12 +383,19 @@
             </div>
             
             <!-- Cartão 3D -->
-            <div class="card-preview" :class="cardBrand">
-                <div class="card-chip"></div>
-                <div class="card-number" x-text="cardNumber || '•••• •••• •••• ••••'"></div>
-                <div class="card-details">
-                    <div class="card-holder-name" x-text="cardHolder || 'NOME DO TITULAR'"></div>
-                    <div x-text="cardExpiry || '••/••'"></div>
+            <div class="card-preview" :class="[cardBrand, showCvv ? 'flipped' : '']">
+                <div class="card-front">
+                    <div class="card-chip"></div>
+                    <div class="card-number" x-text="cardNumber || '•••• •••• •••• ••••'"></div>
+                    <div class="card-details">
+                        <div class="card-holder-name" x-text="cardHolder || 'NOME DO TITULAR'"></div>
+                        <div x-text="cardExpiry || '••/••'"></div>
+                    </div>
+                </div>
+                <div class="card-back">
+                    <div class="cvv-strip">
+                        <div class="cvv-value" x-text="$refs.cvvInput?.value || '•••'"></div>
+                    </div>
                 </div>
             </div>
             
@@ -367,7 +425,10 @@
                     </div>
                     <div class="form-group" style="grid-column: span 2;">
                         <label class="form-label">CVC</label>
-                        <input type="text" name="card_cvv" class="form-input" placeholder="123" maxlength="4" required>
+                        <input type="text" name="card_cvv" class="form-input" placeholder="123" maxlength="4" required
+                            x-ref="cvvInput"
+                            @focus="showCvv = true"
+                            @blur="showCvv = false">
                     </div>
                 </div>
                 
