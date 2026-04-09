@@ -335,24 +335,14 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 12px;
+            gap: 8px;
             margin-top: 16px;
             padding-top: 16px;
             border-top: 1px solid #e2e8f0;
         }
-        .accepted-label {
-            font-size: 10px;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .accepted-icons {
-            display: flex;
-            gap: 6px;
-        }
-        .accepted-icons svg {
-            width: 32px;
-            height: 22px;
+        .accepted-cards svg {
+            width: 36px;
+            height: 24px;
         }
         
         @media (max-width: 720px) {
@@ -504,14 +494,10 @@
             </form>
             
             <div class="accepted-cards">
-                <span class="accepted-label">Aceitamos</span>
-                <div class="accepted-icons">
-                    <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
-                    <svg viewBox="0 0 40 28" title="Mastercard"><circle cx="15" cy="14" r="8" fill="#EB001B"/><circle cx="25" cy="14" r="8" fill="#F79E1B"/><path d="M20 8a8 8 0 0 1 0 12 8 8 0 0 1 0-12z" fill="#FF5F00"/></svg>
-                    <svg viewBox="0 0 40 28" title="Elo"><rect width="40" height="28" rx="3" fill="#FFCB05"/><text x="20" y="19" font-size="10" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
-                    <svg viewBox="0 0 40 28" title="Hipercard"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="8" fill="#ef4444" text-anchor="middle" font-weight="bold">HIPER</text></svg>
-                    <svg viewBox="0 0 40 28" title="Pix"><rect width="40" height="28" rx="3" fill="#10b981"/><text x="20" y="19" font-size="8" fill="#fff" text-anchor="middle" font-weight="bold">PIX</text></svg>
-                </div>
+                <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
+                <svg viewBox="0 0 40 28" title="Mastercard"><circle cx="15" cy="14" r="8" fill="#EB001B"/><circle cx="25" cy="14" r="8" fill="#F79E1B"/><path d="M20 8a8 8 0 0 1 0 12 8 8 0 0 1 0-12z" fill="#FF5F00"/></svg>
+                <svg viewBox="0 0 40 28" title="Elo"><rect width="40" height="28" rx="3" fill="#FFCB05"/><text x="20" y="19" font-size="10" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
+                <svg viewBox="0 0 40 28" title="Hipercard"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="8" fill="#ef4444" text-anchor="middle" font-weight="bold">HIPER</text></svg>
             </div>
             
             <div class="security-footer">
