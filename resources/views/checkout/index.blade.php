@@ -95,6 +95,27 @@
             font-size: 13px;
             opacity: 0.8;
         }
+        .plan-name-text {
+            text-transform: uppercase;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        .amount-text {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+        .period-text {
+            font-size: 13px;
+            opacity: 0.8;
+        }
+        .feature-text {
+            font-size: 12px;
+            opacity: 0.9;
+        }
         .value-card-features {
             margin-top: 24px;
             display: grid;
@@ -122,14 +143,33 @@
             justify-content: flex-end;
             margin-bottom: 12px;
         }
+        .locale-switcher {
+            position: relative;
+        }
         .locale-switcher select {
+            appearance: none;
             background: white;
             border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 6px 12px;
-            font-size: 12px;
+            border-radius: 10px;
+            padding: 10px 36px 10px 14px;
+            font-size: 13px;
             cursor: pointer;
             color: var(--text-dark);
+            font-weight: 500;
+            min-width: 160px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            transition: all 0.2s;
+        }
+        .locale-switcher select:hover {
+            border-color: var(--primary-light);
+        }
+        .locale-switcher select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
         }
         
         /* Cartão 3D Preto */
@@ -359,11 +399,19 @@
 <body
     x-data="{
         country: 'BR',
+        locale: 'pt-BR',
+        currency: 'BRL',
+        currencySymbol: 'R$',
+        planLabel: 'PLANO PREMIUM',
+        periodLabel: 'por mês',
+        payBtnLabel: 'Pagar',
+        features: ['Acesso completo', 'Suporte 24h', 'Cancelamento fácil'],
         cardNumber: '',
         cardHolder: '',
         cardExpiry: '',
         cardBrand: 'default',
         showCvv: false,
+        localeData: {},
         updateCard() {
             const num = this.cardNumber.replace(/\D/g, '');
             if (num.startsWith('4')) this.cardBrand = 'visa';
@@ -374,6 +422,43 @@
         },
         toggleCvv() {
             this.showCvv = !this.showCvv;
+        },
+        changeCountry() {
+            const data = this.localeData[this.country] || this.localeData.default;
+            this.locale = data.locale;
+            this.currency = data.currency;
+            this.currencySymbol = data.symbol;
+            this.planLabel = data.planLabel;
+            this.periodLabel = data.periodLabel;
+            this.payBtnLabel = data.payBtn;
+            this.features = data.features;
+        },
+        formatPrice(amount) {
+            try {
+                return new Intl.NumberFormat(this.locale, {style: 'currency', currency: this.currency}).format(amount);
+            } catch(e) {
+                return this.currencySymbol + ' ' + amount.toFixed(2);
+            }
+        },
+        init() {
+            this.localeData = {
+                BR: {locale: 'pt-BR', currency: 'BRL', symbol: 'R$', lang: 'pt', planLabel: 'PLANO PREMIUM', periodLabel: 'por mês', features: ['Acesso completo', 'Suporte 24h', 'Cancelamento fácil'], payBtn: 'Pagar'},
+                US: {locale: 'en-US', currency: 'USD', symbol: '$', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'},
+                PT: {locale: 'pt-PT', currency: 'EUR', symbol: '€', lang: 'pt', planLabel: 'PLANO PREMIUM', periodLabel: 'por mês', features: ['Acesso completo', 'Suporte 24h', 'Cancelamento fácil'], payBtn: 'Pagar'},
+                ES: {locale: 'es-ES', currency: 'EUR', symbol: '€', lang: 'es', planLabel: 'PLAN PREMIUM', periodLabel: 'por mes', features: ['Acceso completo', 'Soporte 24h', 'Cancelación fácil'], payBtn: 'Pagar'},
+                FR: {locale: 'fr-FR', currency: 'EUR', symbol: '€', lang: 'fr', planLabel: 'PLAN PREMIUM', periodLabel: 'par mois', features: ['Accès complet', 'Support 24h', 'Annulation facile'], payBtn: 'Payer'},
+                DE: {locale: 'de-DE', currency: 'EUR', symbol: '€', lang: 'de', planLabel: 'PREMIUM PLAN', periodLabel: 'pro Monat', features: ['Voller Zugriff', '24h Support', 'Einfache Stornierung'], payBtn: 'Bezahlen'},
+                IT: {locale: 'it-IT', currency: 'EUR', symbol: '€', lang: 'it', planLabel: 'PIANO PREMIUM', periodLabel: 'al mese', features: ['Accesso completo', 'Supporto 24h', 'Cancellazione facile'], payBtn: 'Paga'},
+                GB: {locale: 'en-GB', currency: 'GBP', symbol: '£', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'},
+                CA: {locale: 'en-CA', currency: 'CAD', symbol: 'C$', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'},
+                MX: {locale: 'es-MX', currency: 'MXN', symbol: 'MX$', lang: 'es', planLabel: 'PLAN PREMIUM', periodLabel: 'por mes', features: ['Acceso completo', 'Soporte 24h', 'Cancelación fácil'], payBtn: 'Pagar'},
+                AR: {locale: 'es-AR', currency: 'ARS', symbol: 'ARS$', lang: 'es', planLabel: 'PLAN PREMIUM', periodLabel: 'por mes', features: ['Acceso completo', 'Soporte 24h', 'Cancelación fácil'], payBtn: 'Pagar'},
+                JP: {locale: 'ja-JP', currency: 'JPY', symbol: '¥', lang: 'ja', planLabel: 'プレミアムプラン', periodLabel: '月額', features: ['フルアクセス', '24時間サポート', '簡単なキャンセル'], payBtn: '支払う'},
+                CN: {locale: 'zh-CN', currency: 'CNY', symbol: '¥', lang: 'zh', planLabel: '高级套餐', periodLabel: '每月', features: ['完全访问', '24小时支持', '轻松取消'], payBtn: '支付'},
+                KR: {locale: 'ko-KR', currency: 'KRW', symbol: '₩', lang: 'ko', planLabel: '프리미엄 플랜', periodLabel: '월간', features: ['전액 접근', '24시간 지원', '쉬운 취소'], payBtn: '지불'},
+                default: {locale: 'en-US', currency: 'USD', symbol: '$', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'}
+            };
+            this.changeCountry();
         },
         countries: [
             {code:'BR',name:'Brasil',flag:'🇧🇷'},{code:'US',name:'Estados Unidos',flag:'🇺🇸'},{code:'PT',name:'Portugal',flag:'🇵🇹'},{code:'ES',name:'Espanha',flag:'🇪🇸'},{code:'FR',name:'França',flag:'🇫🇷'},{code:'DE',name:'Alemanha',flag:'🇩🇪'},{code:'IT',name:'Itália',flag:'🇮🇹'},{code:'GB',name:'Reino Unido',flag:'🇬🇧'},{code:'CA',name:'Canadá',flag:'🇨🇦'},{code:'MX',name:'México',flag:'🇲🇽'},{code:'AR',name:'Argentina',flag:'🇦🇷'},{code:'CO',name:'Colômbia',flag:'🇨🇴'},{code:'CL',name:'Chile',flag:'🇨🇱'},{code:'PE',name:'Peru',flag:'🇵🇪'},{code:'VE',name:'Venezuela',flag:'🇻🇪'},{code:'UY',name:'Uruguai',flag:'🇺🇾'},{code:'PY',name:'Paraguai',flag:'🇵🇾'},{code:'BO',name:'Bolívia',flag:'🇧🇴'},{code:'EC',name:'Equador',flag:'🇪🇨'},{code:'AU',name:'Austrália',flag:'🇦🇺'},{code:'NZ',name:'Nova Zelândia',flag:'🇳🇿'},{code:'JP',name:'Japão',flag:'🇯🇵'},{code:'CN',name:'China',flag:'🇨🇳'},{code:'KR',name:'Coreia do Sul',flag:'🇰🇷'},{code:'IN',name:'Índia',flag:'🇮🇳'},{code:'RU',name:'Rússia',flag:'🇷🇺'},{code:'ZA',name:'África do Sul',flag:'🇿🇦'},{code:'NG',name:'Nigéria',flag:'🇳🇬'},{code:'EG',name:'Egito',flag:'🇪🇬'},{code:'SA',name:'Arábia Saudita',flag:'🇸🇦'},{code:'AE',name:'Emirados Árabes',flag:'🇦🇪'},{code:'IL',name:'Israel',flag:'🇮🇱'},{code:'TR',name:'Turquia',flag:'🇹🇷'},{code:'PL',name:'Polônia',flag:'🇵🇱'},{code:'NL',name:'Holanda',flag:'🇳🇱'},{code:'BE',name:'Bélgica',flag:'🇧🇪'},{code:'CH',name:'Suíça',flag:'🇨🇭'},{code:'AT',name:'Áustria',flag:'🇦🇹'},{code:'SE',name:'Suécia',flag:'🇸🇪'},{code:'NO',name:'Noruega',flag:'🇳🇴'},{code:'DK',name:'Dinamarca',flag:'🇩🇰'},{code:'FI',name:'Finlândia',flag:'🇫🇮'},{code:'IE',name:'Irlanda',flag:'🇮🇪'},{code:'GR',name:'Grécia',flag:'🇬🇷'},{code:'CZ',name:'República Tcheca',flag:'🇨🇿'},{code:'HU',name:'Hungria',flag:'🇭🇺'},{code:'RO',name:'Romênia',flag:'🇷🇴'},{code:'TH',name:'Tailândia',flag:'🇹🇭'},{code:'VN',name:'Vietnã',flag:'🇻🇳'},{code:'ID',name:'Indonésia',flag:'🇮🇩'},{code:'MY',name:'Malásia',flag:'🇲🇾'},{code:'SG',name:'Singapura',flag:'🇸🇬'},{code:'PH',name:'Filipinas',flag:'🇵🇭'},{code:'TW',name:'Taiwan',flag:'🇹🇼'},{code:'HK',name:'Hong Kong',flag:'🇭🇰'},{code:'MA',name:'Marrocos',flag:'🇲🇦'},{code:'DZ',name:'Argélia',flag:'🇩🇿'},{code:'TN',name:'Tunísia',flag:'🇹🇳'},{code:'GH',name:'Gana',flag:'🇬🇭'},{code:'KE',name:'Quênia',flag:'🇰🇪'},{code:'TZ',name:'Tanzânia',flag:'🇹🇿'},{code:'AO',name:'Angola',flag:'🇦🇴'},{code:'MZ',name:'Moçambique',flag:'🇲🇿'},{code:'RW',name:'Ruanda',flag:'🇷🇼'},{code:'UG',name:'Uganda',flag:'🇺🇬'},{code:'ET',name:'Etiópia',flag:'🇪🇹'},{code:'CM',name:'Camarões',flag:'🇨🇲'},{code:'SN',name:'Senegal',flag:'🇸🇳'},{code:'CI',name:'Costa do Marfim',flag:'🇨🇮'},{code:'NG',name:'Nigéria',flag:'🇳🇬'},{code:'CO',name:'Colômbia',flag:'🇨🇴'},{code:'PA',name:'Panamá',flag:'🇵🇦'},{code:'CR',name:'Costa Rica',flag:'🇨🇷'},{code:'GT',name:'Guatemala',flag:'🇬🇹'},{code:'HN',name:'Honduras',flag:'🇭🇳'},{code:'SV',name:'El Salvador',flag:'🇸🇻'},{code:'NI',name:'Nicarágua',flag:'🇳🇮'},{code:'DO',name:'República Dominicana',flag:'🇩🇴'},{code:'JM',name:'Jamaica',flag:'🇯🇲'},{code:'TT',name:'Trinidad e Tobago',flag:'🇹🇹'},{code:'BB',name:'Barbados',flag:'🇧🇧'},{code:'BS',name:'Bahamas',flag:'🇧🇸'},{code:'BZ',name:'Belize',flag:'🇧🇿'},{code:'PY',name:'Paraguai',flag:'🇵🇾'},{code:'UY',name:'Uruguai',flag:'🇺🇾'},{code:'SR',name:'Suriname',flag:'🇸🇷'},{code:'GY',name:'Guiana',flag:'🇬🇾'}
@@ -386,19 +471,15 @@
             <div class="value-card-logo">
                 <img src="https://basileia.global/wp-content/uploads/2024/01/Basileia-1.png" alt="Basileia" onerror="this.style.display='none'">
             </div>
-            <div class="value-card-plan">{{ $transaction->description ?? 'Plano Premium' }}</div>
-            <div class="value-card-amount">R$ {{ number_format($transaction->amount, 2, ',', '.') }}</div>
-            <div class="value-card-period">por mês</div>
+            <div class="value-card-plan" x-text="planLabel"></div>
+            <div class="value-card-amount" x-text="formatPrice({{ $transaction->amount }})"></div>
+            <div class="value-card-period" x-text="periodLabel"></div>
             <div class="value-card-features">
-                <div class="value-card-feature">
-                    <i class="fas fa-check"></i> Acesso completo
-                </div>
-                <div class="value-card-feature">
-                    <i class="fas fa-check"></i> Suporte 24h
-                </div>
-                <div class="value-card-feature">
-                    <i class="fas fa-check"></i> Cancelamento fácil
-                </div>
+                <template x-for="feature in features" :key="feature">
+                    <div class="value-card-feature">
+                        <i class="fas fa-check"></i> <span x-text="feature"></span>
+                    </div>
+                </template>
             </div>
         </div>
         
@@ -406,7 +487,7 @@
         <div class="payment-card">
             <div class="locale-row">
                 <div class="locale-switcher">
-                    <select x-model="country">
+                    <select x-model="country" @change="changeCountry()">
                         <template x-for="c in countries" :key="c.code">
                             <option :value="c.code" x-text="c.flag + ' ' + c.name"></option>
                         </template>
@@ -488,7 +569,7 @@
                 </div>
                 
                 <button type="submit" class="cta-button">
-                    Pagar R$ {{ number_format($transaction->amount, 2, ',', '.') }}
+                    <span x-text="'Pagar ' + formatPrice({{ $transaction->amount }})"></span>
                 </button>
             </form>
             
