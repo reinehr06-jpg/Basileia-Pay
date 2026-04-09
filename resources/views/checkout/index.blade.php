@@ -238,6 +238,25 @@
             background: linear-gradient(135deg, #d4af37 0%, #f0d075 100%);
             border-radius: 4px;
         }
+        .card-brand-logo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-brand-logo svg, .card-brand-logo img {
+            height: 100%;
+            width: auto;
+        }
+        .card-brand-logo .brand-text {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+        }
         .card-number {
             font-size: 18px;
             font-weight: 600;
@@ -310,6 +329,30 @@
             font-size: 11px;
             color: var(--text-muted);
             margin-top: 16px;
+        }
+        
+        .accepted-cards {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #e2e8f0;
+        }
+        .accepted-label {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .accepted-icons {
+            display: flex;
+            gap: 6px;
+        }
+        .accepted-icons svg {
+            width: 32px;
+            height: 22px;
         }
         
         @media (max-width: 720px) {
@@ -386,6 +429,23 @@
             <div class="card-preview" :class="[cardBrand, showCvv ? 'flipped' : '']">
                 <div class="card-front">
                     <div class="card-chip"></div>
+                    <div class="card-brand-logo">
+                        <template x-if="cardBrand === 'visa'">
+                            <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#fff"/><text x="24" y="22" font-size="16" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
+                        </template>
+                        <template x-if="cardBrand === 'mastercard'">
+                            <svg viewBox="0 0 48 32" height="32"><circle cx="18" cy="16" r="10" fill="#EB001B"/><circle cx="30" cy="16" r="10" fill="#F79E1B"/><path d="M24 9a10 10 0 0 1 0 14 10 10 0 0 1 0-14z" fill="#FF5F00"/></svg>
+                        </template>
+                        <template x-if="cardBrand === 'amex'">
+                            <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#006FCF"/><text x="24" y="20" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">AMEX</text></svg>
+                        </template>
+                        <template x-if="cardBrand === 'elo'">
+                            <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#FFCB05"/><text x="24" y="20" font-size="14" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
+                        </template>
+                        <template x-if="cardBrand === 'default'">
+                            <span class="brand-text">💳</span>
+                        </template>
+                    </div>
                     <div class="card-number" x-text="cardNumber || '•••• •••• •••• ••••'"></div>
                     <div class="card-details">
                         <div class="card-holder-name" x-text="cardHolder || 'NOME DO TITULAR'"></div>
@@ -442,6 +502,17 @@
                     Pagar R$ {{ number_format($transaction->amount, 2, ',', '.') }}
                 </button>
             </form>
+            
+            <div class="accepted-cards">
+                <span class="accepted-label">Aceitamos</span>
+                <div class="accepted-icons">
+                    <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
+                    <svg viewBox="0 0 40 28" title="Mastercard"><circle cx="15" cy="14" r="8" fill="#EB001B"/><circle cx="25" cy="14" r="8" fill="#F79E1B"/><path d="M20 8a8 8 0 0 1 0 12 8 8 0 0 1 0-12z" fill="#FF5F00"/></svg>
+                    <svg viewBox="0 0 40 28" title="Elo"><rect width="40" height="28" rx="3" fill="#FFCB05"/><text x="20" y="19" font-size="10" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
+                    <svg viewBox="0 0 40 28" title="Hipercard"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="8" fill="#ef4444" text-anchor="middle" font-weight="bold">HIPER</text></svg>
+                    <svg viewBox="0 0 40 28" title="Pix"><rect width="40" height="28" rx="3" fill="#10b981"/><text x="20" y="19" font-size="8" fill="#fff" text-anchor="middle" font-weight="bold">PIX</text></svg>
+                </div>
+            </div>
             
             <div class="security-footer">
                 <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
