@@ -177,6 +177,7 @@ Route::get('/demo/pix/{uuid}', function($uuid) {
         'billingType' => 'PIX',
         'value' => $resource->amount,
         'description' => $resource->description,
+        'installmentCount' => 1,
     ];
     $pixData = [
         'encodedImage' => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -218,6 +219,7 @@ Route::get('/demo/boleto/{uuid}', function($uuid) {
         'value' => $resource->amount,
         'description' => $resource->description,
         'boletoUrl' => 'https://www.asaas.com/boleto/test',
+        'installmentCount' => 1,
     ];
     $pixData = [];
     
