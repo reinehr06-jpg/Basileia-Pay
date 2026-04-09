@@ -172,6 +172,37 @@
             box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
         }
         
+        /* Payment Method Toggle */
+        .payment-method-toggle {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 10px;
+        }
+        .payment-method-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .payment-method-btn.active {
+            background: white;
+            color: var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
         /* Cartão 3D Preto */
         .card-preview {
             width: 100%;
@@ -361,6 +392,68 @@
             background: var(--primary-dark);
         }
         
+        /* PIX Section */
+        .pix-section {
+            text-align: center;
+            padding: 10px 0;
+        }
+        .pix-qrcode {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            display: inline-block;
+            margin-bottom: 16px;
+        }
+        .pix-qrcode img {
+            width: 140px;
+            height: 140px;
+            display: block;
+        }
+        .pix-code-box {
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+        .pix-code-label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .pix-code-value {
+            font-family: monospace;
+            font-size: 10px;
+            color: var(--text-dark);
+            word-break: break-all;
+        }
+        .pix-copy-btn {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: var(--primary);
+            color: white;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .pix-copy-btn:hover {
+            background: var(--primary-dark);
+        }
+        .pix-info {
+            margin-top: 12px;
+            padding: 10px;
+            background: #ecfdf5;
+            border-radius: 8px;
+            font-size: 11px;
+            color: #065f46;
+        }
+        
         .security-footer {
             display: flex;
             align-items: center;
@@ -406,11 +499,13 @@
         periodLabel: 'por mês',
         payBtnLabel: 'Pagar',
         features: ['Acesso completo', 'Suporte 24h', 'Cancelamento fácil'],
+        billingType: '{{ $billingType ?? 'CREDIT_CARD' }}',
         cardNumber: '',
         cardHolder: '',
         cardExpiry: '',
         cardBrand: 'default',
         showCvv: false,
+        pixCopied: false,
         localeData: {},
         updateCard() {
             const num = this.cardNumber.replace(/\D/g, '');
@@ -422,6 +517,11 @@
         },
         toggleCvv() {
             this.showCvv = !this.showCvv;
+        },
+        copyPixCode() {
+            navigator.clipboard.writeText('{{ $pixData['payload'] ?? '' }}');
+            this.pixCopied = true;
+            setTimeout(() => this.pixCopied = false, 2000);
         },
         changeCountry() {
             const data = this.localeData[this.country] || this.localeData.default;
@@ -495,6 +595,16 @@
                 </div>
             </div>
             
+            <!-- Payment Method Toggle -->
+            <div class="payment-method-toggle">
+                <button type="button" class="payment-method-btn" :class="{ 'active': billingType === 'PIX' }" @click="billingType = 'PIX'">
+                    <i class="fas fa-qrcode"></i> PIX
+                </button>
+                <button type="button" class="payment-method-btn" :class="{ 'active': billingType === 'CREDIT_CARD' }" @click="billingType = 'CREDIT_CARD'">
+                    <i class="fas fa-credit-card"></i> Cartão
+                </button>
+            </div>
+            
             <!-- Cartão 3D -->
             <div class="card-preview" :class="[cardBrand, showCvv ? 'flipped' : '']">
                 <div class="card-front">
@@ -529,6 +639,8 @@
                 </div>
             </div>
             
+            <!-- Payment Form - Credit Card -->
+            <template x-if="billingType === 'CREDIT_CARD'">
             <form method="POST" action="{{ route('checkout.process', $transaction->uuid) }}">
                 @csrf
                 <input type="hidden" name="payment_method" value="credit_card">
@@ -572,6 +684,33 @@
                     <span x-text="'Pagar ' + formatPrice({{ $transaction->amount }})"></span>
                 </button>
             </form>
+            </template>
+            
+            <!-- PIX Section -->
+            <template x-if="billingType === 'PIX'">
+            <div class="pix-section">
+                <div class="pix-qrcode">
+                    @if(!empty($pixData['encodedImage']))
+                        <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" alt="QR Code PIX">
+                    @else
+                        <div style="width:140px;height:140px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#94a3b8;">
+                            <i class="fas fa-qrcode fa-3x"></i>
+                        </div>
+                    @endif
+                </div>
+                <div class="pix-code-box">
+                    <div class="pix-code-label">Código PIX Copia e Cola</div>
+                    <div class="pix-code-value">{{ $pixData['payload'] ?? 'Aguardando...' }}</div>
+                </div>
+                <button type="button" class="pix-copy-btn" @click="copyPixCode()">
+                    <span x-show="!pixCopied"><i class="fas fa-copy"></i> Copiar Código PIX</span>
+                    <span x-show="pixCopied"><i class="fas fa-check"></i> Copiado!</span>
+                </button>
+                <div class="pix-info">
+                    <i class="fas fa-check-circle"></i> Pagamento instantâneo confirmado em segundos
+                </div>
+            </div>
+            </template>
             
             <div class="accepted-cards">
                 <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
