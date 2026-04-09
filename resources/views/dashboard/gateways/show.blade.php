@@ -104,7 +104,7 @@
 function testGateway() {
     const resultDiv = document.getElementById('test-result');
     resultDiv.style.display = 'block';
-    resultDiv.innerHTML = '<div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 16px; border-radius: 12px; font-weight: 600;"><i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i> Testando conexão...</div>';
+    resultDiv.innerHTML = '<div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; padding: 16px; border-radius: 12px; font-weight: 600;"><i class="fas fa-spinner fa-spin" style="margin-right: 10px;"></i> Executando testes...</div>';
     
     fetch('{{ route("dashboard.gateways.test", $gateway->id) }}', {
         method: 'POST',
@@ -115,10 +115,44 @@ function testGateway() {
     })
     .then(response => response.json())
     .then(data => {
+        let html = '';
+        if (data.results && data.results.length > 0) {
+            html += '<div style="display: grid; gap: 8px; margin-top: 12px;">';
+            data.results.forEach(function(item) {
+                let icon = '?';
+                let bg = '#f3f4f6';
+                let border = '#e5e7eb';
+                let color = '#374151';
+                
+                if (item.status === 'passed') {
+                    icon = '<i class="fas fa-check-circle" style="color: #10b981;"></i>';
+                    bg = '#ecfdf5';
+                    border = '#a7f3d0';
+                    color = '#065f46';
+                } else if (item.status === 'failed') {
+                    icon = '<i class="fas fa-times-circle" style="color: #ef4444;"></i>';
+                    bg = '#fef2f2';
+                    border = '#fecaca';
+                    color = '#991b1b';
+                } else if (item.status === 'warning') {
+                    icon = '<i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i>';
+                    bg = '#fffbeb';
+                    border = '#fef3c7';
+                    color = '#92400e';
+                }
+                
+                html += '<div style="background: ' + bg + '; border: 1px solid ' + border + '; color: ' + color + '; padding: 12px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem;">';
+                html += icon;
+                html += '<div style="flex: 1;"><strong>' + item.test + '</strong><br><small style="opacity: 0.8;">' + item.message + '</small></div>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+        
         if (data.success) {
-            resultDiv.innerHTML = '<div style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 16px; border-radius: 12px; font-weight: 600;"><i class="fas fa-check-circle" style="margin-right: 10px;"></i> ' + data.message + '<br><small style="font-weight: 400; margin-top: 8px; display: block;">Email: ' + (data.data?.email || 'N/A') + ' | Account ID: ' + (data.data?.accountId || 'N/A') + '</small></div>';
+            resultDiv.innerHTML = '<div style="background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; padding: 16px; border-radius: 12px; font-weight: 600;"><i class="fas fa-check-circle" style="margin-right: 10px;"></i> ' + data.message + '</div>' + html;
         } else {
-            resultDiv.innerHTML = '<div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 16px; border-radius: 12px; font-weight: 600;"><i class="fas fa-times-circle" style="margin-right: 10px;"></i> ' + data.message + '</div>';
+            resultDiv.innerHTML = '<div style="background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 16px; border-radius: 12px; font-weight: 600;"><i class="fas fa-times-circle" style="margin-right: 10px;"></i> ' + data.message + '</div>' + html;
         }
     })
     .catch(error => {

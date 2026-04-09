@@ -206,43 +206,143 @@ class GatewayController extends Controller
             return response()->json(['success' => false, 'message' => 'API Key não configurada.']);
         }
 
+        $results = [];
+        $allPassed = true;
+        
         try {
             $client = new \GuzzleHttp\Client();
             $baseUrl = $gateway->getConfig('sandbox') 
                 ? 'https://sandbox.asaas.com/api/v3' 
                 : 'https://api.asaas.com/api/v3';
 
-            $response = $client->get($baseUrl . '/users/me', [
-                'headers' => [
-                    'access_token' => $apiKey,
-                    'Content-Type' => 'application/json',
-                ],
-            ]);
+            $headers = [
+                'access_token' => $apiKey,
+                'Content-Type' => 'application/json',
+            ];
 
-            $data = json_decode($response->getBody()->getContents(), true);
+            // Teste 1: Validar API Key / Dados da conta
+            try {
+                $response = $client->get($baseUrl . '/users/me', ['headers' => $headers]);
+                $data = json_decode($response->getBody()->getContents(), true);
+                $results[] = [
+                    'test' => 'API Key',
+                    'status' => 'passed',
+                    'message' => 'API Key válida',
+                    'data' => $data['email'] ?? 'N/A'
+                ];
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'API Key', 'status' => 'failed', 'message' => 'API Key inválida ou expirada'];
+                $allPassed = false;
+            }
+
+            // Teste 2: Listar clientes
+            try {
+                $response = $client->get($baseUrl . '/customers?limit=1', ['headers' => $headers]);
+                $results[] = ['test' => 'Listar Clientes', 'status' => 'passed', 'message' => 'Consulta OK'];
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'Listar Clientes', 'status' => 'failed', 'message' => 'Erro: ' . substr($e->getMessage(), 0, 50)];
+                $allPassed = false;
+            }
+
+            // Teste 3: Criar cobrança teste (R$ 0,01)
+            try {
+                $paymentData = [
+                    'customer' => 'cus_test',
+                    'billingType' => 'PIX',
+                    'value' => 0.01,
+                    'dueDate' => date('Y-m-d', strtotime('+1 day')),
+                    'description' => 'Teste de conexão - Checkout Basileia',
+                ];
+                $response = $client->post($baseUrl . '/payments', [
+                    'headers' => $headers,
+                    'json' => $paymentData
+                ]);
+                $paymentDataResult = json_decode($response->getBody()->getContents(), true);
+                $paymentId = $paymentDataResult['id'] ?? null;
+                
+                $results[] = ['test' => 'Criar Cobrança', 'status' => 'passed', 'message' => 'Cobrança criada: ' . $paymentId];
+
+                // Teste 4: Deletar cobrança teste
+                if ($paymentId) {
+                    try {
+                        $client->delete($baseUrl . '/payments/' . $paymentId, ['headers' => $headers]);
+                        $results[] = ['test' => 'Excluir Cobrança', 'status' => 'passed', 'message' => 'Cobrança teste removida'];
+                    } catch (\Exception $e) {
+                        $results[] = ['test' => 'Excluir Cobrança', 'status' => 'warning', 'message' => 'Não foi possível remover'];
+                    }
+                }
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'Criar Cobrança', 'status' => 'failed', 'message' => substr($e->getMessage(), 0, 80)];
+                $allPassed = false;
+            }
+
+            // Teste 5: Listar formas de pagamento
+            try {
+                $response = $client->get($baseUrl . '/payments', ['headers' => $headers]);
+                $results[] = ['test' => 'Listar Cobranças', 'status' => 'passed', 'message' => 'Consulta OK'];
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'Listar Cobranças', 'status' => 'failed', 'message' => 'Erro'];
+                $allPassed = false;
+            }
+
+            // Teste 6: Webhook - Listar webhooks configurados
+            try {
+                $response = $client->get($baseUrl . '/webhooks', ['headers' => $headers]);
+                $webhookData = json_decode($response->getBody()->getContents(), true);
+                $webhookUrl = url('/api/webhooks/' . $gateway->slug);
+                
+                $webhookConfigured = false;
+                foreach ($webhookData['data'] ?? [] as $wh) {
+                    if (isset($wh['url']) && str_contains($wh['url'], $webhookUrl)) {
+                        $webhookConfigured = true;
+                        break;
+                    }
+                }
+                
+                $results[] = ['test' => 'Webhook', 'status' => $webhookConfigured ? 'passed' : 'warning', 'message' => $webhookConfigured ? 'Webhook configurado' : 'Webhook não encontrado - Configure: ' . $webhookUrl];
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'Webhook', 'status' => 'warning', 'message' => 'Não foi possível verificar'];
+            }
+
+            // Teste 7: Criar Assinatura (Subscriptions)
+            try {
+                $subData = [
+                    'customer' => 'cus_test',
+                    'installmentCount' => 1,
+                    'installmentValue' => 0.01,
+                    'billingType' => 'PIX',
+                    'nextDueDate' => date('Y-m-d', strtotime('+1 day')),
+                    'description' => 'Teste assinatura',
+                ];
+                $response = $client->post($baseUrl . '/subscriptions', [
+                    'headers' => $headers,
+                    'json' => $subData
+                ]);
+                $results[] = ['test' => 'Assinaturas', 'status' => 'passed', 'message' => 'API de assinaturas OK'];
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'Assinaturas', 'status' => 'warning', 'message' => 'API de assinaturas pode requerer plano'];
+            }
+
+            // Teste 8: Transferências (se disponível)
+            try {
+                $response = $client->get($baseUrl . '/transfers?limit=1', ['headers' => $headers]);
+                $results[] = ['test' => 'Transferências', 'status' => 'passed', 'message' => 'API de transferências OK'];
+            } catch (\Exception $e) {
+                $results[] = ['test' => 'Transferências', 'status' => 'warning', 'message' => 'API não disponível para este plano'];
+            }
 
             return response()->json([
-                'success' => true,
-                'message' => 'Conexão com ASAAS realizada com sucesso!',
-                'data' => [
-                    'email' => $data['email'] ?? 'N/A',
-                    'accountId' => $data['accountId'] ?? 'N/A',
-                ]
+                'success' => $allPassed,
+                'message' => $allPassed ? 'Todos os testes passaram!' : 'Alguns testes falharam',
+                'results' => $results
             ]);
-        } catch (\GuzzleHttp\Exception\RequestException $e) {
-            $statusCode = $e->getResponse()?->getStatusCode() ?? 0;
-            $message = $e->getMessage();
-            
-            if ($statusCode === 401) {
-                return response()->json(['success' => false, 'message' => 'API Key inválida ou expirada.']);
-            }
-            if ($statusCode === 0) {
-                return response()->json(['success' => false, 'message' => 'Não foi possível conectar ao ASAAS. Verifique a API Key.']);
-            }
-            
-            return response()->json(['success' => false, 'message' => "Erro ($statusCode): " . substr($message, 0, 100)]);
+
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro geral: ' . $e->getMessage(),
+                'results' => $results
+            ]);
         }
     }
 }
