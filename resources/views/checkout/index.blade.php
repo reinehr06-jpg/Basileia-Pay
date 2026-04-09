@@ -393,42 +393,15 @@
         }
         
         /* PIX Section */
-        .pix-section {
-            text-align: center;
-            padding: 10px 0;
-        }
         .pix-qrcode {
             background: white;
-            padding: 12px;
+            padding: 10px;
             border-radius: 12px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            display: inline-block;
-            margin-bottom: 16px;
         }
         .pix-qrcode img {
-            width: 140px;
-            height: 140px;
             display: block;
-        }
-        .pix-code-box {
-            background: #f8fafc;
-            border: 1px dashed #cbd5e1;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-        }
-        .pix-code-label {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            margin-bottom: 6px;
-        }
-        .pix-code-value {
-            font-family: monospace;
-            font-size: 10px;
-            color: var(--text-dark);
-            word-break: break-all;
+            margin: 0 auto;
         }
         .pix-copy-btn {
             width: 100%;
@@ -437,7 +410,7 @@
             border-radius: 10px;
             background: var(--primary);
             color: white;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
             cursor: pointer;
             transition: background 0.2s;
@@ -450,8 +423,9 @@
             padding: 10px;
             background: #ecfdf5;
             border-radius: 8px;
-            font-size: 11px;
+            font-size: 12px;
             color: #065f46;
+            text-align: center;
         }
         
         .security-footer {
@@ -688,36 +662,35 @@
             
             <!-- PIX Section -->
             <template x-if="billingType === 'PIX'">
-            <div class="pix-section">
-                <div class="pix-qrcode">
+            <div>
+                <div class="pix-qrcode" style="text-align: center; margin-bottom: 16px;">
                     @if(!empty($pixData['encodedImage']))
-                        <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" alt="QR Code PIX">
+                        <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" alt="QR Code PIX" style="width: 160px;">
                     @else
-                        <div style="width:140px;height:140px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#94a3b8;">
-                            <i class="fas fa-qrcode fa-3x"></i>
+                        <div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;background:#f1f5f9;color:#94a3b8;margin:0 auto;">
+                            <i class="fas fa-qrcode fa-4x"></i>
                         </div>
                     @endif
                 </div>
-                <div class="pix-code-box">
-                    <div class="pix-code-label">Código PIX Copia e Cola</div>
-                    <div class="pix-code-value">{{ $pixData['payload'] ?? 'Aguardando...' }}</div>
-                </div>
                 <button type="button" class="pix-copy-btn" @click="copyPixCode()">
-                    <span x-show="!pixCopied"><i class="fas fa-copy"></i> Copiar Código PIX</span>
+                    <span x-show="!pixCopied"><i class="fas fa-copy"></i> <span x-text="payBtnLabel + ' ' + formatPrice({{ $transaction->amount }})"></span></span>
                     <span x-show="pixCopied"><i class="fas fa-check"></i> Copiado!</span>
                 </button>
                 <div class="pix-info">
-                    <i class="fas fa-check-circle"></i> Pagamento instantâneo confirmado em segundos
+                    <i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Pagamento instantâneo' : 'Instant payment'"></span>
                 </div>
             </div>
             </template>
             
+            <!-- Accepted Cards - Only show for Credit Card -->
+            <template x-if="billingType === 'CREDIT_CARD'">
             <div class="accepted-cards">
                 <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
                 <svg viewBox="0 0 40 28" title="Mastercard"><circle cx="15" cy="14" r="8" fill="#EB001B"/><circle cx="25" cy="14" r="8" fill="#F79E1B"/><path d="M20 8a8 8 0 0 1 0 12 8 8 0 0 1 0-12z" fill="#FF5F00"/></svg>
                 <svg viewBox="0 0 40 28" title="Elo"><rect width="40" height="28" rx="3" fill="#FFCB05"/><text x="20" y="19" font-size="10" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
                 <svg viewBox="0 0 40 28" title="Hipercard"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="8" fill="#ef4444" text-anchor="middle" font-weight="bold">HIPER</text></svg>
             </div>
+            </template>
             
             <div class="security-footer">
                 <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
