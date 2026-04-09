@@ -109,8 +109,8 @@
                         </td>
                         <td style="padding: 16px 24px; text-align: right;">
                             <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
-                                <a href="{{ route('dashboard.gateways.edit', $gw->id) }}" class="btn" style="background: #fff; color: #475569; border: 1px solid var(--border); padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-decoration: none;" title="Configurar">
-                                    <i class="fas fa-cog"></i>
+                                <a href="{{ route('dashboard.gateways.show', $gw->id) }}" class="btn" style="background: #fff; color: #475569; border: 1px solid var(--border); padding: 10px; border-radius: 10px; display: flex; align-items: center; justify-content: center; text-decoration: none;" title="Ver detalhes">
+                                    <i class="fas fa-eye"></i>
                                 </a>
                                 <form method="POST" action="{{ route('dashboard.gateways.toggle', $gw->id) }}" style="display: inline;">
                                     @csrf

@@ -72,6 +72,7 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry', 'enforce.2fa
     // Gateways
     Route::resource('gateways', GatewayController::class)->names('dashboard.gateways');
     Route::post('/gateways/{id}/toggle', [GatewayController::class, 'toggle'])->name('dashboard.gateways.toggle');
+    Route::post('/gateways/{id}/test', [GatewayController::class, 'test'])->name('dashboard.gateways.test');
 
     // Companies (super admin)
     Route::resource('companies', CompanyController::class)->names('dashboard.companies');

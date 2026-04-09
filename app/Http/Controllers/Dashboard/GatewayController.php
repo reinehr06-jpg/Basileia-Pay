@@ -190,4 +190,59 @@ class GatewayController extends Controller
 
         return substr($value, 0, 4) . str_repeat('*', strlen($value) - 8) . substr($value, -4);
     }
+
+    public function test(Request $request, int $id)
+    {
+        $user = Auth::user();
+        $gateway = Gateway::where('company_id', $user->company_id)->find($id);
+
+        if (!$gateway) {
+            return response()->json(['success' => false, 'message' => 'Gateway não encontrado.']);
+        }
+
+        $apiKey = $gateway->getConfig('api_key');
+        
+        if (!$apiKey) {
+            return response()->json(['success' => false, 'message' => 'API Key não configurada.']);
+        }
+
+        try {
+            $client = new \GuzzleHttp\Client();
+            $baseUrl = $gateway->getConfig('sandbox') 
+                ? 'https://sandbox.asaas.com/api/v3' 
+                : 'https://api.asaas.com/api/v3';
+
+            $response = $client->get($baseUrl . '/users/me', [
+                'headers' => [
+                    'access_token' => $apiKey,
+                    'Content-Type' => 'application/json',
+                ],
+            ]);
+
+            $data = json_decode($response->getBody()->getContents(), true);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Conexão com ASAAS realizada com sucesso!',
+                'data' => [
+                    'email' => $data['email'] ?? 'N/A',
+                    'accountId' => $data['accountId'] ?? 'N/A',
+                ]
+            ]);
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $statusCode = $e->getResponse()?->getStatusCode() ?? 0;
+            $message = $e->getMessage();
+            
+            if ($statusCode === 401) {
+                return response()->json(['success' => false, 'message' => 'API Key inválida ou expirada.']);
+            }
+            if ($statusCode === 0) {
+                return response()->json(['success' => false, 'message' => 'Não foi possível conectar ao ASAAS. Verifique a API Key.']);
+            }
+            
+            return response()->json(['success' => false, 'message' => "Erro ($statusCode): " . substr($message, 0, 100)]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Erro: ' . $e->getMessage()]);
+        }
+    }
 }
