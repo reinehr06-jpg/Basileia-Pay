@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
-            $table->uuid()->unique()->index();
+            $table->string('uuid')->unique()->index();
             $table->foreignId('company_id')->constrained('companies')->cascadeOnDelete();
             $table->foreignId('integration_id')->nullable()->constrained('integrations')->nullOnDelete();
             $table->foreignId('gateway_id')->nullable()->constrained('gateways')->nullOnDelete();

@@ -134,7 +134,102 @@ Route::get('/clear-views', function() {
     ];
 });
 
-// --- ROTA DE DEMONSTRAÇÃO (TEMPORÁRIA) ---
+// --- ROTAS DE DEMONSTRAÇÃO (TEMPORÁRIAS) ---
+
+// Criar transação de teste automaticamente
+Route::get('/demo-criar/{metodo}', function($metodo) {
+    $company = \App\Models\Company::first();
+    if (!$company) {
+        return response('Empresa não encontrada', 404);
+    }
+    
+    $customer = \App\Models\Customer::firstOrCreate(
+        ['email' => 'teste@demo.com'],
+        [
+            'name' => 'Cliente Teste Demo',
+            'company_id' => $company->id,
+            'phone' => '11999999999'
+        ]
+    );
+    
+    $uuid = 'demo-' . $metodo . '-' . time();
+    $asaasId = 'pay_demo_' . time();
+    
+    $tx = \App\Models\Transaction::create([
+        'uuid' => $uuid,
+        'company_id' => $company->id,
+        'customer_id' => $customer->id,
+        'description' => 'Plano Premium - Teste ' . strtoupper($metodo),
+        'amount' => 97.00,
+        'currency' => 'BRL',
+        'status' => 'pending',
+        'asaas_payment_id' => $asaasId,
+        'payment_method' => $metodo,
+    ]);
+    
+    return redirect('/demo/' . $metodo . '/' . $uuid);
+})->name('demo.criar');
+
+Route::get('/demo/pix/{uuid}', function($uuid) {
+    $resource = \App\Models\Transaction::where('uuid', $uuid)->firstOrFail();
+    
+    $asaasData = [
+        'billingType' => 'PIX',
+        'value' => $resource->amount,
+        'description' => $resource->description,
+    ];
+    $pixData = [
+        'encodedImage' => 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'payload' => '12345678901234567890123456789012345678900',
+    ];
+    
+    return view('checkout.pay', [
+        'transaction' => $resource,
+        'asaasData' => $asaasData,
+        'pixData' => $pixData,
+        'isSubscription' => false
+    ]);
+})->name('demo.pix');
+
+Route::get('/demo/cartao/{uuid}', function($uuid) {
+    $resource = \App\Models\Transaction::where('uuid', $uuid)->firstOrFail();
+    
+    $asaasData = [
+        'billingType' => 'CREDIT_CARD',
+        'value' => $resource->amount,
+        'installmentCount' => 12,
+        'description' => $resource->description,
+    ];
+    $pixData = [];
+    
+    return view('checkout.pay', [
+        'transaction' => $resource,
+        'asaasData' => $asaasData,
+        'pixData' => $pixData,
+        'isSubscription' => false
+    ]);
+})->name('demo.cartao');
+
+Route::get('/demo/boleto/{uuid}', function($uuid) {
+    $resource = \App\Models\Transaction::where('uuid', $uuid)->firstOrFail();
+    
+    $asaasData = [
+        'billingType' => 'BOLETO',
+        'value' => $resource->amount,
+        'description' => $resource->description,
+        'boletoUrl' => 'https://www.asaas.com/boleto/test',
+    ];
+    $pixData = [];
+    
+    return view('checkout.pay', [
+        'transaction' => $resource,
+        'asaasData' => $asaasData,
+        'pixData' => $pixData,
+        'isSubscription' => false
+    ]);
+})->name('demo.boleto');
+
+// Rota original de demonstração
 Route::get('/demo-checkout/{type}/{uuid}', function($type, $uuid) {
     $resource = \App\Models\Transaction::where('uuid', $uuid)->firstOrFail();
     $asaasData = [
