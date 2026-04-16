@@ -78,9 +78,9 @@
 
             <!-- Lab -->
             <div class="sidebar-section">
-                <div class="sidebar-section-title">🧪 Lab</div>
+                <div class="sidebar-section-title">🧪 Lab Test</div>
                 <ul class="sidebar-nav">
-                    <li><a href="{{ route('dashboard.lab') }}" class="{{ request()->routeIs('dashboard.lab*') ? 'active' : '' }}"><i class="fas fa-flask"></i><span>Lab</span></a></li>
+                    <li><a href="{{ route('dashboard.lab') }}" class="{{ request()->routeIs('dashboard.lab*') ? 'active' : '' }}"><i class="fas fa-flask"></i><span>Lab Test</span></a></li>
                 </ul>
             </div>
 

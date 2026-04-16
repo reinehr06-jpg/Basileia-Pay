@@ -1,6 +1,7 @@
 @extends('dashboard.layouts.app')
 @section('title', '🧪 Lab - Testes & Desenvolvimento')
 
+@section('content')
 <style>
 .lab-container { padding: 30px; }
 .lab-header { margin-bottom: 30px; }
