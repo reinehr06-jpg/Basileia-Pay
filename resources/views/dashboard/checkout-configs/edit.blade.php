@@ -3,7 +3,7 @@
 
 @section('content')
 @php
-$configData = $config->config ?? [];
+$configData = $config->config !== null ? $config->config : [];
 $defaults = App\Models\CheckoutConfig::defaultConfig();
 $configData = array_merge($defaults, $configData);
 @endphp
