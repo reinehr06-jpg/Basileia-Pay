@@ -12,13 +12,13 @@ class EnforceTwoFactorAuth
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
 
-        if (!$user) {
+        if (! $user) {
             return $next($request);
         }
 
@@ -35,14 +35,14 @@ class EnforceTwoFactorAuth
             'checkout.asaas.success',
         ];
 
-        if (in_array($request->route()?->name, $excludedRoutes) || 
-            $request->is('pay/*') || 
+        if (in_array($request->route()?->name, $excludedRoutes) ||
+            $request->is('pay/*') ||
             $request->is('checkout/*') ||
             preg_match('/^[a-f0-9-]{36}$/', $request->path())) {
             return $next($request);
         }
 
-        if (!$user->two_factor_enabled) {
+        if (! $user->two_factor_enabled) {
             return redirect()->route('profile.2fa.setup')
                 ->with('warning', 'Configure a autenticação de dois fatores para acessar o sistema.');
         }
@@ -50,4 +50,3 @@ class EnforceTwoFactorAuth
         return $next($request);
     }
 }
-鼓
