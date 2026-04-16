@@ -76,6 +76,17 @@
                 </ul>
             </div>
 
+            <!-- Lab -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">🧪 Lab</div>
+                <ul class="sidebar-nav">
+                    <li><a href="{{ route('dashboard.checkout-configs') }}" class="{{ request()->routeIs('dashboard.checkout-configs*') ? 'active' : '' }}"><i class="fas fa-paint-brush"></i><span>Checkout Builder</span></a></li>
+                    <li><a href="{{ url('/demo-criar/pix') }}" target="_blank"><i class="fas fa-vial"></i><span>Teste PIX</span></a></li>
+                    <li><a href="{{ url('/demo-criar/cartao') }}" target="_blank"><i class="fas fa-credit-card"></i><span>Teste Cartão</span></a></li>
+                    <li><a href="{{ url('/demo-criar/boleto') }}" target="_blank"><i class="fas fa-file-invoice"></i><span>Teste Boleto</span></a></li>
+                </ul>
+            </div>
+
             <!-- Financeiro -->
             <div class="sidebar-section">
                 <div class="sidebar-section-title">Financeiro</div>
