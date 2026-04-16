@@ -4,6 +4,7 @@ namespace App\Services\Gateway;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class AsaasGateway implements GatewayInterface
 {
@@ -174,7 +175,7 @@ class AsaasGateway implements GatewayInterface
         try {
             return $this->request('get', "/payments/{$paymentId}/pixQrCode");
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('AsaasGateway: Error fetching PIX QR Code', [
+            Log::error('AsaasGateway: Error fetching PIX QR Code', [
                 'id' => $paymentId,
                 'error' => $e->getMessage(),
             ]);
