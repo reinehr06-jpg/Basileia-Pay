@@ -72,7 +72,18 @@
                     <li><a href="{{ route('dashboard.gateways.index') }}" class="{{ request()->routeIs('dashboard.gateways*') ? 'active' : '' }}"><i class="fas fa-wallet"></i><span>Gateways</span></a></li>
                     <li><a href="{{ route('dashboard.integrations.index') }}" class="{{ request()->routeIs('dashboard.integrations*') ? 'active' : '' }}"><i class="fas fa-plug"></i><span>Integrações</span></a></li>
                     <li><a href="{{ route('dashboard.webhooks') }}" class="{{ request()->routeIs('dashboard.webhooks*') ? 'active' : '' }}"><i class="fas fa-tower-broadcast"></i><span>Webhooks</span></a></li>
+                    <li><a href="{{ route('dashboard.checkout-configs') }}" class="{{ request()->routeIs('dashboard.checkout-configs*') ? 'active' : '' }}"><i class="fas fa-paint-brush"></i><span>Checkout Builder</span></a></li>
                     <li><a href="{{ route('dashboard.settings.receipt') }}" class="{{ request()->routeIs('dashboard.settings.receipt') ? 'active' : '' }}"><i class="fas fa-file-invoice"></i><span>Comprovante</span></a></li>
+                </ul>
+            </div>
+
+            <!-- Testes -->
+            <div class="sidebar-section">
+                <div class="sidebar-section-title">Testes</div>
+                <ul class="sidebar-nav">
+                    <li><a href="{{ url('/demo-criar/pix') }}" target="_blank"><i class="fas fa-vial"></i><span>Testar PIX</span></a></li>
+                    <li><a href="{{ url('/demo-criar/cartao') }}" target="_blank"><i class="fas fa-credit-card"></i><span>Testar Cartão</span></a></li>
+                    <li><a href="{{ url('/demo-criar/boleto') }}" target="_blank"><i class="fas fa-file-invoice"></i><span>Testar Boleto</span></a></li>
                 </ul>
             </div>
 
