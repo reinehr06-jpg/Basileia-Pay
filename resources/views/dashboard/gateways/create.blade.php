@@ -85,11 +85,17 @@
                     </div>
 
                     <div class="glass-section" style="margin-top: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Ambiente global (.env): </span>
+                            <span style="font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: @if(config('services.asaas.environment') == 'production') #10b981 @else #f59e0b @endif; color: white;">
+                                {{ config('services.asaas.environment') }}
+                            </span>
+                        </div>
                         <label class="checkbox-container" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
                             <input type="checkbox" name="config[sandbox]" value="1" {{ old('config.sandbox') ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: var(--primary);">
-                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Habilitar Modo Sandbox (Testes)</span>
+                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Sobrescrever ambiente (marque para Sandbox, desmarque para Production)</span>
                         </label>
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; margin-left: 30px;">As transações não serão reais neste modo.</p>
+                        <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; margin-left: 30px;">Se deixado desmarcado, usa o ambiente do .env.</p>
                     </div>
                 </div>
 

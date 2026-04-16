@@ -8,7 +8,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use RuntimeException;
 
 class IntegrationService
 {
@@ -22,11 +21,11 @@ class IntegrationService
                 'company_id' => $company->id,
                 'gateway_id' => $data['gateway_id'],
                 'name' => $data['name'],
-                'environment' => $data['environment'] ?? 'sandbox',
+                'environment' => $data['environment'] ?? env('APP_ENV', 'sandbox'),
                 'api_key_hash' => Hash::make($plainApiKey),
                 'hash' => $plainHash,
                 'webhook_url' => $data['webhook_url'] ?? null,
-                'webhook_secret' => !empty($data['webhook_url']) ? Str::random(32) : null,
+                'webhook_secret' => ! empty($data['webhook_url']) ? Str::random(32) : null,
                 'is_active' => true,
                 'settings' => $data['settings'] ?? null,
             ]);
@@ -46,6 +45,7 @@ class IntegrationService
         foreach ($integrations as $integration) {
             if (Hash::check($apiKey, $integration->api_key_hash)) {
                 $integration->update(['last_used_at' => now()]);
+
                 return $integration;
             }
         }

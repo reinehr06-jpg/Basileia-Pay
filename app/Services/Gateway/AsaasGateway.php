@@ -16,9 +16,9 @@ class AsaasGateway implements GatewayInterface
 
     private function getBaseUrl(): string
     {
-        $sandbox = config('services.asaas.sandbox', true);
+        $environment = config('services.asaas.environment', 'sandbox');
 
-        return $sandbox
+        return $environment === 'sandbox'
             ? 'https://sandbox.asaas.com/api/v3'
             : 'https://api.asaas.com/api/v3';
     }
@@ -30,7 +30,7 @@ class AsaasGateway implements GatewayInterface
             'Content-Type' => 'application/json',
         ])->timeout(30)->{$method}("{$this->getBaseUrl()}{$endpoint}", $data);
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
             $body = $response->json();
             $message = $body['errors'][0]['description'] ?? 'Gateway request failed';
             throw new \RuntimeException("Asaas API Error: {$message}", $response->status());
@@ -65,16 +65,16 @@ class AsaasGateway implements GatewayInterface
             'externalReference' => $data['external_reference'] ?? null,
         ];
 
-        if (!empty($data['installment_count'])) {
+        if (! empty($data['installment_count'])) {
             $payload['installmentCount'] = $data['installment_count'];
             $payload['totalValue'] = $data['total_value'] ?? $data['value'];
         }
 
-        if (!empty($data['split'])) {
+        if (! empty($data['split'])) {
             $payload['split'] = $data['split'];
         }
 
-        if (!empty($data['credit_card'])) {
+        if (! empty($data['credit_card'])) {
             $payload['creditCard'] = $data['credit_card'];
             $payload['creditCardHolderInfo'] = $data['credit_card_holder'] ?? null;
             $payload['remoteIp'] = $data['ip'] ?? null;

@@ -71,9 +71,15 @@
                     </div>
 
                     <div class="glass-section" style="margin-top: 20px;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <span style="font-size: 0.75rem; color: var(--text-secondary);">Ambiente global (.env): </span>
+                            <span style="font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 4px; background: @if(config('services.asaas.environment') == 'production') #10b981 @else #f59e0b @endif; color: white;">
+                                {{ config('services.asaas.environment') }}
+                            </span>
+                        </div>
                         <label class="checkbox-container" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
-                            <input type="checkbox" name="config[sandbox]" value="1" {{ old('config.sandbox', $gateway->getConfig('sandbox', false)) ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: var(--primary);">
-                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Ambiente de Testes (Sandbox)</span>
+                            <input type="checkbox" name="config[sandbox]" value="1" {{ old('config.sandbox', $gateway->getConfig('sandbox', 2)) == 1 ? 'checked' : '' }} style="width: 18px; height: 18px; accent-color: var(--primary);">
+                            <span style="font-size: 0.85rem; font-weight: 700; color: var(--text-primary);">Sobrescrever ambiente (marque para Sandbox, desmarque para Production)</span>
                         </label>
                     </div>
                 </div>

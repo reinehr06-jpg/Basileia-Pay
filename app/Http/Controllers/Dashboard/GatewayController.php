@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\Gateway;
+use GuzzleHttp\Client;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -72,7 +73,7 @@ class GatewayController extends Controller
         } catch (\Exception $e) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Erro ao salvar: ' . $e->getMessage());
+                ->with('error', 'Erro ao salvar: '.$e->getMessage());
         }
     }
 
@@ -83,7 +84,7 @@ class GatewayController extends Controller
         $gateway = Gateway::where('company_id', $user->company_id)
             ->find($id);
 
-        if (!$gateway) {
+        if (! $gateway) {
             abort(404, 'Gateway não encontrado.');
         }
 
@@ -106,7 +107,7 @@ class GatewayController extends Controller
         $user = Auth::user();
         $gateway = Gateway::where('company_id', $user->company_id)->find($id);
 
-        if (!$gateway) {
+        if (! $gateway) {
             abort(404, 'Gateway não encontrado.');
         }
 
@@ -126,7 +127,7 @@ class GatewayController extends Controller
 
         $gateway = Gateway::where('company_id', $user->company_id)->find($id);
 
-        if (!$gateway) {
+        if (! $gateway) {
             abort(404, 'Gateway não encontrado.');
         }
 
@@ -156,7 +157,7 @@ class GatewayController extends Controller
 
         $gateway = Gateway::where('company_id', $user->company_id)->find($id);
 
-        if (!$gateway) {
+        if (! $gateway) {
             abort(404, 'Gateway não encontrado.');
         }
 
@@ -172,7 +173,7 @@ class GatewayController extends Controller
 
         $gateway = Gateway::where('company_id', $user->company_id)->find($id);
 
-        if (!$gateway) {
+        if (! $gateway) {
             abort(404, 'Gateway não encontrado.');
         }
 
@@ -188,7 +189,7 @@ class GatewayController extends Controller
             return str_repeat('*', strlen($value));
         }
 
-        return substr($value, 0, 4) . str_repeat('*', strlen($value) - 8) . substr($value, -4);
+        return substr($value, 0, 4).str_repeat('*', strlen($value) - 8).substr($value, -4);
     }
 
     public function test(Request $request, int $id)
@@ -196,23 +197,28 @@ class GatewayController extends Controller
         $user = Auth::user();
         $gateway = Gateway::where('company_id', $user->company_id)->find($id);
 
-        if (!$gateway) {
+        if (! $gateway) {
             return response()->json(['success' => false, 'message' => 'Gateway não encontrado.']);
         }
 
         $apiKey = $gateway->getConfig('api_key');
-        
-        if (!$apiKey) {
+
+        if (! $apiKey) {
             return response()->json(['success' => false, 'message' => 'API Key não configurada.']);
         }
 
         $results = [];
         $allPassed = true;
-        
+
         try {
-            $client = new \GuzzleHttp\Client();
-            $baseUrl = $gateway->getConfig('sandbox') 
-                ? 'https://sandbox.asaas.com/api/v3' 
+            $client = new Client;
+            $sandboxConfig = $gateway->getConfig('sandbox');
+            $environment = $sandboxConfig !== null
+                ? (! $sandboxConfig ? 'production' : 'sandbox')
+                : config('services.asaas.environment', env('APP_ENV', 'sandbox'));
+
+            $baseUrl = $environment === 'sandbox'
+                ? 'https://sandbox.asaas.com/api/v3'
                 : 'https://api.asaas.com/api/v3';
 
             $headers = [
@@ -222,18 +228,18 @@ class GatewayController extends Controller
 
             // Teste 1: Validar API Key - Usando endpoint de conta
             try {
-                $response = $client->get($baseUrl . '/accounts/me', ['headers' => $headers]);
+                $response = $client->get($baseUrl.'/accounts/me', ['headers' => $headers]);
                 $data = json_decode($response->getBody()->getContents(), true);
                 $results[] = [
                     'test' => 'API Key',
                     'status' => 'passed',
                     'message' => 'API Key válida',
-                    'data' => $data['email'] ?? ($data['businessEmail'] ?? 'N/A')
+                    'data' => $data['email'] ?? ($data['businessEmail'] ?? 'N/A'),
                 ];
             } catch (\Exception $e) {
                 // Tentar endpoint alternativo
                 try {
-                    $response = $client->get($baseUrl . '/my-account', ['headers' => $headers]);
+                    $response = $client->get($baseUrl.'/my-account', ['headers' => $headers]);
                     $results[] = ['test' => 'API Key', 'status' => 'passed', 'message' => 'API Key válida (endpoint alternativo)'];
                 } catch (\Exception $e2) {
                     $results[] = ['test' => 'API Key', 'status' => 'failed', 'message' => 'API Key inválida ou endpoint não encontrado'];
@@ -243,10 +249,10 @@ class GatewayController extends Controller
 
             // Teste 2: Listar clientes
             try {
-                $response = $client->get($baseUrl . '/customers?limit=1', ['headers' => $headers]);
+                $response = $client->get($baseUrl.'/customers?limit=1', ['headers' => $headers]);
                 $results[] = ['test' => 'Listar Clientes', 'status' => 'passed', 'message' => 'Consulta OK'];
             } catch (\Exception $e) {
-                $results[] = ['test' => 'Listar Clientes', 'status' => 'failed', 'message' => 'Erro: ' . substr($e->getMessage(), 0, 50)];
+                $results[] = ['test' => 'Listar Clientes', 'status' => 'failed', 'message' => 'Erro: '.substr($e->getMessage(), 0, 50)];
                 $allPassed = false;
             }
 
@@ -259,19 +265,19 @@ class GatewayController extends Controller
                     'dueDate' => date('Y-m-d', strtotime('+1 day')),
                     'description' => 'Teste de conexão - Checkout Basileia',
                 ];
-                $response = $client->post($baseUrl . '/payments', [
+                $response = $client->post($baseUrl.'/payments', [
                     'headers' => $headers,
-                    'json' => $paymentData
+                    'json' => $paymentData,
                 ]);
                 $paymentDataResult = json_decode($response->getBody()->getContents(), true);
                 $paymentId = $paymentDataResult['id'] ?? null;
-                
-                $results[] = ['test' => 'Criar Cobrança', 'status' => 'passed', 'message' => 'Cobrança criada: ' . $paymentId];
+
+                $results[] = ['test' => 'Criar Cobrança', 'status' => 'passed', 'message' => 'Cobrança criada: '.$paymentId];
 
                 // Teste 4: Deletar cobrança teste
                 if ($paymentId) {
                     try {
-                        $client->delete($baseUrl . '/payments/' . $paymentId, ['headers' => $headers]);
+                        $client->delete($baseUrl.'/payments/'.$paymentId, ['headers' => $headers]);
                         $results[] = ['test' => 'Excluir Cobrança', 'status' => 'passed', 'message' => 'Cobrança teste removida'];
                     } catch (\Exception $e) {
                         $results[] = ['test' => 'Excluir Cobrança', 'status' => 'warning', 'message' => 'Não foi possível remover'];
@@ -284,7 +290,7 @@ class GatewayController extends Controller
 
             // Teste 5: Listar formas de pagamento
             try {
-                $response = $client->get($baseUrl . '/payments', ['headers' => $headers]);
+                $response = $client->get($baseUrl.'/payments', ['headers' => $headers]);
                 $results[] = ['test' => 'Listar Cobranças', 'status' => 'passed', 'message' => 'Consulta OK'];
             } catch (\Exception $e) {
                 $results[] = ['test' => 'Listar Cobranças', 'status' => 'failed', 'message' => 'Erro'];
@@ -293,10 +299,10 @@ class GatewayController extends Controller
 
             // Teste 6: Webhook - Listar webhooks configurados
             try {
-                $response = $client->get($baseUrl . '/webhooks', ['headers' => $headers]);
+                $response = $client->get($baseUrl.'/webhooks', ['headers' => $headers]);
                 $webhookData = json_decode($response->getBody()->getContents(), true);
-                $webhookUrl = url('/api/webhooks/' . $gateway->slug);
-                
+                $webhookUrl = url('/api/webhooks/'.$gateway->slug);
+
                 $webhookConfigured = false;
                 foreach ($webhookData['data'] ?? [] as $wh) {
                     if (isset($wh['url']) && str_contains($wh['url'], $webhookUrl)) {
@@ -304,8 +310,8 @@ class GatewayController extends Controller
                         break;
                     }
                 }
-                
-                $results[] = ['test' => 'Webhook', 'status' => $webhookConfigured ? 'passed' : 'warning', 'message' => $webhookConfigured ? 'Webhook configurado' : 'Webhook não encontrado - Configure: ' . $webhookUrl];
+
+                $results[] = ['test' => 'Webhook', 'status' => $webhookConfigured ? 'passed' : 'warning', 'message' => $webhookConfigured ? 'Webhook configurado' : 'Webhook não encontrado - Configure: '.$webhookUrl];
             } catch (\Exception $e) {
                 $results[] = ['test' => 'Webhook', 'status' => 'warning', 'message' => 'Não foi possível verificar'];
             }
@@ -320,9 +326,9 @@ class GatewayController extends Controller
                     'nextDueDate' => date('Y-m-d', strtotime('+1 day')),
                     'description' => 'Teste assinatura',
                 ];
-                $response = $client->post($baseUrl . '/subscriptions', [
+                $response = $client->post($baseUrl.'/subscriptions', [
                     'headers' => $headers,
-                    'json' => $subData
+                    'json' => $subData,
                 ]);
                 $results[] = ['test' => 'Assinaturas', 'status' => 'passed', 'message' => 'API de assinaturas OK'];
             } catch (\Exception $e) {
@@ -331,7 +337,7 @@ class GatewayController extends Controller
 
             // Teste 8: Transferências (se disponível)
             try {
-                $response = $client->get($baseUrl . '/transfers?limit=1', ['headers' => $headers]);
+                $response = $client->get($baseUrl.'/transfers?limit=1', ['headers' => $headers]);
                 $results[] = ['test' => 'Transferências', 'status' => 'passed', 'message' => 'API de transferências OK'];
             } catch (\Exception $e) {
                 $results[] = ['test' => 'Transferências', 'status' => 'warning', 'message' => 'API não disponível para este plano'];
@@ -340,14 +346,14 @@ class GatewayController extends Controller
             return response()->json([
                 'success' => $allPassed,
                 'message' => $allPassed ? 'Todos os testes passaram!' : 'Alguns testes falharam',
-                'results' => $results
+                'results' => $results,
             ]);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Erro geral: ' . $e->getMessage(),
-                'results' => $results
+                'message' => 'Erro geral: '.$e->getMessage(),
+                'results' => $results,
             ]);
         }
     }
