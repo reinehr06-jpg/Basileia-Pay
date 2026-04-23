@@ -20,10 +20,6 @@ Route::get('diag-check', function() {
     ]);
 });
 
-// Webhooks do Asaas (fora do prefixo v1 para compatibilidade direta com a URL informada ao Gateway)
-Route::post('webhooks/asaas', [AsaasWebhookController::class, 'handle']);
-Route::post('webhook/asaas', [AsaasWebhookController::class, 'handle'])->name('webhook.asaas');
-
 Route::prefix('v1')->group(function () {
     // Ingestão de pagamentos do Vendas/Sistemas Externos
     Route::post('payments/receive', [\App\Http\Controllers\Api\PaymentApiController::class, 'receive']);
