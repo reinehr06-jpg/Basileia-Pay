@@ -1,0 +1,56 @@
+RESTAURAÇÃO DO SISTEMA CHECKOUT
+=====================================
+
+DATA: 2026-04-23
+STATUS: Sistema fora do ar - sem autodeploy
+
+PASSOS PARA RESTAURAÇÃO (Alguém com acesso ao servidor):
+----------------------------------------------------------------
+
+1. ACESSAR O SERVIDOR:
+   ssh usuario@ip-do-servidor
+
+2. ENTRAR NA PASTA DO PROJETO:
+   cd /var/www/CheckOutFINAL
+   (ou cd /caminho/para/CheckOutFINAL)
+
+3. FORÇAR ATUALIZAÇÃO DO GIT:
+   git fetch origin
+   git reset --hard origin/main
+
+4. INSTALAR DEPENDÊNCIAS (CRÍTICO):
+   composer install --no-dev --optimize-autoloader
+
+5. CONFIGURAR .ENV:
+   cp .env.example .env
+   (editar .env com as credenciais reais)
+
+6. LIMPAR CACHES:
+   php artisan optimize:clear
+   php artisan config:clear
+
+7. BANCO DE DADOS:
+   php artisan migrate --force
+
+8. PERMISSÕES:
+   chmod -R 755 storage bootstrap/cache
+   chown -R www-data:www-data storage bootstrap/cache
+
+9. REINICIAR SERVIÇOS:
+   sudo systemctl restart nginx
+   sudo systemctl restart php8.1-fpm
+
+10. TESTAR:
+    curl -I http://localhost
+    curl http://seu-dominio.com/health.php
+
+ARQUIVOS DE DIAGNÓSTICO CRIADOS:
+- health.php (raiz) - Diagnóstico completo
+- public/setup.php - Auto-configuração
+- restore.php (raiz) - Recuperação via web
+- public/index.html - Página de emergência
+
+SE NADA FUNCIONAR:
+- Verificar se o nginx/apache está rodando: sudo systemctl status nginx
+- Verificar logs: tail -50 /var/log/nginx/error.log
+- Verificar se a porta 80/443 está aberta: netstat -tlnp | grep 80
