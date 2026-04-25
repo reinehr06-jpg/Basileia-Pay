@@ -38,7 +38,7 @@ if [ -z "$APP_KEY" ] && ! grep -q "^APP_KEY=" .env; then
 fi
 
 # Update .env with environment variables (if provided)
-update_env "APP_NAME" "Basileia"
+update_env "APP_NAME" "${APP_NAME:-Basileia}"
 update_env "APP_ENV" "${APP_ENV:-production}"
 update_env "APP_KEY" "$APP_KEY"
 update_env "APP_DEBUG" "${APP_DEBUG:-false}"
@@ -52,10 +52,19 @@ update_env "DB_PASSWORD" "${DB_PASSWORD:-secret}"
 update_env "SESSION_DRIVER" "file"
 update_env "CACHE_STORE" "file"
 update_env "QUEUE_CONNECTION" "sync"
-update_env "DEFAULT_GATEWAY" "asaas"
+
+# Gateway settings - Only update if provided in environment
+update_env "DEFAULT_GATEWAY" "$DEFAULT_GATEWAY"
 update_env "ASAAS_API_KEY" "$ASAAS_API_KEY"
-update_env "ASAAS_ENVIRONMENT" "${ASAAS_ENVIRONMENT:-production}"
+update_env "ASAAS_ENVIRONMENT" "$ASAAS_ENVIRONMENT"
 update_env "ASAAS_WEBHOOK_TOKEN" "$ASAAS_WEBHOOK_TOKEN"
+
+# Additional Gateways
+update_env "STRIPE_KEY" "$STRIPE_KEY"
+update_env "STRIPE_SECRET" "$STRIPE_SECRET"
+update_env "MERCADOPAGO_ACCESS_TOKEN" "$MERCADOPAGO_ACCESS_TOKEN"
+update_env "SQUARE_ACCESS_TOKEN" "$SQUARE_ACCESS_TOKEN"
+update_env "SQUARE_LOCATION_ID" "$SQUARE_LOCATION_ID"
 
 echo "Environment configuration updated"
 
