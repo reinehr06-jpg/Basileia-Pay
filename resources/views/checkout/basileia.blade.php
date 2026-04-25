@@ -7,6 +7,7 @@
     <title>{{ $plano }} - Pagamento Basileia</title>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="/js/card-engine.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -520,7 +521,7 @@
             <h2 class="form-title">Pagamento Seguro</h2>
             <div class="payment-via">
                 <span class="payment-label">PAGAMENTO VIA:</span>
-                <span class="payment-chip">CARTÃO DE CRÉDITO</span>
+                <span class="payment-chip">{{ ($asaasPayment['billingType'] ?? '') === 'PIX' ? 'PIX' : 'CARTÃO DE CRÉDITO' }}</span>
             </div>
 
             <div class="customer-info">
@@ -538,96 +539,147 @@
                 </div>
             </div>
 
-            <div class="card-scene" @click="flipCard()">
-                <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
-                    <div class="card-face card-front" :class="'brand-' + detectedBrand">
-                        <div class="card-pattern"></div>
-                        <div class="card-shine"></div>
-                        <div class="card-top-row">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <div class="card-chip"></div>
-                                <div class="card-contactless">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2">
-                                        <path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8 8 0 0 0 0-14"/><path d="M15.5 21.5a11 11 0 0 0 0-19"/>
-                                    </svg>
+            @if(($asaasPayment['billingType'] ?? '') === 'PIX')
+                <!-- Pix Flow -->
+                <div style="text-align: center; margin-top: 10px;">
+                    <div style="background: white; padding: 16px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; display: inline-block;">
+                        @if(!empty($pixData['encodedImage']))
+                            <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" style="width: 180px; height: 180px; border-radius: 12px; display: block;">
+                        @else
+                            <div style="width: 180px; height: 180px; background: #f3f4f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #9ca3af;">
+                                <i class="fas fa-qrcode" style="font-size: 50px;"></i>
+                            </div>
+                        @endif
+                    </div>
+
+                    <p style="color: #43395d; font-size: 13px; margin-bottom: 16px; font-weight: 500;">Escaneie o QR Code ou copie o código abaixo.</p>
+
+                    <div style="background: #fbf9fd; border: 1px solid #e1dbe9; border-radius: 10px; padding: 12px; margin-bottom: 16px; word-break: break-all; font-family: 'Share Tech Mono', monospace; font-size: 11px; color: #221749; text-align: left; max-height: 80px; overflow-y: auto;">
+                        {{ $pixData['payload'] ?? 'Código Pix não disponível' }}
+                    </div>
+
+                    <button type="button" class="cta-button" onclick="navigator.clipboard.writeText('{{ $pixData['payload'] ?? '' }}'); const original = this.innerText; this.innerText = 'Copiado!'; setTimeout(() => this.innerText = original, 2000)">
+                        <i class="fas fa-copy" style="margin-right: 8px;"></i> Copiar Código Pix
+                    </button>
+
+                    <div style="margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #10b981; font-size: 13px; font-weight: 600;">
+                        <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%; display: inline-block; animation: pulse 1.5s infinite;"></span>
+                        Aguardando pagamento...
+                    </div>
+                </div>
+                
+                <style>
+                    @keyframes pulse {
+                        0% { opacity: 0.4; transform: scale(1); }
+                        50% { opacity: 1; transform: scale(1.2); }
+                        100% { opacity: 0.4; transform: scale(1); }
+                    }
+                </style>
+
+                <script>
+                    setInterval(() => {
+                        fetch(window.location.href)
+                            .then(response => response.text())
+                            .then(html => {
+                                if (html.includes('success') || html.includes('aprovado')) {
+                                    window.location.reload();
+                                }
+                            });
+                    }, 5000);
+                </script>
+            @else
+                <!-- Credit Card Flow -->
+                <div class="card-scene" @click="flipCard()">
+                    <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
+                        <div class="card-face card-front" :class="'brand-' + detectedBrand">
+                            <div class="card-pattern"></div>
+                            <div class="card-shine"></div>
+                            <div class="card-top-row">
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <div class="card-chip"></div>
+                                    <div class="card-contactless">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2">
+                                            <path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8 8 0 0 0 0-14"/><path d="M15.5 21.5a11 11 0 0 0 0-19"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="card-brand-logo">
+                                    <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">VISA</text></svg>
                                 </div>
                             </div>
-                            <div class="card-brand-logo">
-                                <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">VISA</text></svg>
+                            <div class="card-number-display" x-text="getDisplayNumber()"></div>
+                            <div class="card-bottom-row">
+                                <div>
+                                    <div class="card-holder-label">TITULAR</div>
+                                    <div class="card-holder-display" x-text="getDisplayHolder()"></div>
+                                </div>
+                                <div class="card-expiry-display">
+                                    <div class="card-expiry-label">VALIDADE</div>
+                                    <div class="card-expiry-value" x-text="getDisplayExpiry()"></div>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-number-display" x-text="getDisplayNumber()"></div>
-                        <div class="card-bottom-row">
-                            <div>
-                                <div class="card-holder-label">TITULAR</div>
-                                <div class="card-holder-display" x-text="getDisplayHolder()"></div>
-                            </div>
-                            <div class="card-expiry-display">
-                                <div class="card-expiry-label">VALIDADE</div>
-                                <div class="card-expiry-value" x-text="getDisplayExpiry()"></div>
+                        <div class="card-face card-back brand-default">
+                            <div class="card-back-bg"></div>
+                            <div class="card-back-magnetic"></div>
+                            <div class="card-back-strip">
+                                <span class="cvc-display" x-text="getDisplayCvv()"></span>
                             </div>
                         </div>
                     </div>
-                    <div class="card-face card-back brand-default">
-                        <div class="card-back-bg"></div>
-                        <div class="card-back-magnetic"></div>
-                        <div class="card-back-strip">
-                            <span class="cvc-display" x-text="getDisplayCvv()"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <form method="POST" action="{{ route('basileia.checkout.process', $transaction->asaas_payment_id) }}" @submit="handleSubmit($event)">
-                @csrf
-                
-                <div class="form-group">
-                    <label class="form-label">NÚMERO DO CARTÃO</label>
-                    <input type="text" class="form-input" :class="validationState.number === 'valid' ? 'input-valid' : ''" 
-                           placeholder="1234 5678 9012 3456" 
-                           @input="handleCardNumberInput($event)"
-                           required>
                 </div>
 
-                <div class="form-group">
-                    <label class="form-label">NOME COMPLETO (ESCRITO NO CARTÃO)</label>
-                    <input type="text" class="form-input" :class="validationState.holder === 'valid' ? 'input-valid' : ''"
-                           placeholder="Nome como está no cartão"
-                           @input="handleHolderInput($event)"
-                           required>
-                </div>
-
-                <div class="form-row">
+                <form method="POST" action="{{ route('basileia.checkout.process', $transaction->asaas_payment_id) }}" @submit="handleSubmit($event)">
+                    @csrf
+                    
                     <div class="form-group">
-                        <label class="form-label">EXPIRAÇÃO</label>
-                        <input type="text" class="form-input" :class="validationState.expiry === 'valid' ? 'input-valid' : ''"
-                               placeholder="MM/AA"
-                               @input="handleExpiryInput($event)"
-                               @focus="focusCvv()"
-                               @blur="blurCvv()"
+                        <label class="form-label">NÚMERO DO CARTÃO</label>
+                        <input type="text" class="form-input" :class="validationState.number === 'valid' ? 'input-valid' : ''" 
+                               placeholder="1234 5678 9012 3456" 
+                               @input="handleCardNumberInput($event)"
                                required>
                     </div>
+
                     <div class="form-group">
-                        <label class="form-label">CVV</label>
-                        <input type="text" class="form-input" :class="validationState.cvv === 'valid' ? 'input-valid' : ''"
-                               placeholder="123"
-                               @input="handleCvvInput($event)"
+                        <label class="form-label">NOME COMPLETO (ESCRITO NO CARTÃO)</label>
+                        <input type="text" class="form-input" :class="validationState.holder === 'valid' ? 'input-valid' : ''"
+                               placeholder="Nome como está no cartão"
+                               @input="handleHolderInput($event)"
                                required>
                     </div>
-                </div>
 
-                <button type="submit" class="cta-button" :disabled="isProcessing">
-                    <span x-show="!isProcessing">Pagar Agora</span>
-                    <span x-show="isProcessing">Processando...</span>
-                </button>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">EXPIRAÇÃO</label>
+                            <input type="text" class="form-input" :class="validationState.expiry === 'valid' ? 'input-valid' : ''"
+                                   placeholder="MM/AA"
+                                   @input="handleExpiryInput($event)"
+                                   @focus="focusCvv()"
+                                   @blur="blurCvv()"
+                                   required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">CVV</label>
+                            <input type="text" class="form-input" :class="validationState.cvv === 'valid' ? 'input-valid' : ''"
+                                   placeholder="123"
+                                   @input="handleCvvInput($event)"
+                                   required>
+                        </div>
+                    </div>
 
-                <div class="security-footer">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-                    </svg>
-                    Pagamento 100% Seguro
-                </div>
-            </form>
+                    <button type="submit" class="cta-button" :disabled="isProcessing">
+                        <span x-show="!isProcessing">Pagar Agora</span>
+                        <span x-show="isProcessing">Processando...</span>
+                    </button>
+
+                    <div class="security-footer">
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                        </svg>
+                        Pagamento 100% Seguro
+                    </div>
+                </form>
+            @endif
         </div>
     </section>
 </body>

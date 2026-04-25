@@ -11,6 +11,14 @@ class HomeController extends Controller
 {
     public function index(Request $request)
     {
+        // Se vier asaas_payment_id, redireciona para o checkout da Basileia
+        if ($request->has('asaas_payment_id')) {
+            return redirect()->route('basileia.checkout.show', array_merge(
+                ['asaasPaymentId' => $request->get('asaas_payment_id')],
+                $request->except('asaas_payment_id')
+            ));
+        }
+
         $uuid = $request->get('uuid');
         
         if ($uuid) {

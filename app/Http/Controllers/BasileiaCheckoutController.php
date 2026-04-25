@@ -32,6 +32,11 @@ class BasileiaCheckoutController extends Controller
             return view('checkout.error', ['message' => 'Pagamento não encontrado']);
         }
 
+        $pixData = [];
+        if (isset($asaasPayment['billingType']) && $asaasPayment['billingType'] === 'PIX') {
+            $pixData = $this->asaasService->getPixQrCode($asaasPaymentId);
+        }
+
         $customer = $asaasPayment['customer'] ?? [];
         $billingType = $asaasPayment['billingType'] ?? 'CREDIT_CARD';
         
@@ -92,6 +97,7 @@ class BasileiaCheckoutController extends Controller
             'customerData' => $customerData,
             'plano' => $plano,
             'ciclo' => $ciclo,
+            'pixData' => $pixData,
         ]);
     }
 

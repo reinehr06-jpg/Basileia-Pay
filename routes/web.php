@@ -20,6 +20,7 @@ function crc16(string $data): int
 }
 
 use App\Http\Controllers\AsaasCheckoutController;
+use App\Http\Controllers\BasileiaCheckoutController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Dashboard\AuthController;
 use App\Http\Controllers\Dashboard\CheckoutConfigController;
@@ -49,6 +50,11 @@ Route::get('/', [HomeController::class, 'index']);
 Route::get('/checkout/asaas/{asaasPaymentId}', [AsaasCheckoutController::class, 'show'])->name('checkout.asaas.show');
 Route::post('/checkout/asaas/process/{asaasPaymentId}', [AsaasCheckoutController::class, 'process'])->name('checkout.asaas.process');
 Route::get('/checkout/asaas/success/{uuid}', [AsaasCheckoutController::class, 'success'])->name('checkout.asaas.success');
+
+// Basileia branded checkout
+Route::get('/checkout/basileia/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('basileia.checkout.show');
+Route::post('/checkout/basileia/process/{asaasPaymentId}', [BasileiaCheckoutController::class, 'process'])->name('basileia.checkout.process');
+Route::get('/checkout/basileia/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('basileia.checkout.success');
 
 // Public event checkout pages
 Route::get('/evento/{slug}', [EventCheckoutController::class, 'show'])->name('evento.show');
