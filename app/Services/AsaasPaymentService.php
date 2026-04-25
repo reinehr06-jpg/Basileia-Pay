@@ -46,7 +46,7 @@ class AsaasPaymentService
                 $message = $body['errors'][0]['description'] ?? 'Request failed';
                 Log::error('AsaasPaymentService: Request failed', [
                     'url' => $url,
-                    'environment' => $this->environment,
+                    'environment' => $this->getEnvironment(),
                     'method' => $method,
                     'status' => $response->status(),
                     'errors' => $body['errors'] ?? [],
@@ -79,7 +79,7 @@ class AsaasPaymentService
         } catch (\Exception $e) {
             Log::warning('AsaasPaymentService: Record not found', [
                 'id' => $paymentId,
-                'environment' => $this->environment,
+                'environment' => $this->getEnvironment(),
             ]);
 
             return null;
