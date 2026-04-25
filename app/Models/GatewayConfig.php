@@ -19,9 +19,17 @@ class GatewayConfig extends Model
         return $this->belongsTo(Gateway::class);
     }
 
-    public function getValueAttribute(string $value): string
+    public function getValueAttribute(?string $value): string
     {
-        return Crypt::decryptString($value);
+        if (empty($value)) {
+            return '';
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Exception $e) {
+            return 'ERROR: Could not decrypt (APP_KEY may have changed)';
+        }
     }
 
     public function setValueAttribute(string $value): void
@@ -31,6 +39,16 @@ class GatewayConfig extends Model
 
     public function getDecryptedValueAttribute(): string
     {
-        return Crypt::decryptString($this->attributes['value']);
+        $value = $this->attributes['value'] ?? '';
+        
+        if (empty($value)) {
+            return '';
+        }
+
+        try {
+            return Crypt::decryptString($value);
+        } catch (\Exception $e) {
+            return 'ERROR: Could not decrypt (APP_KEY may have changed)';
+        }
     }
 }

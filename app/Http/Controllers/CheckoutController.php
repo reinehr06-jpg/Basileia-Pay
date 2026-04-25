@@ -22,8 +22,15 @@ class CheckoutController extends Controller
      */
     public function show(string $uuid)
     {
-        $resource = \App\Models\Transaction::where('uuid', $uuid)->first() 
-                   ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+        $resource = \App\Models\Transaction::where('uuid', $uuid)->first();
+
+        if (!$resource && \Illuminate\Support\Str::isUuid($uuid)) {
+            $resource = \App\Models\Subscription::where('uuid', $uuid)->first();
+        }
+
+        if (!$resource) {
+            abort(404, 'Pagamento não encontrado.');
+        }
 
         // If it's a transaction already approved, show success/receipt directly
         if ($resource instanceof \App\Models\Transaction && $resource->status === 'approved') {
@@ -58,8 +65,15 @@ class CheckoutController extends Controller
      */
     public function process(Request $request, string $uuid)
     {
-        $resource = \App\Models\Transaction::where('uuid', $uuid)->first() 
-                   ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+        $resource = \App\Models\Transaction::where('uuid', $uuid)->first();
+
+        if (!$resource && \Illuminate\Support\Str::isUuid($uuid)) {
+            $resource = \App\Models\Subscription::where('uuid', $uuid)->first();
+        }
+
+        if (!$resource) {
+            abort(404, 'Pagamento não encontrado.');
+        }
 
         $request->validate([
             'holder_name' => 'required|string',
@@ -149,8 +163,15 @@ class CheckoutController extends Controller
      */
     public function success(string $uuid)
     {
-        $resource = \App\Models\Transaction::where('uuid', $uuid)->first() 
-                   ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+        $resource = \App\Models\Transaction::where('uuid', $uuid)->first();
+
+        if (!$resource && \Illuminate\Support\Str::isUuid($uuid)) {
+            $resource = \App\Models\Subscription::where('uuid', $uuid)->first();
+        }
+
+        if (!$resource) {
+            abort(404, 'Pagamento não encontrado.');
+        }
         
         return view('checkout.success', ['transaction' => $resource]);
     }
@@ -161,8 +182,15 @@ class CheckoutController extends Controller
      */
     public function receipt(string $uuid)
     {
-        $resource = \App\Models\Transaction::where('uuid', $uuid)->first() 
-                   ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+        $resource = \App\Models\Transaction::where('uuid', $uuid)->first();
+
+        if (!$resource && \Illuminate\Support\Str::isUuid($uuid)) {
+            $resource = \App\Models\Subscription::where('uuid', $uuid)->first();
+        }
+
+        if (!$resource) {
+            abort(404, 'Pagamento não encontrado.');
+        }
         
         if ($resource->status !== 'approved') {
             abort(403, 'Comprovante não disponível.');

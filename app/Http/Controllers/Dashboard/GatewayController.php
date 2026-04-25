@@ -190,6 +190,10 @@ class GatewayController extends Controller
 
     private function maskValue(string $value): string
     {
+        if (str_starts_with($value, 'ERROR:')) {
+            return $value;
+        }
+
         if (strlen($value) <= 8) {
             return str_repeat('*', strlen($value));
         }
