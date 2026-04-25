@@ -368,19 +368,6 @@ class GatewayController extends Controller
                 $results[] = ['test' => 'Assinaturas', 'status' => 'warning', 'message' => 'Info: '.substr($msg, 0, 80)];
             }
 
-            // Teste 8: Transferências (se disponível)
-            try {
-                $response = $client->get($baseUrl.'/transfers?limit=1', ['headers' => $headers]);
-                $results[] = ['test' => 'Transferências', 'status' => 'passed', 'message' => 'API de transferências OK'];
-            } catch (\Exception $e) {
-                $msg = $e->getMessage();
-                if ($e instanceof ClientException && $e->hasResponse()) {
-                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    $msg = $body['errors'][0]['description'] ?? $msg;
-                }
-                $results[] = ['test' => 'Transferências', 'status' => 'warning', 'message' => 'Info: '.substr($msg, 0, 80)];
-            }
-
             return response()->json([
                 'success' => $allPassed,
                 'message' => $allPassed ? 'Todos os testes passaram!' : 'Alguns testes falharam',
