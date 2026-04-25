@@ -7,20 +7,20 @@ use Illuminate\Support\Facades\Log;
 
 class AsaasPaymentService
 {
-    private ?string $apiKey;
-
-    private string $environment;
-
-    public function __construct()
+    private function getApiKey(): ?string
     {
-        // Centralized configuration from services.php
-        $this->apiKey = config('services.asaas.api_key', '');
-        $this->environment = config('services.asaas.environment', env('APP_ENV', 'sandbox'));
+        return config('services.asaas.api_key', '');
+    }
+
+    private function getEnvironment(): string
+    {
+        return config('services.asaas.environment', env('APP_ENV', 'sandbox'));
     }
 
     private function getBaseUrl(): string
     {
-        return $this->environment === 'sandbox'
+        $env = $this->getEnvironment();
+        return $env === 'sandbox'
             ? config('services.asaas.base_url_sandbox', 'https://sandbox.asaas.com/api/v3')
             : config('services.asaas.base_url_production', 'https://api.asaas.com/api/v3');
     }
@@ -28,15 +28,16 @@ class AsaasPaymentService
     private function request(string $method, string $endpoint, array $data = []): array
     {
         $url = "{$this->getBaseUrl()}{$endpoint}";
+        $apiKey = $this->getApiKey();
 
         try {
-            if (empty($this->apiKey)) {
+            if (empty($apiKey)) {
                 Log::warning('AsaasPaymentService: ASAAS_API_KEY not configured - skipping request');
                 return ['error' => 'Gateway not configured', 'code' => 'GATEWAY_NOT_CONFIGURED'];
             }
 
             $response = Http::withHeaders([
-                'access_token' => $this->apiKey,
+                'access_token' => $apiKey,
                 'Content-Type' => 'application/json',
             ])->timeout(30)->{$method}($url, $data);
 

@@ -8,11 +8,9 @@ use Illuminate\Support\Facades\Log;
 
 class AsaasGateway implements GatewayInterface
 {
-    private ?string $apiKey;
-
-    public function __construct()
+    private function getApiKey(): ?string
     {
-        $this->apiKey = config('services.asaas.api_key');
+        return config('services.asaas.api_key');
     }
 
     private function getBaseUrl(): string
@@ -26,13 +24,15 @@ class AsaasGateway implements GatewayInterface
 
     public function request(string $method, string $endpoint, array $data = []): array
     {
-        if (empty($this->apiKey)) {
+        $apiKey = $this->getApiKey();
+
+        if (empty($apiKey)) {
             Log::warning('AsaasGateway: ASAAS_API_KEY not configured - skipping request');
             return ['error' => 'Gateway not configured', 'code' => 'GATEWAY_NOT_CONFIGURED'];
         }
 
         $response = Http::withHeaders([
-            'access_token' => $this->apiKey,
+            'access_token' => $apiKey,
             'Content-Type' => 'application/json',
         ])->timeout(30)->{$method}("{$this->getBaseUrl()}{$endpoint}", $data);
 
