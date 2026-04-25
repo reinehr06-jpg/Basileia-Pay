@@ -15,9 +15,9 @@ services:
       - DB_DATABASE=${DB_DATABASE:-checkout}
       - DB_USERNAME=${DB_USERNAME:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-secret}
-      - ASAAS_API_KEY=${ASAAS_API_KEY}
+      - ASAAS_API_KEY
       - ASAAS_ENVIRONMENT=${ASAAS_ENVIRONMENT:-production}
-      - ASAAS_WEBHOOK_TOKEN=${ASAAS_WEBHOOK_TOKEN}
+      - ASAAS_WEBHOOK_TOKEN
     depends_on:
       - postgres
 

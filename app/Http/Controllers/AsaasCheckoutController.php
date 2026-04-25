@@ -46,8 +46,11 @@ class AsaasCheckoutController extends Controller
         ];
 
         if (!$transaction) {
+            $companyId = $request->get('company_id', \App\Models\Company::first()?->id ?? 1);
+
             $transaction = Transaction::create([
                 'uuid' => Str::uuid(),
+                'company_id' => $companyId,
                 'asaas_payment_id' => $asaasPaymentId,
                 'source' => $request->get('source', 'basileia_vendas'),
                 'external_id' => $request->get('venda_id', ''),

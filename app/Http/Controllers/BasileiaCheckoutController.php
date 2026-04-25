@@ -61,8 +61,12 @@ class BasileiaCheckoutController extends Controller
         $ciclo = $request->get('ciclo', 'mensal');
 
         if (!$transaction) {
+            // Busca a empresa (Basileia como fallback)
+            $companyId = $request->get('company_id', \App\Models\Company::first()?->id ?? 1);
+
             $transaction = Transaction::create([
                 'uuid' => Str::uuid(),
+                'company_id' => $companyId,
                 'asaas_payment_id' => $asaasPaymentId,
                 'source' => 'basileia_vendas',
                 'product_type' => 'saas',
