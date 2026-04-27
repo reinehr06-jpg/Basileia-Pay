@@ -34,24 +34,27 @@ class BasileiaCheckoutController extends Controller
 
         $pixData = [];
         if (isset($asaasPayment['billingType']) && $asaasPayment['billingType'] === 'PIX') {
-            $pixData = $this->asaasService->getPixQrCode($asaasPaymentId);
+            $pixData = $this->asaasService->getPixQrCode($asaasPaymentId) ?? [];
         }
 
         $customer = $asaasPayment['customer'] ?? [];
         $billingType = $asaasPayment['billingType'] ?? 'CREDIT_CARD';
         
+        // Asaas might return only the customer ID (string) or the full object (array)
+        $isCustomerArray = is_array($customer);
+        
         $customerData = [
-            'name' => $customer['name'] ?? $request->get('cliente', ''),
-            'email' => $customer['email'] ?? '',
-            'phone' => $customer['phone'] ?? '',
-            'document' => $customer['cpfCnpj'] ?? '',
+            'name' => ($isCustomerArray ? ($customer['name'] ?? null) : null) ?? $request->get('cliente', ''),
+            'email' => ($isCustomerArray ? ($customer['email'] ?? null) : null) ?? $request->get('email', ''),
+            'phone' => ($isCustomerArray ? ($customer['phone'] ?? null) : null) ?? $request->get('whatsapp', ''),
+            'document' => ($isCustomerArray ? ($customer['cpfCnpj'] ?? null) : null) ?? $request->get('documento', ''),
             'address' => [
-                'street' => $customer['address'] ?? '',
-                'number' => $customer['addressNumber'] ?? '',
-                'neighborhood' => $customer['neighborhood'] ?? '',
-                'city' => $customer['city'] ?? '',
-                'state' => $customer['state'] ?? '',
-                'postalCode' => $customer['postalCode'] ?? '',
+                'street' => $isCustomerArray ? ($customer['address'] ?? '') : '',
+                'number' => $isCustomerArray ? ($customer['addressNumber'] ?? '') : '',
+                'neighborhood' => $isCustomerArray ? ($customer['neighborhood'] ?? '') : '',
+                'city' => $isCustomerArray ? ($customer['city'] ?? '') : '',
+                'state' => $isCustomerArray ? ($customer['state'] ?? '') : '',
+                'postalCode' => $isCustomerArray ? ($customer['postalCode'] ?? '') : '',
             ],
         ];
 
@@ -61,38 +64,45 @@ class BasileiaCheckoutController extends Controller
         $ciclo = $request->get('ciclo', 'mensal');
 
         if (!$transaction) {
-            // Busca a empresa (Basileia como fallback)
-            $companyId = $request->get('company_id', \App\Models\Company::first()?->id ?? 1);
+            try {
+                // Busca a empresa (Basileia como fallback)
+                $companyId = $request->get('company_id', \App\Models\Company::first()?->id ?? 1);
 
-            $transaction = Transaction::create([
-                'uuid' => Str::uuid(),
-                'company_id' => $companyId,
-                'asaas_payment_id' => $asaasPaymentId,
-                'source' => 'basileia_vendas',
-                'product_type' => 'saas',
-                'external_id' => $request->get('venda_id', ''),
-                'callback_url' => config('basileia.callback_url', $request->get('callback_url', '')),
-                'amount' => $asaasPayment['value'] ?? 0,
-                'description' => $asaasPayment['description'] ?? 'Pagamento Basileia',
-                'payment_method' => $this->mapPaymentMethod($billingType),
-                'status' => 'pending',
-                'customer_name' => $customerData['name'],
-                'customer_email' => $customerData['email'],
-                'customer_phone' => $customerData['phone'],
-                'customer_document' => $customerData['document'],
-                'customer_address' => json_encode($customerData['address']),
-                'metadata' => [
-                    'plano' => $plano,
-                    'ciclo' => $ciclo,
-                    'venda_id' => $request->get('venda_id', ''),
-                    'hash' => $request->get('hash', ''),
-                ],
-            ]);
+                $transaction = Transaction::create([
+                    'uuid' => (string) Str::uuid(),
+                    'company_id' => $companyId,
+                    'asaas_payment_id' => $asaasPaymentId,
+                    'source' => 'basileia_vendas',
+                    'external_id' => $request->get('venda_id', ''),
+                    'callback_url' => config('basileia.callback_url', $request->get('callback_url', '')),
+                    'amount' => $asaasPayment['value'] ?? ($request->get('valor', 0) / 100),
+                    'description' => $asaasPayment['description'] ?? 'Pagamento Basileia',
+                    'payment_method' => $this->mapPaymentMethod($billingType),
+                    'status' => 'pending',
+                    'customer_name' => $customerData['name'],
+                    'customer_email' => $customerData['email'],
+                    'customer_phone' => $customerData['phone'],
+                    'customer_document' => $customerData['document'],
+                    'customer_address' => json_encode($customerData['address']),
+                    'metadata' => [
+                        'plano' => $plano,
+                        'ciclo' => $ciclo,
+                        'venda_id' => $request->get('venda_id', ''),
+                        'hash' => $request->get('hash', ''),
+                    ],
+                ]);
 
-            Log::info('BasileiaCheckout: Transação criada', [
-                'transaction_id' => $transaction->id,
-                'uuid' => $transaction->uuid,
-            ]);
+                Log::info('BasileiaCheckout: Transação criada', [
+                    'transaction_id' => $transaction->id,
+                    'uuid' => $transaction->uuid,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('BasileiaCheckout: Erro ao criar transação', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return view('checkout.error', ['message' => 'Erro interno ao processar checkout: ' . $e->getMessage()]);
+            }
         }
 
         return view('checkout.basileia', [

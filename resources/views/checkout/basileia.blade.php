@@ -543,7 +543,7 @@
                 <!-- Pix Flow -->
                 <div style="text-align: center; margin-top: 10px;">
                     <div style="background: white; padding: 16px; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 20px; display: inline-block;">
-                        @if(!empty($pixData['encodedImage']))
+                        @if($pixData && !empty($pixData['encodedImage']))
                             <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" style="width: 180px; height: 180px; border-radius: 12px; display: block;">
                         @else
                             <div style="width: 180px; height: 180px; background: #f3f4f6; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #9ca3af;">

@@ -100,9 +100,7 @@ class AsaasPaymentService
 
             return $this->request('GET', "/payments/{$paymentId}/pixQrCode");
         } catch (\Exception $e) {
-            Log::error('AsaasPaymentService: Failed to get PIX QR Code', ['id' => $paymentId]);
-
-            return null;
+            return [];
         }
     }
 
