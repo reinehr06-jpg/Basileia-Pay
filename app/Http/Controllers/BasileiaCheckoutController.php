@@ -23,6 +23,12 @@ class BasileiaCheckoutController extends Controller
             'params' => $request->all(),
         ]);
 
+        $apiKey = config('services.asaas.api_key');
+        if (empty($apiKey)) {
+            Log::warning('AsaasPaymentService: ASAAS_API_KEY not configured');
+            throw new \RuntimeException('Gateway not configured (ASAAS_API_KEY is empty)');
+        }
+
         $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
         
         if (!$asaasPayment) {
@@ -38,7 +44,10 @@ class BasileiaCheckoutController extends Controller
         }
 
         $customer = $asaasPayment['customer'] ?? [];
-        $billingType = $asaasPayment['billingType'] ?? 'CREDIT_CARD';
+        $billingType = $asaasPayment['billingType'] ?? (strtoupper($request->get('metodo', $request->get('forma_pagamento', 'CREDIT_CARD'))));
+        if ($billingType === 'PIX' && !isset($asaasPayment['billingType'])) {
+             // If we forced PIX from URL but Asaas didn't return it (e.g. error)
+        }
         
         // Asaas might return only the customer ID (string) or the full object (array)
         $isCustomerArray = is_array($customer);
@@ -75,7 +84,7 @@ class BasileiaCheckoutController extends Controller
                     'source' => 'basileia_vendas',
                     'external_id' => $request->get('venda_id', ''),
                     'callback_url' => config('basileia.callback_url', $request->get('callback_url', '')),
-                    'amount' => $asaasPayment['value'] ?? ($request->get('valor', 0) / 100),
+                    'amount' => $asaasPayment['value'] ?? $request->get('valor', 0),
                     'description' => $asaasPayment['description'] ?? 'Pagamento Basileia',
                     'payment_method' => $this->mapPaymentMethod($billingType),
                     'status' => 'pending',
