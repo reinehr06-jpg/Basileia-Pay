@@ -24,9 +24,23 @@ class BasileiaCheckoutController extends Controller
         ]);
 
         $apiKey = config('services.asaas.api_key');
+        
+        // Se a chave global não estiver definida, busca a chave do gateway padrão no banco
         if (empty($apiKey)) {
-            Log::warning('AsaasPaymentService: ASAAS_API_KEY not configured');
-            throw new \RuntimeException('Gateway not configured (ASAAS_API_KEY is empty)');
+            $defaultGateway = \App\Models\Gateway::where('status', 'active')
+                ->where('is_default', true)
+                ->first() ?? \App\Models\Gateway::where('status', 'active')->first();
+                
+            if ($defaultGateway) {
+                $apiKey = $defaultGateway->getConfig('api_key');
+                // Configure o serviço para usar esta chave
+                config(['services.asaas.api_key' => $apiKey]);
+            }
+        }
+
+        if (empty($apiKey)) {
+            Log::warning('AsaasPaymentService: ASAAS_API_KEY not configured in .env or Database');
+            throw new \RuntimeException('Gateway not configured (API Key is missing)');
         }
 
         $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
