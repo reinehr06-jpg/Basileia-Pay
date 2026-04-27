@@ -284,11 +284,17 @@
 
             <!-- LAYER 1: PAYMENT -->
             <div class="layer" x-show="step === 1" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
-                <div class="locale-switcher">
-                    <div class="locale-btn" @click="changeCountry(country === 'BR' ? 'US' : (country === 'US' ? 'ES' : 'BR'))">
-                        <span x-text="countries.find(x => x.code === country).flag"></span>
-                        <span x-text="countries.find(x => x.code === country).name"></span>
-                        <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                    <div>
+                        <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
+                        <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
+                    </div>
+                    <div class="locale-switcher" style="margin-bottom: 0;">
+                        <div class="locale-btn" @click="changeCountry(country === 'BR' ? 'US' : (country === 'US' ? 'ES' : 'BR'))">
+                            <span x-text="countries.find(x => x.code === country).flag"></span>
+                            <span x-text="countries.find(x => x.code === country).name"></span>
+                            <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+                        </div>
                     </div>
                 </div>
 
@@ -306,10 +312,6 @@
                             <div>
                                 <div class="summary-label" style="font-size: 11px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
                                 <div style="font-size: 18px; font-weight: 800; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
-                            </div>
-                            <div>
-                                <div class="summary-label" style="font-size: 11px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
-                                <div style="font-size: 14px; font-weight: 700; background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 8px; display: inline-block;" x-text="timeLeft"></div>
                             </div>
                         </div>
 
@@ -382,6 +384,10 @@
 
             <!-- LAYER 2: CONFIRMATION (DISTRACTION) -->
             <div class="layer" x-show="step === 2" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
+                <div style="margin-bottom: 25px;">
+                    <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
+                    <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
+                </div>
                 <h2 class="form-title">Confirme seus dados</h2>
                 <p class="form-subtitle">Quase lá! Verifique se as informações da sua igreja estão corretas.</p>
 
