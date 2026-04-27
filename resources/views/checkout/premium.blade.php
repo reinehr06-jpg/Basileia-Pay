@@ -282,7 +282,7 @@
             <h1 class="plan-title">{{ $plano }}</h1>
             
             <div class="price-row">
-                <span class="price-value" x-text="formatPrice({{ $transaction->amount * 100 }})"></span>
+                <span class="price-value" x-text="formatPrice({{ $transaction->amount }})"></span>
                 <span class="price-period">/{{ $ciclo }}</span>
             </div>
 
@@ -344,7 +344,7 @@
                         
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 25px; text-align: center;">
                             <div class="summary-label" style="font-size: 12px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
-                            <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice({{ $transaction->amount * 100 }})"></div>
+                            <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
                         </div>
 
                         <div class="pix-payload" id="pixPayload" style="text-align: left;">{{ $pixData['payload'] ?? '' }}</div>
@@ -390,7 +390,7 @@
 
                     <div style="text-align: center; margin-bottom: 20px;">
                         <div class="summary-label" style="font-size: 12px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
-                        <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice({{ $transaction->amount * 100 }})"></div>
+                        <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
                     </div>
 
                     <form id="paymentForm" @submit.prevent="goToStep2()">
@@ -524,9 +524,9 @@
 
                 countries: [
                     {code:'BR',name:'Brasil',flag:'🇧🇷',locale:'pt-BR',currency:'BRL',symbol:'R$',rate:1},
-                    {code:'US',name:'USA',flag:'🇺🇸',locale:'en-US',currency:'USD',symbol:'$',rate:0.20},
-                    {code:'PT',name:'Portugal',flag:'🇵🇹',locale:'pt-PT',currency:'EUR',symbol:'€',rate:0.18},
-                    {code:'ES',name:'España',flag:'🇪🇸',locale:'es-ES',currency:'EUR',symbol:'€',rate:0.18}
+                    {code:'US',name:'USA',flag:'🇺🇸',locale:'en-US',currency:'USD',symbol:'$',rate:1},
+                    {code:'PT',name:'Portugal',flag:'🇵🇹',locale:'pt-PT',currency:'EUR',symbol:'€',rate:1},
+                    {code:'ES',name:'España',flag:'🇪🇸',locale:'es-ES',currency:'EUR',symbol:'€',rate:1}
                 ],
 
                 init() {
