@@ -44,11 +44,14 @@
         }
         .brand-logo {
             display: flex;
+            flex-direction: column;
             align-items: center;
+            justify-content: center;
             gap: 15px;
             margin-bottom: 40px;
+            text-align: center;
         }
-        .brand-logo img { height: 50px; }
+        .brand-logo img { height: 70px; width: auto; filter: drop-shadow(0 0 10px rgba(124, 58, 237, 0.3)); }
         .summary-label { font-size: 14px; color: #a99fbb; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
         .plan-title { font-size: 56px; font-weight: 800; margin-bottom: 30px; line-height: 1.1; }
         .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 40px; }
@@ -120,7 +123,7 @@
             width: 100%;
             height: 200px;
             perspective: 1000px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         .card-inner {
             position: relative;
@@ -153,7 +156,39 @@
         .card-value { font-size: 14px; font-weight: 600; text-transform: uppercase; }
         .card-brand-logo { position: absolute; top: 24px; right: 24px; height: 30px; opacity: 0; transition: opacity 0.3s; }
         .card-brand-logo.visible { opacity: 1; }
-        .card-brand-logo.default { opacity: 1; font-size: 24px; font-weight: 900; }
+        .card-brand-logo.default { 
+            opacity: 1; 
+            background: white; 
+            color: #7c3aed; 
+            width: 40px; 
+            height: 40px; 
+            border-radius: 8px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            font-size: 20px; 
+            font-weight: 900; 
+        }
+
+        /* i18n Switcher */
+        .locale-switcher {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .locale-btn {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
 
         /* FORMS */
         .form-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
@@ -221,25 +256,24 @@
                 <span style="font-size: 28px; font-weight: 900; letter-spacing: -1px;">Basiléia</span>
             </div>
             
-            <div class="summary-label">Resumo do pedido</div>
+            <div class="summary-label" x-text="locale === 'pt-BR' ? 'Resumo do pedido' : 'Order summary'"></div>
             <h1 class="plan-title">{{ $plano }}</h1>
             
             <div class="price-row">
-                <span class="price-currency">R$</span>
-                <span class="price-value">{{ number_format($transaction->amount, 2, ',', '.') }}</span>
+                <span class="price-value" x-text="formatPrice({{ $transaction->amount }})"></span>
                 <span class="price-period">/{{ $ciclo }}</span>
             </div>
 
             <div class="features-grid">
-                <div class="feature-item"><i class="fas fa-check-circle"></i> IA via WhatsApp</div>
-                <div class="feature-item"><i class="fas fa-check-circle"></i> Múltiplas Igrejas</div>
-                <div class="feature-item"><i class="fas fa-check-circle"></i> Gestão de Membros</div>
-                <div class="feature-item"><i class="fas fa-check-circle"></i> Suporte Dedicado</div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'IA via WhatsApp' : 'AI via WhatsApp'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Múltiplas Igrejas' : 'Multiple Churches'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Gestão de Membros' : 'Member Management'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Suporte Dedicado' : 'Dedicated Support'"></span></div>
             </div>
 
             <div class="trust-footer">
-                <div class="trust-item"><i class="fas fa-lock"></i> Pagamento 100% seguro</div>
-                <div class="trust-item"><i class="fas fa-shield-alt"></i> Garantia de 7 dias</div>
+                <div class="trust-item"><i class="fas fa-lock"></i> <span x-text="locale === 'pt-BR' ? 'Pagamento 100% seguro' : '100% secure payment'"></span></div>
+                <div class="trust-item"><i class="fas fa-shield-alt"></i> <span x-text="locale === 'pt-BR' ? 'Garantia de 7 dias' : '7-day guarantee'"></span></div>
             </div>
         </div>
 
@@ -250,8 +284,16 @@
 
             <!-- LAYER 1: PAYMENT -->
             <div class="layer" x-show="step === 1" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
-                <h2 class="form-title">Dados de Pagamento</h2>
-                <p class="form-subtitle">Escolha como deseja pagar seu plano</p>
+                <div class="locale-switcher">
+                    <div class="locale-btn" @click="changeCountry(country === 'BR' ? 'US' : (country === 'US' ? 'ES' : 'BR'))">
+                        <span x-text="countries.find(x => x.code === country).flag"></span>
+                        <span x-text="countries.find(x => x.code === country).name"></span>
+                        <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+                    </div>
+                </div>
+
+                <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Dados de Pagamento' : 'Payment Details'"></h2>
+                <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Escolha como deseja pagar seu plano' : 'Choose how you want to pay'"></p>
 
                 @if(($asaasPayment['billingType'] ?? 'PIX') === 'PIX')
                     <!-- PIX FLOW -->
@@ -262,19 +304,19 @@
                         
                         <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 15px; margin-bottom: 25px; text-align: left;">
                             <div>
-                                <div class="summary-label" style="font-size: 11px;">Valor</div>
-                                <div style="font-size: 18px; font-weight: 800; color: #1e293b;">R$ {{ number_format($transaction->amount, 2, ',', '.') }}</div>
+                                <div class="summary-label" style="font-size: 11px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
+                                <div style="font-size: 18px; font-weight: 800; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
                             </div>
                             <div>
-                                <div class="summary-label" style="font-size: 11px;">Expira em</div>
-                                <div style="font-size: 14px; font-weight: 700; background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 8px; display: inline-block;">29:45</div>
+                                <div class="summary-label" style="font-size: 11px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
+                                <div style="font-size: 14px; font-weight: 700; background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 8px; display: inline-block;" x-text="timeLeft"></div>
                             </div>
                         </div>
 
                         <div class="pix-payload" id="pixPayload" style="text-align: left;">{{ $pixData['payload'] ?? '' }}</div>
                         
                         <button class="btn-pay" @click="copyPix()">
-                            <i class="fas fa-copy"></i> Copiar Código Pix
+                            <i class="fas fa-copy"></i> <span x-text="locale === 'pt-BR' ? 'Copiar Código Pix' : 'Copy Pix Code'"></span>
                         </button>
                         
                         <div style="margin-top: 20px; color: #64748b; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
@@ -414,6 +456,16 @@
                 isFlipped: false,
                 processing: false,
                 
+                // i18n and Currency
+                country: 'BR',
+                locale: 'pt-BR',
+                currency: 'BRL',
+                currencySymbol: 'R$',
+                
+                // Timer
+                timeLeft: '30:00',
+                secondsRemaining: 1800,
+
                 // Card Data
                 cardNumber: '',
                 cardExpiry: '',
@@ -421,10 +473,57 @@
                 cardHolder: '',
                 cardBrand: 'default',
 
-                // Vendor Data (Initial from Controller)
+                // Vendor Data
                 vendorName: '{{ $customerData['name'] ?? '' }}',
                 vendorEmail: '{{ $customerData['email'] ?? '' }}',
                 vendorDoc: '{{ $customerData['document'] ?? '' }}',
+
+                countries: [
+                    {code:'BR', name:'Brasil', flag:'🇧🇷', locale:'pt-BR', currency:'BRL', symbol:'R$', rate:1},
+                    {code:'US', name:'USA', flag:'🇺🇸', locale:'en-US', currency:'USD', symbol:'$', rate:1}, // Taxa 1 para manter o valor original do banco
+                    {code:'ES', name:'España', flag:'🇪🇸', locale:'es-ES', currency:'EUR', symbol:'€', rate:1}
+                ],
+
+                init() {
+                    // Auto-detect language
+                    const browserLang = navigator.language || 'pt-BR';
+                    if (browserLang.startsWith('en')) this.changeCountry('US');
+                    else if (browserLang.startsWith('es')) this.changeCountry('ES');
+
+                    // Timer Persistence
+                    let startTime = localStorage.getItem('checkout_start_time_' + '{{ $transaction->uuid }}');
+                    if (!startTime) {
+                        startTime = Date.now();
+                        localStorage.setItem('checkout_start_time_' + '{{ $transaction->uuid }}', startTime);
+                    }
+
+                    setInterval(() => {
+                        const now = Date.now();
+                        const elapsed = Math.floor((now - startTime) / 1000);
+                        this.secondsRemaining = Math.max(0, 1800 - elapsed);
+                        
+                        const mins = Math.floor(this.secondsRemaining / 60);
+                        const secs = this.secondsRemaining % 60;
+                        this.timeLeft = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    }, 1000);
+                },
+
+                changeCountry(code) {
+                    const c = this.countries.find(x => x.code === code);
+                    if (!c) return;
+                    this.country = c.code;
+                    this.locale = c.locale;
+                    this.currency = c.currency;
+                    this.currencySymbol = c.symbol;
+                },
+
+                formatPrice(amount) {
+                    const c = this.countries.find(x => x.code === this.country);
+                    return new Intl.NumberFormat(this.locale, {
+                        style: 'currency',
+                        currency: this.currency,
+                    }).format(amount);
+                },
 
                 formatCardNumber(val) {
                     let v = val.replace(/\D/g, '');
@@ -449,18 +548,11 @@
                     }
                 },
 
-                goToStep2() {
-                    this.step = 2;
-                },
+                goToStep2() { this.step = 2; },
 
                 processPayment() {
                     this.processing = true;
-                    
-                    // Simulate processing time for the "distraction"
-                    setTimeout(() => {
-                        this.step = 3;
-                        this.processing = false;
-                    }, 2000);
+                    setTimeout(() => { this.step = 3; this.processing = false; }, 2000);
                 },
 
                 copyPix() {
