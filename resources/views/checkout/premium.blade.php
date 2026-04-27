@@ -288,9 +288,11 @@
 
             <div class="features-grid">
                 <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'IA via WhatsApp' : 'AI via WhatsApp'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Gestão de Células (CGs)' : 'Cell/Small Group Management'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Conformidade LGPD' : 'GDPR/LGPD Compliance'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Suporte Humanizado' : 'Humanized Support'"></span></div>
                 <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Múltiplas Igrejas' : 'Multiple Churches'"></span></div>
-                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Gestão de Membros' : 'Member Management'"></span></div>
-                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Suporte Dedicado' : 'Dedicated Support'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Implantação Rápida' : 'Quick Implementation'"></span></div>
             </div>
 
             <div class="trust-footer">
@@ -521,7 +523,10 @@
                 vendorDoc: '{{ $customerData['document'] ?? '' }}',
 
                 countries: [
-                    {code:'BR',name:'Brasil',flag:'🇧🇷',locale:'pt-BR',currency:'BRL',symbol:'R$'},{code:'US',name:'USA',flag:'🇺🇸',locale:'en-US',currency:'USD',symbol:'$'},{code:'PT',name:'Portugal',flag:'🇵🇹',locale:'pt-PT',currency:'EUR',symbol:'€'},{code:'ES',name:'España',flag:'🇪🇸',locale:'es-ES',currency:'EUR',symbol:'€'},{code:'FR',name:'France',flag:'🇫🇷',locale:'fr-FR',currency:'EUR',symbol:'€'},{code:'DE',name:'Deutschland',flag:'🇩🇪',locale:'de-DE',currency:'EUR',symbol:'€'},{code:'IT',name:'Italia',flag:'🇮🇹',locale:'it-IT',currency:'EUR',symbol:'€'},{code:'GB',name:'UK',flag:'🇬🇧',locale:'en-GB',currency:'GBP',symbol:'£'},{code:'CA',name:'Canada',flag:'🇨🇦',locale:'en-CA',currency:'CAD',symbol:'$'},{code:'AU',name:'Australia',flag:'🇦🇺',locale:'en-AU',currency:'AUD',symbol:'$'},{code:'JP',name:'Japan',flag:'🇯🇵',locale:'ja-JP',currency:'JPY',symbol:'¥'},{code:'CN',name:'China',flag:'🇨🇳',locale:'zh-CN',currency:'CNY',symbol:'¥'},{code:'AR',name:'Argentina',flag:'🇦🇷',locale:'es-AR',currency:'ARS',symbol:'$'},{code:'CL',name:'Chile',flag:'🇨🇱',locale:'es-CL',currency:'CLP',symbol:'$'},{code:'CO',name:'Colombia',flag:'🇨🇴',locale:'es-CO',currency:'COP',symbol:'$'},{code:'MX',name:'México',flag:'🇲🇽',locale:'es-MX',currency:'MXN',symbol:'$'},{code:'UY',name:'Uruguay',flag:'🇺🇾',locale:'es-UY',currency:'UYU',symbol:'$'},{code:'PY',name:'Paraguay',flag:'🇵🇾',locale:'es-PY',currency:'PYG',symbol:'₲'},{code:'PE',name:'Peru',flag:'🇵🇪',locale:'es-PE',currency:'PEN',symbol:'S/'},{code:'BO',name:'Bolivia',flag:'🇧🇴',locale:'es-BO',currency:'BOB',symbol:'Bs.'},{code:'EC',name:'Ecuador',flag:'🇪🇨',locale:'es-EC',currency:'USD',symbol:'$'},{code:'VE',name:'Venezuela',flag:'🇻🇪',locale:'es-VE',currency:'VES',symbol:'Bs.S'},{code:'CH',name:'Suisse',flag:'🇨🇭',locale:'fr-CH',currency:'CHF',symbol:'CHF'},{code:'AT',name:'Österreich',flag:'🇦🇹',locale:'de-AT',currency:'EUR',symbol:'€'},{code:'BE',name:'Belgique',flag:'🇧🇪',locale:'fr-BE',currency:'EUR',symbol:'€'},{code:'NL',name:'Nederland',flag:'🇳🇱',locale:'nl-NL',currency:'EUR',symbol:'€'},{code:'SE',name:'Sverige',flag:'🇸🇪',locale:'sv-SE',currency:'SEK',symbol:'kr'},{code:'NO',name:'Norge',flag:'🇳🇴',locale:'nb-NO',currency:'NOK',symbol:'kr'},{code:'DK',name:'Danmark',flag:'🇩🇰',locale:'da-DK',currency:'DKK',symbol:'kr'},{code:'FI',name:'Suomi',flag:'🇫🇮',locale:'fi-FI',currency:'EUR',symbol:'€'},{code:'IE',name:'Ireland',flag:'🇮🇪',locale:'en-IE',currency:'EUR',symbol:'€'},{code:'GR',name:'Elláda',flag:'🇬🇷',locale:'el-GR',currency:'EUR',symbol:'€'},{code:'TR',name:'Türkiye',flag:'🇹🇷',locale:'tr-TR',currency:'TRY',symbol:'₺'},{code:'RU',name:'Rossiya',flag:'🇷🇺',locale:'ru-RU',currency:'RUB',symbol:'₽'},{code:'ZA',name:'South Africa',flag:'🇿🇦',locale:'en-ZA',currency:'ZAR',symbol:'R'},{code:'IN',name:'India',flag:'🇮🇳',locale:'hi-IN',currency:'INR',symbol:'₹'},{code:'KR',name:'Korea',flag:'🇰🇷',locale:'ko-KR',currency:'KRW',symbol:'₩'},{code:'SG',name:'Singapore',flag:'🇸🇬',locale:'en-SG',currency:'SGD',symbol:'$'},{code:'HK',name:'Hong Kong',flag:'🇭🇰',locale:'zh-HK',currency:'HKD',symbol:'$'},{code:'NZ',name:'New Zealand',flag:'🇳🇿',locale:'en-NZ',currency:'NZD',symbol:'$'},{code:'IL',name:'Israel',flag:'🇮🇱',locale:'he-IL',currency:'ILS',symbol:'₪'},{code:'SA',name:'Saudi Arabia',flag:'🇸🇦',locale:'ar-SA',currency:'SAR',symbol:'﷼'},{code:'AE',name:'UAE',flag:'🇦🇪',locale:'ar-AE',currency:'AED',symbol:'د.إ'}
+                    {code:'BR',name:'Brasil',flag:'🇧🇷',locale:'pt-BR',currency:'BRL',symbol:'R$',rate:1},
+                    {code:'US',name:'USA',flag:'🇺🇸',locale:'en-US',currency:'USD',symbol:'$',rate:0.20},
+                    {code:'PT',name:'Portugal',flag:'🇵🇹',locale:'pt-PT',currency:'EUR',symbol:'€',rate:0.18},
+                    {code:'ES',name:'España',flag:'🇪🇸',locale:'es-ES',currency:'EUR',symbol:'€',rate:0.18}
                 ],
 
                 init() {
@@ -558,13 +563,8 @@
                 },
 
                 formatPrice(amount) {
-                    // Ajuste para garantir que o valor seja exibido corretamente (Ex: 2.748,00)
-                    // Se o valor vier dividido por 100 indevidamente, multiplicamos
-                    let finalAmount = amount;
-                    if (amount < 1000 && amount > 10) { 
-                        // Heurística: se o valor for muito baixo para este plano específico, ajustamos
-                        // finalAmount = amount * 100; 
-                    }
+                    const c = this.countries.find(x => x.code === this.country);
+                    const finalAmount = amount * (c.rate || 1);
                     
                     return new Intl.NumberFormat(this.locale, {
                         style: 'currency',
