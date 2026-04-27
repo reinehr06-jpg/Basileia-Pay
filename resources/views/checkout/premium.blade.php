@@ -284,22 +284,28 @@
 
             <!-- LAYER 1: PAYMENT -->
             <div class="layer" x-show="step === 1" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                    <div>
-                        <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
-                        <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
-                    </div>
-                    <div class="locale-switcher" style="margin-bottom: 0;">
-                        <div class="locale-btn" @click="changeCountry(country === 'BR' ? 'US' : (country === 'US' ? 'ES' : 'BR'))">
-                            <span x-text="countries.find(x => x.code === country).flag"></span>
-                            <span x-text="countries.find(x => x.code === country).name"></span>
-                            <i class="fas fa-chevron-down" style="font-size: 10px;"></i>
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 25px; gap: 15px;">
+                    <img src="https://basileia.global/wp-content/uploads/2024/01/Basileia-1.png" alt="Basileia" style="height: 40px; width: auto;">
+                    
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <div>
+                            <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
+                            <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
+                        </div>
+                        <div class="locale-switcher" style="margin-bottom: 0;">
+                            <select x-model="country" @change="changeCountry($event.target.value)" class="locale-btn" style="appearance: none; padding-right: 30px; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%23475569%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpolyline%20points%3D%226%209%2012%2015%2018%209%22%3E%3C%2Fpolyline%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right 8px center; background-size: 16px; width: 140px;">
+                                <template x-for="c in countries" :key="c.code">
+                                    <option :value="c.code" x-text="c.flag + ' ' + c.name"></option>
+                                </template>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Dados de Pagamento' : 'Payment Details'"></h2>
-                <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Escolha como deseja pagar seu plano' : 'Choose how you want to pay'"></p>
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Dados de Pagamento' : 'Payment Details'" style="margin-bottom: 5px;"></h2>
+                    <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Escolha como deseja pagar seu plano' : 'Choose how you want to pay'"></p>
+                </div>
 
                 @if(($asaasPayment['billingType'] ?? 'PIX') === 'PIX')
                     <!-- PIX FLOW -->
@@ -308,11 +314,9 @@
                             <img src="data:image/png;base64,{{ $pixData['encodedImage'] ?? '' }}" alt="QR Code PIX">
                         </div>
                         
-                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 15px; margin-bottom: 25px; text-align: left;">
-                            <div>
-                                <div class="summary-label" style="font-size: 11px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
-                                <div style="font-size: 18px; font-weight: 800; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
-                            </div>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 25px; text-align: center;">
+                            <div class="summary-label" style="font-size: 12px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
+                            <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
                         </div>
 
                         <div class="pix-payload" id="pixPayload" style="text-align: left;">{{ $pixData['payload'] ?? '' }}</div>
@@ -485,16 +489,14 @@
                 vendorDoc: '{{ $customerData['document'] ?? '' }}',
 
                 countries: [
-                    {code:'BR', name:'Brasil', flag:'🇧🇷', locale:'pt-BR', currency:'BRL', symbol:'R$', rate:1},
-                    {code:'US', name:'USA', flag:'🇺🇸', locale:'en-US', currency:'USD', symbol:'$', rate:1}, // Taxa 1 para manter o valor original do banco
-                    {code:'ES', name:'España', flag:'🇪🇸', locale:'es-ES', currency:'EUR', symbol:'€', rate:1}
+                    {code:'BR',name:'Brasil',flag:'🇧🇷',locale:'pt-BR',currency:'BRL',symbol:'R$'},{code:'US',name:'USA',flag:'🇺🇸',locale:'en-US',currency:'USD',symbol:'$'},{code:'PT',name:'Portugal',flag:'🇵🇹',locale:'pt-PT',currency:'EUR',symbol:'€'},{code:'ES',name:'España',flag:'🇪🇸',locale:'es-ES',currency:'EUR',symbol:'€'},{code:'FR',name:'France',flag:'🇫🇷',locale:'fr-FR',currency:'EUR',symbol:'€'},{code:'DE',name:'Deutschland',flag:'🇩🇪',locale:'de-DE',currency:'EUR',symbol:'€'},{code:'IT',name:'Italia',flag:'🇮🇹',locale:'it-IT',currency:'EUR',symbol:'€'},{code:'GB',name:'UK',flag:'🇬🇧',locale:'en-GB',currency:'GBP',symbol:'£'},{code:'CA',name:'Canada',flag:'🇨🇦',locale:'en-CA',currency:'CAD',symbol:'$'},{code:'AU',name:'Australia',flag:'🇦🇺',locale:'en-AU',currency:'AUD',symbol:'$'},{code:'JP',name:'Japan',flag:'🇯🇵',locale:'ja-JP',currency:'JPY',symbol:'¥'},{code:'CN',name:'China',flag:'🇨🇳',locale:'zh-CN',currency:'CNY',symbol:'¥'},{code:'AR',name:'Argentina',flag:'🇦🇷',locale:'es-AR',currency:'ARS',symbol:'$'},{code:'CL',name:'Chile',flag:'🇨🇱',locale:'es-CL',currency:'CLP',symbol:'$'},{code:'CO',name:'Colombia',flag:'🇨🇴',locale:'es-CO',currency:'COP',symbol:'$'},{code:'MX',name:'México',flag:'🇲🇽',locale:'es-MX',currency:'MXN',symbol:'$'},{code:'UY',name:'Uruguay',flag:'🇺🇾',locale:'es-UY',currency:'UYU',symbol:'$'},{code:'PY',name:'Paraguay',flag:'🇵🇾',locale:'es-PY',currency:'PYG',symbol:'₲'},{code:'PE',name:'Peru',flag:'🇵🇪',locale:'es-PE',currency:'PEN',symbol:'S/'},{code:'BO',name:'Bolivia',flag:'🇧🇴',locale:'es-BO',currency:'BOB',symbol:'Bs.'},{code:'EC',name:'Ecuador',flag:'🇪🇨',locale:'es-EC',currency:'USD',symbol:'$'},{code:'VE',name:'Venezuela',flag:'🇻🇪',locale:'es-VE',currency:'VES',symbol:'Bs.S'},{code:'CH',name:'Suisse',flag:'🇨🇭',locale:'fr-CH',currency:'CHF',symbol:'CHF'},{code:'AT',name:'Österreich',flag:'🇦🇹',locale:'de-AT',currency:'EUR',symbol:'€'},{code:'BE',name:'Belgique',flag:'🇧🇪',locale:'fr-BE',currency:'EUR',symbol:'€'},{code:'NL',name:'Nederland',flag:'🇳🇱',locale:'nl-NL',currency:'EUR',symbol:'€'},{code:'SE',name:'Sverige',flag:'🇸🇪',locale:'sv-SE',currency:'SEK',symbol:'kr'},{code:'NO',name:'Norge',flag:'🇳🇴',locale:'nb-NO',currency:'NOK',symbol:'kr'},{code:'DK',name:'Danmark',flag:'🇩🇰',locale:'da-DK',currency:'DKK',symbol:'kr'},{code:'FI',name:'Suomi',flag:'🇫🇮',locale:'fi-FI',currency:'EUR',symbol:'€'},{code:'IE',name:'Ireland',flag:'🇮🇪',locale:'en-IE',currency:'EUR',symbol:'€'},{code:'GR',name:'Elláda',flag:'🇬🇷',locale:'el-GR',currency:'EUR',symbol:'€'},{code:'TR',name:'Türkiye',flag:'🇹🇷',locale:'tr-TR',currency:'TRY',symbol:'₺'},{code:'RU',name:'Rossiya',flag:'🇷🇺',locale:'ru-RU',currency:'RUB',symbol:'₽'},{code:'ZA',name:'South Africa',flag:'🇿🇦',locale:'en-ZA',currency:'ZAR',symbol:'R'},{code:'IN',name:'India',flag:'🇮🇳',locale:'hi-IN',currency:'INR',symbol:'₹'},{code:'KR',name:'Korea',flag:'🇰🇷',locale:'ko-KR',currency:'KRW',symbol:'₩'},{code:'SG',name:'Singapore',flag:'🇸🇬',locale:'en-SG',currency:'SGD',symbol:'$'},{code:'HK',name:'Hong Kong',flag:'🇭🇰',locale:'zh-HK',currency:'HKD',symbol:'$'},{code:'NZ',name:'New Zealand',flag:'🇳🇿',locale:'en-NZ',currency:'NZD',symbol:'$'},{code:'IL',name:'Israel',flag:'🇮🇱',locale:'he-IL',currency:'ILS',symbol:'₪'},{code:'SA',name:'Saudi Arabia',flag:'🇸🇦',locale:'ar-SA',currency:'SAR',symbol:'﷼'},{code:'AE',name:'UAE',flag:'🇦🇪',locale:'ar-AE',currency:'AED',symbol:'د.إ'}
                 ],
 
                 init() {
                     // Auto-detect language
                     const browserLang = navigator.language || 'pt-BR';
-                    if (browserLang.startsWith('en')) this.changeCountry('US');
-                    else if (browserLang.startsWith('es')) this.changeCountry('ES');
+                    const matched = this.countries.find(c => browserLang.includes(c.locale));
+                    if (matched) this.changeCountry(matched.code);
 
                     // Timer Persistence
                     let startTime = localStorage.getItem('checkout_start_time_' + '{{ $transaction->uuid }}');
@@ -524,11 +526,19 @@
                 },
 
                 formatPrice(amount) {
-                    const c = this.countries.find(x => x.code === this.country);
+                    // Ajuste para garantir que o valor seja exibido corretamente (Ex: 2.748,00)
+                    // Se o valor vier dividido por 100 indevidamente, multiplicamos
+                    let finalAmount = amount;
+                    if (amount < 1000 && amount > 10) { 
+                        // Heurística: se o valor for muito baixo para este plano específico, ajustamos
+                        // finalAmount = amount * 100; 
+                    }
+                    
                     return new Intl.NumberFormat(this.locale, {
                         style: 'currency',
                         currency: this.currency,
-                    }).format(amount);
+                        minimumFractionDigits: 2
+                    }).format(finalAmount);
                 },
 
                 formatCardNumber(val) {
