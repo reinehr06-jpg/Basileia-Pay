@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>{{ $plano }} - Checkout Basiléia</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #5b21b6;
+            --primary-light: #a78bfa;
+            --bg-dark: #0f0a1e;
+            --purple-glow: rgba(124, 58, 237, 0.5);
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #0f0a1e 0%, #1a103c 50%, #2d1b69 100%);
+            color: white;
+            overflow-x: hidden;
+        }
+
+        .checkout-wrapper {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 60px;
+            max-width: 1100px;
+            width: 100%;
+            align-items: center;
+        }
+
+        /* LEFT PANEL */
+        .order-summary {
+            padding-right: 20px;
+        }
+        .brand-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+        .brand-logo img { height: 50px; }
+        .summary-label { font-size: 14px; color: #a99fbb; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .plan-title { font-size: 56px; font-weight: 800; margin-bottom: 30px; line-height: 1.1; }
+        .price-row { display: flex; align-items: baseline; gap: 10px; margin-bottom: 40px; }
+        .price-currency { font-size: 24px; color: #a99fbb; }
+        .price-value { font-size: 48px; font-weight: 800; }
+        .price-period { font-size: 16px; color: #a99fbb; }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 60px;
+        }
+        .feature-item { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+        .feature-item i { color: #22c55e; font-size: 18px; }
+
+        .trust-footer {
+            display: flex;
+            gap: 30px;
+            padding-top: 30px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            color: #a99fbb;
+            font-size: 14px;
+        }
+        .trust-item { display: flex; align-items: center; gap: 8px; }
+
+        /* RIGHT PANEL - THE BOOK */
+        .book-container {
+            position: relative;
+            perspective: 2000px;
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .layer {
+            position: relative;
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            color: #1e293b;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: left center;
+            z-index: 10;
+        }
+
+        /* Camadas de fundo para o efeito de "book" */
+        .book-bg-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(124, 58, 237, 0.3);
+            border-radius: 24px;
+            transform: translate(12px, 12px) rotate(2deg);
+            z-index: 1;
+            filter: blur(2px);
+        }
+        .book-bg-layer-2 {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(124, 58, 237, 0.15);
+            border-radius: 24px;
+            transform: translate(24px, 24px) rotate(4deg);
+            z-index: 0;
+            filter: blur(4px);
+        }
+
+        /* 3D CARD */
+        .card-scene {
+            width: 100%;
+            height: 200px;
+            perspective: 1000px;
+            margin-bottom: 30px;
+        }
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+        .card-inner.is-flipped { transform: rotateY(180deg); }
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 16px;
+            padding: 24px;
+            color: white;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+        }
+        .card-back { transform: rotateY(180deg); display: flex; flex-direction: column; justify-content: center; padding: 0; }
+        .card-magnetic-strip { height: 40px; background: rgba(0,0,0,0.8); margin-top: 20px; }
+        .card-cvv-strip { height: 35px; background: white; margin: 15px 20px; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px; color: #1e293b; font-family: 'Share Tech Mono', monospace; font-weight: bold; }
+        
+        .card-chip { width: 45px; height: 34px; background: linear-gradient(135deg, #ffd700 0%, #daa520 100%); border-radius: 6px; margin-bottom: 20px; }
+        .card-number-display { font-family: 'Share Tech Mono', monospace; font-size: 22px; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+        .card-label { font-size: 9px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
+        .card-value { font-size: 14px; font-weight: 600; text-transform: uppercase; }
+        .card-brand-logo { position: absolute; top: 24px; right: 24px; height: 30px; opacity: 0; transition: opacity 0.3s; }
+        .card-brand-logo.visible { opacity: 1; }
+        .card-brand-logo.default { opacity: 1; font-size: 24px; font-weight: 900; }
+
+        /* FORMS */
+        .form-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+        .form-subtitle { font-size: 14px; color: #64748b; margin-bottom: 25px; }
+        .form-group { margin-bottom: 15px; }
+        .form-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
+        .form-input { width: 100%; height: 48px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0 16px; font-size: 15px; font-family: inherit; transition: all 0.2s; }
+        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .btn-pay {
+            width: 100%;
+            height: 56px;
+            background: linear-gradient(90deg, #7c3aed, #a855f7);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4); }
+        .btn-pay:active { transform: translateY(0); }
+
+        /* ANIMATIONS */
+        [x-cloak] { display: none !important; }
+        
+        .layer-exit { transform: rotateY(-90deg) scale(0.9); opacity: 0; }
+        .layer-enter { transform: rotateY(0deg) scale(1); opacity: 1; }
+
+        /* PIX STYLES */
+        .pix-container { text-align: center; }
+        .pix-qr-box { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 20px; }
+        .pix-qr-box img { width: 180px; height: 180px; }
+        .pix-payload { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 10px; font-family: 'Share Tech Mono', monospace; font-size: 12px; word-break: break-all; margin-bottom: 20px; }
+
+        /* SUCCESS STYLES */
+        .success-icon { width: 80px; height: 80px; background: #ecfdf5; color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; }
+        .success-btns { display: grid; gap: 12px; margin-top: 30px; }
+        .btn-secondary { background: #f1f5f9; color: #1e293b; text-decoration: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+        .btn-secondary:hover { background: #e2e8f0; }
+
+        @media (max-width: 900px) {
+            .checkout-wrapper { grid-template-columns: 1fr; gap: 40px; }
+            .order-summary { text-align: center; }
+            .brand-logo { justify-content: center; }
+            .features-grid { max-width: 500px; margin: 0 auto 40px; }
+            .book-container { margin: 0 auto; }
+        }
+    </style>
+</head>
+<body x-data="checkoutFlow()">
+    <div class="checkout-wrapper">
+        <!-- SUMMARY PANEL -->
+        <div class="order-summary">
+            <div class="brand-logo">
+                <img src="https://basileia.global/wp-content/uploads/2024/01/Basileia-1.png" alt="Basileia">
+                <span style="font-size: 28px; font-weight: 900; letter-spacing: -1px;">Basiléia</span>
+            </div>
+            
+            <div class="summary-label">Resumo do pedido</div>
+            <h1 class="plan-title">{{ $plano }}</h1>
+            
+            <div class="price-row">
+                <span class="price-currency">R$</span>
+                <span class="price-value">{{ number_format($transaction->amount, 2, ',', '.') }}</span>
+                <span class="price-period">/{{ $ciclo }}</span>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-item"><i class="fas fa-check-circle"></i> IA via WhatsApp</div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> Múltiplas Igrejas</div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> Gestão de Membros</div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> Suporte Dedicado</div>
+            </div>
+
+            <div class="trust-footer">
+                <div class="trust-item"><i class="fas fa-lock"></i> Pagamento 100% seguro</div>
+                <div class="trust-item"><i class="fas fa-shield-alt"></i> Garantia de 7 dias</div>
+            </div>
+        </div>
+
+        <!-- THE BOOK (Right Panel) -->
+        <div class="book-container">
+            <div class="book-bg-layer"></div>
+            <div class="book-bg-layer-2"></div>
+
+            <!-- LAYER 1: PAYMENT -->
+            <div class="layer" x-show="step === 1" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
+                <h2 class="form-title">Dados de Pagamento</h2>
+                <p class="form-subtitle">Escolha como deseja pagar seu plano</p>
+
+                @if(($asaasPayment['billingType'] ?? 'PIX') === 'PIX')
+                    <!-- PIX FLOW -->
+                    <div class="pix-container">
+                        <div class="pix-qr-box" style="border: 2px solid var(--primary); box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);">
+                            <img src="data:image/png;base64,{{ $pixData['encodedImage'] ?? '' }}" alt="QR Code PIX">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 15px; margin-bottom: 25px; text-align: left;">
+                            <div>
+                                <div class="summary-label" style="font-size: 11px;">Valor</div>
+                                <div style="font-size: 18px; font-weight: 800; color: #1e293b;">R$ {{ number_format($transaction->amount, 2, ',', '.') }}</div>
+                            </div>
+                            <div>
+                                <div class="summary-label" style="font-size: 11px;">Expira em</div>
+                                <div style="font-size: 14px; font-weight: 700; background: #fef2f2; color: #dc2626; padding: 4px 12px; border-radius: 8px; display: inline-block;">29:45</div>
+                            </div>
+                        </div>
+
+                        <div class="pix-payload" id="pixPayload" style="text-align: left;">{{ $pixData['payload'] ?? '' }}</div>
+                        
+                        <button class="btn-pay" @click="copyPix()">
+                            <i class="fas fa-copy"></i> Copiar Código Pix
+                        </button>
+                        
+                        <div style="margin-top: 20px; color: #64748b; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                            <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                            Após o pagamento, a confirmação é automática.
+                        </div>
+                    </div>
+                @else
+                    <!-- CARD FLOW -->
+                    <div class="card-scene" @click="isFlipped = !isFlipped">
+                        <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
+                            <div class="card-face card-front">
+                                <div class="card-chip"></div>
+                                <div class="card-brand-logo default" :class="{ 'visible': cardBrand === 'default' }">B</div>
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" alt="Visa">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" alt="Mastercard">
+                                
+                                <div class="card-number-display" x-text="formatCardNumber(cardNumber)"></div>
+                                <div class="card-bottom">
+                                    <div>
+                                        <div class="card-label">Titular</div>
+                                        <div class="card-value" x-text="cardHolder || 'NOME NO CARTÃO'"></div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div class="card-label">Validade</div>
+                                        <div class="card-value" x-text="cardExpiry || 'MM/AA'"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-face card-back">
+                                <div class="card-magnetic-strip"></div>
+                                <div class="card-cvv-strip" x-text="cardCvv || '•••'"></div>
+                                <div style="padding: 20px; font-size: 10px; opacity: 0.5;">Assinatura Autorizada</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form id="paymentForm" @submit.prevent="goToStep2()">
+                        <div class="form-group">
+                            <label class="form-label">Número do Cartão</label>
+                            <input type="text" class="form-input" x-model="cardNumber" @input="updateCardBrand()" placeholder="0000 0000 0000 0000" maxlength="19" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Validade</label>
+                                <input type="text" class="form-input" x-model="cardExpiry" placeholder="MM/AA" maxlength="5" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CVV</label>
+                                <input type="text" class="form-input" x-model="cardCvv" @focus="isFlipped = true" @blur="isFlipped = false" placeholder="000" maxlength="4" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Nome no Cartão</label>
+                            <input type="text" class="form-input" x-model="cardHolder" placeholder="Como impresso no cartão" required>
+                        </div>
+                        <button type="submit" class="btn-pay">
+                            Assinar Agora <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </form>
+                @endif
+            </div>
+
+            <!-- LAYER 2: CONFIRMATION (DISTRACTION) -->
+            <div class="layer" x-show="step === 2" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
+                <h2 class="form-title">Confirme seus dados</h2>
+                <p class="form-subtitle">Quase lá! Verifique se as informações da sua igreja estão corretas.</p>
+
+                <div class="form-group">
+                    <label class="form-label">Nome da Igreja / Instituição</label>
+                    <input type="text" class="form-input" x-model="vendorName" placeholder="Ex: Igreja Central">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">E-mail de Contato</label>
+                    <input type="email" class="form-input" x-model="vendorEmail" placeholder="contato@igreja.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Documento (CPF/CNPJ)</label>
+                    <input type="text" class="form-input" x-model="vendorDoc" placeholder="00.000.000/0001-00">
+                </div>
+
+                <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                    <p style="color: #166534; font-size: 13px; display: flex; gap: 8px;">
+                        <i class="fas fa-info-circle" style="margin-top: 3px;"></i>
+                        Enquanto você revisa, nosso sistema está validando sua transação com a operadora.
+                    </p>
+                </div>
+
+                <button class="btn-pay" @click="processPayment()" :disabled="processing">
+                    <template x-if="!processing">
+                        <span>Confirmar e Finalizar <i class="fas fa-check"></i></span>
+                    </template>
+                    <template x-if="processing">
+                        <span><i class="fas fa-circle-notch fa-spin"></i> Processando...</span>
+                    </template>
+                </button>
+            </div>
+
+            <!-- LAYER 3: SUCCESS -->
+            <div class="layer" x-show="step === 3" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
+                <div class="success-icon">
+                    <i class="fas fa-check"></i>
+                </div>
+                <h2 class="form-title" style="text-align: center;">Pagamento Aprovado!</h2>
+                <p class="form-subtitle" style="text-align: center;">Bem-vindo à nova era da sua igreja. Seus recursos já estão liberados.</p>
+
+                <div style="background: #f8fafc; border-radius: 16px; padding: 20px; margin-top: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; color: #64748b;">
+                        <span>Transação</span>
+                        <span style="font-weight: 700; color: #1e293b;">#{{ strtoupper(substr($transaction->uuid, 0, 8)) }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; color: #64748b;">
+                        <span>Data</span>
+                        <span style="font-weight: 700; color: #1e293b;">{{ date('d/m/Y H:i') }}</span>
+                    </div>
+                </div>
+
+                <div class="success-btns">
+                    <a href="https://dash.basileia.global/dashboard" class="btn-pay" style="margin-top: 0;">
+                        Acessar Basiléia Church <i class="fas fa-church"></i>
+                    </a>
+                    <a :href="getWhatsappLink()" target="_blank" class="btn-secondary">
+                        <i class="fab fa-whatsapp" style="color: #25d366;"></i> Suporte no WhatsApp
+                    </a>
+                    <a href="#" class="btn-secondary">
+                        <i class="fas fa-play-circle" style="color: var(--primary);"></i> Vídeos de Implementação
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function checkoutFlow() {
+            return {
+                step: {{ $step ?? 1 }},
+                isFlipped: false,
+                processing: false,
+                
+                // Card Data
+                cardNumber: '',
+                cardExpiry: '',
+                cardCvv: '',
+                cardHolder: '',
+                cardBrand: 'default',
+
+                // Vendor Data (Initial from Controller)
+                vendorName: '{{ $customerData['name'] ?? '' }}',
+                vendorEmail: '{{ $customerData['email'] ?? '' }}',
+                vendorDoc: '{{ $customerData['document'] ?? '' }}',
+
+                formatCardNumber(val) {
+                    let v = val.replace(/\D/g, '');
+                    let match = v.match(/\d{4,16}/);
+                    let m = match ? match[0] : '';
+                    let parts = [];
+                    for (let i=0, len=m.length; i<len; i+=4) {
+                        parts.push(m.substring(i, i+4));
+                    }
+                    if (parts.length) return parts.join(' ');
+                    return val || '0000 0000 0000 0000';
+                },
+
+                updateCardBrand() {
+                    const num = this.cardNumber.replace(/\D/g, '');
+                    if (num.length >= 4) {
+                        if (num.startsWith('4')) this.cardBrand = 'visa';
+                        else if (num.match(/^5[1-5]/)) this.cardBrand = 'mastercard';
+                        else this.cardBrand = 'default';
+                    } else {
+                        this.cardBrand = 'default';
+                    }
+                },
+
+                goToStep2() {
+                    this.step = 2;
+                },
+
+                processPayment() {
+                    this.processing = true;
+                    
+                    // Simulate processing time for the "distraction"
+                    setTimeout(() => {
+                        this.step = 3;
+                        this.processing = false;
+                    }, 2000);
+                },
+
+                copyPix() {
+                    const el = document.createElement('textarea');
+                    el.value = document.getElementById('pixPayload').innerText;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                    alert('Código Pix copiado!');
+                },
+
+                getWhatsappLink() {
+                    const msg = encodeURIComponent(`Ola, sou ${this.vendorName} e adquiri o basileia, queria saber os próximos passos!`);
+                    return `https://wa.me/5511934924430?text=${msg}`;
+                }
+            }
+        }
+    </script>
+</body>
+</html>

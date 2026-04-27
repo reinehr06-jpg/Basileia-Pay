@@ -128,18 +128,16 @@ class BasileiaCheckoutController extends Controller
             }
         }
 
-        // Ativar o FRONT NOVO (o de 5 dias de trabalho)
-        $view = ($asaasPayment['billingType'] ?? 'PIX') === 'PIX' ? 'checkout.index-pix' : 'checkout.index-card';
-
-        return view($view, [
+        // Ativar o FRONT PREMIUM (Layered Book Style)
+        return view('checkout.premium', [
+            'step' => $request->get('success') ? 3 : 1,
             'transaction' => $transaction,
-            'paymentMethod' => $paymentMethod,
-            'installments' => $installments,
+            'paymentMethod' => strtolower($asaasPayment['billingType'] ?? 'pix'),
             'asaasPayment' => $asaasPayment,
             'customerData' => $customerData,
             'plano' => $plano,
             'ciclo' => $ciclo,
-            'pixData' => $pixData,
+            'pixData' => $pixData ?? ['payload' => '', 'encodedImage' => ''],
         ]);
     }
 
@@ -148,10 +146,10 @@ class BasileiaCheckoutController extends Controller
         $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->firstOrFail();
 
         $request->validate([
-            'card_number' => 'required|string|min:13|max:19',
-            'card_name' => 'required|string|min:3',
+            'card_number' => 'required|string',
+            'card_name' => 'required|string',
             'card_expiry' => 'required|string',
-            'card_cvv' => 'required|string|min:3|max:4',
+            'card_cvv' => 'required|string',
         ]);
 
         try {
@@ -174,35 +172,22 @@ class BasileiaCheckoutController extends Controller
                 'gateway_response' => json_encode($asaasResponse),
             ]);
 
-            Log::info('BasileiaCheckout: Pagamento processado', [
-                'transaction_id' => $transaction->id,
-                'asaas_status' => $asaasResponse['status'] ?? 'unknown',
-                'transaction_status' => $status,
-            ]);
-
             $this->webhookNotifier->notify($transaction);
 
-            return redirect()->route('basileia.checkout.success', $transaction->uuid);
+            // Redireciona de volta com o parâmetro de sucesso para mostrar a Layer 3 no visual Premium
+            return redirect()->to(route('basileia.checkout', $asaasPaymentId) . '?success=1');
 
         } catch (\Exception $e) {
-            Log::error('BasileiaCheckout: Payment processing failed', [
-                'asaas_payment_id' => $asaasPaymentId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return back()->withErrors([
-                'payment' => 'Erro ao processar pagamento: ' . $e->getMessage(),
-            ])->withInput();
+            Log::error('BasileiaCheckout: Payment processing failed', ['error' => $e->getMessage()]);
+            return back()->withErrors(['payment' => $e->getMessage()])->withInput();
         }
     }
 
     public function success(string $uuid)
     {
+        // Se cair aqui via UUID (link antigo), redirecionamos para o novo visual premium
         $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
-        
-        return view('checkout.asaas-success', [
-            'transaction' => $transaction,
-        ]);
+        return redirect()->to(route('basileia.checkout', $transaction->asaas_payment_id) . '?success=1');
     }
 
     private function mapPaymentMethod(string $billingType): string
