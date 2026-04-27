@@ -128,14 +128,10 @@ class BasileiaCheckoutController extends Controller
             }
         }
 
-        // Compatibilidade com o front original do usuário
-        $transaction->pix_payload = $pixData['payload'] ?? null;
-        $transaction->pix_qr_code = $pixData['encodedImage'] ?? null;
-        $paymentMethod = $request->get('metodo', $request->get('forma_pagamento', $asaasPayment['billingType'] ?? 'pix'));
-        $paymentMethod = strtolower($paymentMethod === 'CREDIT_CARD' ? 'card' : ($paymentMethod === 'PIX' ? 'pix' : $paymentMethod));
-        $installments = $request->get('parcelas', 1);
+        // Ativar o FRONT NOVO (o de 5 dias de trabalho)
+        $view = ($asaasPayment['billingType'] ?? 'PIX') === 'PIX' ? 'checkout.index-pix' : 'checkout.index-card';
 
-        return view('checkout.basileia', [
+        return view($view, [
             'transaction' => $transaction,
             'paymentMethod' => $paymentMethod,
             'installments' => $installments,
