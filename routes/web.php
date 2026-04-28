@@ -77,7 +77,7 @@ Route::get('/profile/2fa/disable', [ProfileController::class, 'show2FADisable'])
 Route::post('/profile/2fa/disable', [ProfileController::class, 'disable2FA'])->name('profile.2fa.disable.post')->middleware('auth');
 
 // Dashboard (authenticated)
-Route::prefix('/dashboard')->middleware(['auth', 'password.expiry', 'enforce.2fa', '2fa'])->group(function () {
+Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(function () {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard.index');
 
     // Lab
