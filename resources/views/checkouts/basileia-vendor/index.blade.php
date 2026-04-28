@@ -463,7 +463,7 @@
                                 <div class="card-chip"></div>
                                 <div class="card-brand-logo default" x-show="cardBrand === 'default'">B</div>
                                 <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/visa.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" alt="Visa" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg'">
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/mastercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" alt="Mastercard">
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/mastercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" alt="Mastercard" style="height: 25px; width: auto; top: 20px;">
                                 <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/amex.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'amex' }" alt="Amex">
                                 <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/elo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'elo' }" alt="Elo">
                                 <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/hipercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'hipercard' }" alt="Hipercard">
@@ -494,76 +494,75 @@
                         <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice(originalAmount)"></div>
                     </div>
 
-                    <form id="paymentForm" method="POST" action="{{ route('checkout.process', $transaction->uuid) }}">
+                    <!-- STEP 1 UI (OUTSIDE FORM TO PREVENT RELOAD) -->
+                    <div x-show="step === 1" x-transition>
+                        <div class="form-group">
+                            <label class="form-label" x-text="locale === 'pt-BR' ? 'Número do Cartão' : 'Card Number'"></label>
+                            <input type="text" class="form-input" x-model="cardNumber" @input="updateCardNumber($event)" placeholder="0000 0000 0000 0000" maxlength="19">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Validade' : 'Expiry'"></label>
+                                <input type="text" class="form-input" x-model="cardExpiry" @input="updateCardExpiry($event)" placeholder="MM/AA" maxlength="5">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" x-text="locale === 'pt-BR' ? 'CVV' : 'CVV'"></label>
+                                <input type="text" class="form-input" x-model="cardCvv" @focus="isFlipped = true" @blur="isFlipped = false" placeholder="000" maxlength="4">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" x-text="locale === 'pt-BR' ? 'Nome no Cartão' : 'Cardholder Name'"></label>
+                            <input type="text" class="form-input" x-model="cardHolder" placeholder="Como impresso no cartão">
+                        </div>
+                        <button type="button" class="btn-pay" @click="step = 2">
+                            <span x-text="locale === 'pt-BR' ? 'Assinar Agora' : 'Subscribe Now'"></span> <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- STEP 2 FORM (ONLY SUBMITS HERE) -->
+                    <form id="paymentForm" method="POST" action="{{ route('checkout.process', $transaction->uuid) }}" x-show="step === 2" x-transition x-cloak>
                         @csrf
-                        <!-- HIDDEN CARD FIELDS -->
+                        <!-- HIDDEN FIELDS SYNCED VIA ALPINE -->
                         <input type="hidden" name="card_number" :value="cardNumber.replace(/\D/g, '')">
                         <input type="hidden" name="card_expiry" :value="cardExpiry">
-                        <input type="hidden" name="card_cvv" x-ref="cvvSubmit">
+                        <input type="hidden" name="card_cvv" :value="cardCvv">
                         <input type="hidden" name="card_name" :value="cardHolder">
 
-                        <div x-show="step === 1" x-transition>
-                            <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Número do Cartão' : 'Card Number'"></label>
-                                <input type="text" class="form-input" x-model="cardNumber" @input="updateCardNumber($event)" placeholder="0000 0000 0000 0000" maxlength="19">
-                            </div>
-                            <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label" x-text="locale === 'pt-BR' ? 'Validade' : 'Expiry'"></label>
-                                    <input type="text" class="form-input" x-model="cardExpiry" @input="updateCardExpiry($event)" placeholder="MM/AA" maxlength="5">
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label" x-text="locale === 'pt-BR' ? 'CVV' : 'CVV'"></label>
-                                    <input type="text" class="form-input" x-model="cardCvv" @focus="isFlipped = true" @blur="isFlipped = false" @input="$refs.cvvSubmit.value = $event.target.value" placeholder="000" maxlength="4">
-                                </div>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Nome no Cartão' : 'Cardholder Name'"></label>
-                                <input type="text" class="form-input" x-model="cardHolder" placeholder="Como impresso no cartão">
-                            </div>
-                            <button type="button" class="btn-pay" @click="step = 2">
-                                <span x-text="locale === 'pt-BR' ? 'Assinar Agora' : 'Subscribe Now'"></span> <i class="fas fa-arrow-right"></i>
-                            </button>
+                        <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Confirme seus dados' : 'Confirm your details'"></h2>
+                        <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Quase lá! Verifique se as informações da sua igreja estão corretas.' : 'Almost there! Check if your information is correct.'"></p>
+
+                        <div class="form-group">
+                            <label class="form-label" x-text="locale === 'pt-BR' ? 'Nome da Igreja / Instituição' : 'Church / Institution Name'"></label>
+                            <input type="text" name="customer_name" class="form-input" x-model="vendorName" placeholder="Ex: Igreja Central">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" x-text="locale === 'pt-BR' ? 'E-mail de Contato' : 'Contact Email'"></label>
+                            <input type="email" name="customer_email" class="form-input" x-model="vendorEmail" placeholder="contato@igreja.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" x-text="locale === 'pt-BR' ? 'Documento (CPF/CNPJ)' : 'Document (Tax ID)'"></label>
+                            <input type="text" name="customer_document" class="form-input" x-model="vendorDoc" placeholder="00.000.000/0001-00">
                         </div>
 
-                        <!-- LAYER 2: CONFIRMATION -->
-                        <div x-show="step === 2" x-cloak x-transition>
-                            <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Confirme seus dados' : 'Confirm your details'"></h2>
-                            <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Quase lá! Verifique se as informações da sua igreja estão corretas.' : 'Almost there! Check if your information is correct.'"></p>
-
-                            <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Nome da Igreja / Instituição' : 'Church / Institution Name'"></label>
-                                <input type="text" name="customer_name" class="form-input" x-model="vendorName" placeholder="Ex: Igreja Central">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'E-mail de Contato' : 'Contact Email'"></label>
-                                <input type="email" name="customer_email" class="form-input" x-model="vendorEmail" placeholder="contato@igreja.com">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Documento (CPF/CNPJ)' : 'Document (Tax ID)'"></label>
-                                <input type="text" name="customer_document" class="form-input" x-model="vendorDoc" placeholder="00.000.000/0001-00">
-                            </div>
-
-                            <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                                <p style="color: #166534; font-size: 13px; display: flex; gap: 8px;">
-                                    <i class="fas fa-info-circle" style="margin-top: 3px;"></i>
-                                    <span x-text="locale === 'pt-BR' ? 'Enquanto você revisa, nosso sistema está validando sua transação.' : 'While you review, our system is validating your transaction.'"></span>
-                                </p>
-                            </div>
-
-                            <button type="submit" class="btn-pay" @click="processing = true">
-                                <template x-if="!processing">
-                                    <span><span x-text="locale === 'pt-BR' ? 'Confirmar e Finalizar' : 'Confirm and Finish'"></span> <i class="fas fa-check"></i></span>
-                                </template>
-                                <template x-if="processing">
-                                    <span><i class="fas fa-circle-notch fa-spin"></i> <span x-text="locale === 'pt-BR' ? 'Processando...' : 'Processing...'"></span></span>
-                                </template>
-                            </button>
-                            
-                            <button type="button" class="btn-secondary" @click="step = 1" style="margin-top: 10px; width: 100%;" x-show="!processing">
-                                <i class="fas fa-arrow-left"></i> <span x-text="locale === 'pt-BR' ? 'Voltar' : 'Back'"></span>
-                            </button>
+                        <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                            <p style="color: #166534; font-size: 13px; display: flex; gap: 8px;">
+                                <i class="fas fa-info-circle" style="margin-top: 3px;"></i>
+                                <span x-text="locale === 'pt-BR' ? 'Enquanto você revisa, nosso sistema está validando sua transação.' : 'While you review, our system is validating your transaction.'"></span>
+                            </p>
                         </div>
+
+                        <button type="submit" class="btn-pay" @click="processing = true">
+                            <template x-if="!processing">
+                                <span><span x-text="locale === 'pt-BR' ? 'Confirmar e Finalizar' : 'Confirm and Finish'"></span> <i class="fas fa-check"></i></span>
+                            </template>
+                            <template x-if="processing">
+                                <span><i class="fas fa-circle-notch fa-spin"></i> <span x-text="locale === 'pt-BR' ? 'Processando...' : 'Processing...'"></span></span>
+                            </template>
+                        </button>
+                        
+                        <button type="button" class="btn-secondary" @click="step = 1" style="margin-top: 10px; width: 100%;" x-show="!processing">
+                            <i class="fas fa-arrow-left"></i> <span x-text="locale === 'pt-BR' ? 'Voltar' : 'Back'"></span>
+                        </button>
                     </form>
                 @endif
             </div>
