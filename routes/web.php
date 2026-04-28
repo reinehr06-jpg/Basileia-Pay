@@ -53,11 +53,6 @@ Route::get('/checkout/asaas/{asaasPaymentId}', [AsaasCheckoutController::class, 
 Route::post('/checkout/asaas/process/{asaasPaymentId}', [AsaasCheckoutController::class, 'process'])->name('checkout.asaas.process');
 Route::get('/checkout/asaas/success/{uuid}', [AsaasCheckoutController::class, 'success'])->name('checkout.asaas.success');
 
-// Basileia branded checkout
-Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])->name('checkout.show');
-Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('basileia.checkout.show');
-Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
-Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('checkout.success');
 
 // Public event checkout pages
 Route::get('/evento/{slug}', [EventCheckoutController::class, 'show'])->name('evento.show');
@@ -158,8 +153,14 @@ Route::prefix('pay')->group(function () {
 });
 
 // Suporte para links antigos de /checkout e /pay
-Route::get('/checkout/{uuid}', fn ($uuid) => redirect()->route('checkout.pay', $uuid));
-Route::get('/pay/{uuid}', fn ($uuid) => redirect()->route('checkout.pay', $uuid));
+Route::get('/checkout/{uuid}', fn ($uuid) => redirect()->route('checkout.show', $uuid));
+Route::get('/pay/{uuid}', fn ($uuid) => redirect()->route('checkout.show', $uuid));
+
+// --- NOVO CHECKOUT PREMIUM BASILEIA (TOKENIZADO) ---
+Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])->name('checkout.show');
+Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('basileia.checkout.show');
+Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
+Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('checkout.success');
 
 
 Route::get('/clear-views', function () {

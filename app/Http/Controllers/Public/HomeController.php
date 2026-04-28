@@ -45,11 +45,11 @@ class HomeController extends Controller
                 $subscription = Subscription::where('uuid', $uuid)->first();
                 
                 if ($transaction) {
-                    return redirect()->route('checkout.pay', $uuid);
+                    return redirect()->route('checkout.show', $uuid);
                 }
                 
                 if ($subscription) {
-                    return redirect()->route('checkout.pay', $uuid);
+                    return redirect()->route('checkout.show', $uuid);
                 }
                 
                 return view('home', [
