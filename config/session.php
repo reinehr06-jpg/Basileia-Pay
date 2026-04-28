@@ -3,9 +3,9 @@
 use Illuminate\Support\Str;
 
 return [
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => 'file',
 
-    'lifetime' => env('SESSION_LIFETIME', 180),
+    'lifetime' => 120,
 
     'expire_on_close' => false,
 
@@ -13,18 +13,15 @@ return [
 
     'files' => storage_path('framework/sessions'),
 
-    'connection' => env('SESSION_CONNECTION'),
+    'connection' => null,
 
     'table' => 'sessions',
 
-    'store' => env('SESSION_STORE'),
+    'store' => null,
 
     'lottery' => [2, 100],
 
-    'cookie' => env(
-        'SESSION_COOKIE',
-        Str::slug(env('APP_NAME', 'checkout'), '_').'_session'
-    ),
+    'cookie' => 'checkout_session',
 
     'path' => '/',
 
