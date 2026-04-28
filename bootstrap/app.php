@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             '2fa' => \App\Http\Middleware\RequireTwoFactorAuth::class,
             'password.expiry' => \App\Http\Middleware\CheckPasswordExpiration::class,
             'enforce.2fa' => \App\Http\Middleware\EnforceTwoFactorAuth::class,
+            'csrf' => \App\Http\Middleware\VerifyCsrfToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
