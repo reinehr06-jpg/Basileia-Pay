@@ -26,6 +26,8 @@ class SetAdminPassword extends Command
             'password' => Hash::make($password),
             'locked_until' => null,
             'failed_login_attempts' => 0,
+            'password_changed_at' => now(),
+            'must_change_password' => false,
         ]);
         
         $this->info("Password updated for admin@checkout.com");
