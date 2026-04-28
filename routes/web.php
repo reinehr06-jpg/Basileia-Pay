@@ -158,6 +158,13 @@ Route::prefix('pay')->group(function () {
 Route::get('/checkout/{uuid}', fn ($uuid) => redirect()->route('checkout.pay', $uuid));
 Route::get('/pay/{uuid}', fn ($uuid) => redirect()->route('checkout.pay', $uuid));
 
+Route::get('/debug-log', function () {
+    $path = storage_path('logs/laravel.log');
+    if (!file_exists($path)) return 'Log file not found at ' . $path;
+    $lines = explode("\n", file_get_contents($path));
+    return '<pre>' . implode("\n", array_slice($lines, -50)) . '</pre>';
+});
+
 Route::get('/clear-views', function () {
     Artisan::call('view:clear');
     Artisan::call('optimize:clear');
