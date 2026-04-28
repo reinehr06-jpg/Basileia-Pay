@@ -104,7 +104,8 @@
             left: 8px;
             right: -8px;
             bottom: -8px;
-            background: #e2e8f0;
+            background: #f5f3ff; /* Very light purple */
+            border: 1px solid #ddd6fe;
             border-radius: 20px;
             z-index: 5;
             transform: rotate(-2deg);
@@ -115,7 +116,8 @@
             left: 16px;
             right: -16px;
             bottom: -16px;
-            background: #cbd5e1;
+            background: #ede9fe; /* Slightly darker light purple */
+            border: 1px solid #ddd6fe;
             border-radius: 20px;
             z-index: 2;
             transform: rotate(-4deg);
@@ -204,8 +206,22 @@
 
         /* UTILS */
         [x-cloak] { display: none !important; }
-        .layer-enter { opacity: 0; transform: rotateY(-30deg) translateX(50px); }
-        .layer-exit { opacity: 0; transform: rotateY(30deg) translateX(-50px); }
+        .layer-enter { 
+            opacity: 0; 
+            transform: rotateY(-90deg) scale(0.9); 
+            transform-origin: left center;
+        }
+        .layer-enter-active {
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .layer-exit { 
+            opacity: 0; 
+            transform: rotateY(90deg) scale(0.9); 
+            transform-origin: right center;
+        }
+        .layer-exit-active {
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
 
         /* COUNTRY SELECTOR */
         .custom-select-container { position: relative; width: 110px; }
@@ -278,7 +294,11 @@
             </div>
 
             <!-- LAYER 1 & 2: PAYMENT FLOW -->
-            <div class="layer" x-show="step === 1 || step === 2" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
+            <div class="layer" x-show="step === 1 || step === 2" 
+                 x-transition:enter="layer-enter-active"
+                 x-transition:enter-start="layer-enter"
+                 x-transition:leave="layer-exit-active"
+                 x-transition:leave-start="layer-exit">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div>
                         <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
@@ -432,7 +452,12 @@
             </div>
 
             <!-- LAYER 3: SUCCESS -->
-            <div class="layer" x-show="step === 3" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
+            <div class="layer" x-show="step === 3" 
+                 x-transition:enter="layer-enter-active"
+                 x-transition:enter-start="layer-enter"
+                 x-transition:leave="layer-exit-active"
+                 x-transition:leave-start="layer-exit"
+                 x-cloak>
                 <div class="success-icon">
                     <i class="fas fa-check"></i>
                 </div>
