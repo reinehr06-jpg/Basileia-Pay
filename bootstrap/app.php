@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'password.expiry' => \App\Http\Middleware\CheckPasswordExpiration::class,
             'enforce.2fa' => \App\Http\Middleware\EnforceTwoFactorAuth::class,
         ]);
+        $middleware->preventEmptyRequests();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, Request $request) {
