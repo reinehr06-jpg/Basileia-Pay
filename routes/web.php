@@ -323,4 +323,4 @@ Route::get('/demo-checkout/{type}/{uuid}', function ($type, $uuid) {
     ]);
 });
 
-Route::post('/demo-checkout/basileia/process/{id}', [CheckoutController::class, 'process'])->name('basileia.checkout.process');
+// Duplicate removed or renamed

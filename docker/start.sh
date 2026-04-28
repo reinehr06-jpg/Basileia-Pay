@@ -41,7 +41,7 @@ fi
 update_env "APP_NAME" "${APP_NAME:-Basileia}"
 update_env "APP_ENV" "${APP_ENV:-production}"
 update_env "APP_KEY" "$APP_KEY"
-update_env "APP_DEBUG" "${APP_DEBUG:-false}"
+update_env "APP_DEBUG" "true"
 update_env "APP_URL" "${APP_URL:-http://localhost:8000}"
 update_env "DB_CONNECTION" "pgsql"
 update_env "DB_HOST" "$DB_HOST"
