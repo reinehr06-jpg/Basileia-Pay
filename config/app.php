@@ -1,6 +1,6 @@
 <?php
 
-$appKey = 'base64:8IlayQ1Ie/XZ8QMeJcK10vSZkwuCt3QjaIkm4W9Orz4=';
+$appKey = env('APP_KEY', 'base64:8IlayQ1Ie/XZ8QMeJcK10vSZkwuCt3QjaIkm4W9Orz4=');
 $cipher = 'AES-256-CBC';
 
 if ($appKey) {
@@ -19,7 +19,7 @@ return [
 
     'env' => 'production',
 
-    'debug' => false,
+    'debug' => (bool) env('APP_DEBUG', true),
 
     'url' => env('APP_URL', 'http://localhost'),
 
