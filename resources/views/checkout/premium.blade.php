@@ -442,7 +442,7 @@
 
                     <div style="text-align: center; margin-bottom: 20px;">
                         <div class="summary-label" style="font-size: 12px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
-                        <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice({{ $transaction->amount }})"></div>
+                        <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="selectedCountry.symbol + ' ' + formatPrice(originalAmount)"></div>
                     </div>
 
                     <form id="paymentForm" @submit.prevent="goToStep2()">
@@ -575,7 +575,7 @@
                 vendorEmail: '{{ $customerData['email'] ?? '' }}',
                 vendorDoc: '{{ $customerData['document'] ?? '' }}',
 
-                originalAmount: {{ $transaction->amount / 100 }},
+                originalAmount: {{ $transaction->amount }},
                 selectedCountry: {code:'BR',name:'Brasil',flag:'🇧🇷',locale:'pt-BR',currency:'BRL',symbol:'R$',rate:1},
                 
                 countries: [
@@ -655,15 +655,24 @@
                     const found = this.countries.find(c => c.code === code);
                     if (found) {
                         this.selectedCountry = found;
+                        this.locale = found.currency === 'BRL' ? 'pt-BR' : 'en-US';
+                        localStorage.setItem('selected_country_code', code);
                     }
                     this.showSelector = false;
                 },
 
                 init() {
-                    // Auto-detect language
-                    const browserLang = navigator.language || 'pt-BR';
-                    const matched = this.countries.find(c => browserLang.includes(c.locale));
-                    if (matched) this.changeCountry(matched.code);
+                    // 1. Try persistence first
+                    const savedCode = localStorage.getItem('selected_country_code');
+                    if (savedCode) {
+                        this.changeCountry(savedCode);
+                    } else {
+                        // 2. Fallback to auto-detect
+                        const browserLang = navigator.language || 'pt-BR';
+                        if (browserLang.includes('en')) this.changeCountry('US');
+                        else if (browserLang.includes('pt')) this.changeCountry('BR');
+                        else if (browserLang.includes('es')) this.changeCountry('ES');
+                    }
 
                     // Timer Persistence
                     let startTime = localStorage.getItem('checkout_start_time_' + '{{ $transaction->uuid }}');
