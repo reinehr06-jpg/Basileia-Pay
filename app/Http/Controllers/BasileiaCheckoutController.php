@@ -142,6 +142,9 @@ class BasileiaCheckoutController extends Controller
             'card_name' => 'required|string',
             'card_expiry' => 'required|string',
             'card_cvv' => 'required|string',
+            'customer_name' => 'nullable|string',
+            'customer_email' => 'nullable|email',
+            'customer_document' => 'nullable|string',
         ]);
 
         try {
@@ -161,8 +164,8 @@ class BasileiaCheckoutController extends Controller
                 'card_name' => $request->input('card_name'),
                 'card_expiry' => $request->input('card_expiry'),
                 'card_cvv' => $request->input('card_cvv'),
-                'card_document' => $transaction->customer_document,
-                'card_email' => $transaction->customer_email,
+                'card_document' => $request->input('customer_document', $transaction->customer_document),
+                'card_email' => $request->input('customer_email', $transaction->customer_email),
                 'card_phone' => $transaction->customer_phone,
             ]);
 
@@ -172,6 +175,9 @@ class BasileiaCheckoutController extends Controller
             $transaction->update([
                 'status' => $status,
                 'paid_at' => $paidAt,
+                'customer_name' => $request->input('customer_name', $transaction->customer_name),
+                'customer_email' => $request->input('customer_email', $transaction->customer_email),
+                'customer_document' => $request->input('customer_document', $transaction->customer_document),
                 'gateway_response' => json_encode($asaasResponse),
             ]);
 

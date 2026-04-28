@@ -462,69 +462,73 @@
 
                     <form id="paymentForm" method="POST" action="{{ route('checkout.process', $transaction->uuid) }}">
                         @csrf
-                        <div class="form-group">
-                            <label class="form-label" x-text="locale === 'pt-BR' ? 'Número do Cartão' : 'Card Number'"></label>
-                            <input type="text" class="form-input" x-model="cardNumber" @input="updateCardNumber($event)" placeholder="0000 0000 0000 0000" maxlength="19" required>
-                        </div>
-                        <div class="form-row">
+                        <div x-show="step === 1">
                             <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Validade' : 'Expiry'"></label>
-                                <input type="text" class="form-input" x-model="cardExpiry" @input="updateCardExpiry($event)" placeholder="MM/AA" maxlength="5" required>
+                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Número do Cartão' : 'Card Number'"></label>
+                                <input type="text" name="card_number" class="form-input" x-model="cardNumber" @input="updateCardNumber($event)" placeholder="0000 0000 0000 0000" maxlength="19" required>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" x-text="locale === 'pt-BR' ? 'Validade' : 'Expiry'"></label>
+                                    <input type="text" name="card_expiry" class="form-input" x-model="cardExpiry" @input="updateCardExpiry($event)" placeholder="MM/AA" maxlength="5" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" x-text="locale === 'pt-BR' ? 'CVV' : 'CVV'"></label>
+                                    <input type="text" name="card_cvv" class="form-input" x-model="cardCvv" @focus="isFlipped = true" @blur="isFlipped = false" placeholder="000" maxlength="4" required>
+                                </div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label" x-text="locale === 'pt-BR' ? 'CVV' : 'CVV'"></label>
-                                <input type="text" class="form-input" x-model="cardCvv" @focus="isFlipped = true" @blur="isFlipped = false" placeholder="000" maxlength="4" required>
+                                <label class="form-label" x-text="locale === 'pt-BR' ? 'Nome no Cartão' : 'Cardholder Name'"></label>
+                                <input type="text" name="card_name" class="form-input" x-model="cardHolder" placeholder="Como impresso no cartão" required>
                             </div>
+                            <button type="button" class="btn-pay" @click="step = 2">
+                                Assinar Agora <i class="fas fa-arrow-right"></i>
+                            </button>
                         </div>
-                        <div class="form-group">
-                            <label class="form-label" x-text="locale === 'pt-BR' ? 'Nome no Cartão' : 'Cardholder Name'"></label>
-                            <input type="text" class="form-input" x-model="cardHolder" placeholder="Como impresso no cartão" required>
+
+                        <!-- LAYER 2: CONFIRMATION -->
+                        <div x-show="step === 2" x-cloak>
+                            <div style="margin-bottom: 25px;">
+                                <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
+                                <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
+                            </div>
+                            <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Confirme seus dados' : 'Confirm your details'"></h2>
+                            <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Quase lá! Verifique se as informações da sua igreja estão corretas.' : 'Almost there! Check if your information is correct.'"></p>
+
+                            <div class="form-group">
+                                <label class="form-label">Nome da Igreja / Instituição</label>
+                                <input type="text" name="customer_name" class="form-input" x-model="vendorName" placeholder="Ex: Igreja Central">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">E-mail de Contato</label>
+                                <input type="email" name="customer_email" class="form-input" x-model="vendorEmail" placeholder="contato@igreja.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Documento (CPF/CNPJ)</label>
+                                <input type="text" name="customer_document" class="form-input" x-model="vendorDoc" placeholder="00.000.000/0001-00">
+                            </div>
+
+                            <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
+                                <p style="color: #166534; font-size: 13px; display: flex; gap: 8px;">
+                                    <i class="fas fa-info-circle" style="margin-top: 3px;"></i>
+                                    Enquanto você revisa, nosso sistema está validando sua transação com a operadora.
+                                </p>
+                            </div>
+
+                            <button type="submit" class="btn-pay" @click="processing = true">
+                                <template x-if="!processing">
+                                    <span>Confirmar e Finalizar <i class="fas fa-check"></i></span>
+                                </template>
+                                <template x-if="processing">
+                                    <span><i class="fas fa-circle-notch fa-spin"></i> Processando...</span>
+                                </template>
+                            </button>
+                            
+                            <button type="button" class="btn-secondary" @click="step = 1" style="margin-top: 10px; width: 100%;" x-show="!processing">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </button>
                         </div>
-                        <button type="submit" class="btn-pay">
-                            Assinar Agora <i class="fas fa-arrow-right"></i>
-                        </button>
                     </form>
-                @endif
-            </div>
-
-            <!-- LAYER 2: CONFIRMATION (DISTRACTION) -->
-            <div class="layer" x-show="step === 2" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
-                <div style="margin-bottom: 25px;">
-                    <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
-                    <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
-                </div>
-                <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Confirme seus dados' : 'Confirm your details'"></h2>
-                <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Quase lá! Verifique se as informações da sua igreja estão corretas.' : 'Almost there! Check if your information is correct.'"></p>
-
-                <div class="form-group">
-                    <label class="form-label">Nome da Igreja / Instituição</label>
-                    <input type="text" class="form-input" x-model="vendorName" placeholder="Ex: Igreja Central">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">E-mail de Contato</label>
-                    <input type="email" class="form-input" x-model="vendorEmail" placeholder="contato@igreja.com">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Documento (CPF/CNPJ)</label>
-                    <input type="text" class="form-input" x-model="vendorDoc" placeholder="00.000.000/0001-00">
-                </div>
-
-                <div style="background: #f0fdf4; border: 1px solid #dcfce7; padding: 15px; border-radius: 12px; margin-bottom: 20px;">
-                    <p style="color: #166534; font-size: 13px; display: flex; gap: 8px;">
-                        <i class="fas fa-info-circle" style="margin-top: 3px;"></i>
-                        Enquanto você revisa, nosso sistema está validando sua transação com a operadora.
-                    </p>
-                </div>
-
-                <button class="btn-pay" @click="processPayment()" :disabled="processing">
-                    <template x-if="!processing">
-                        <span>Confirmar e Finalizar <i class="fas fa-check"></i></span>
-                    </template>
-                    <template x-if="processing">
-                        <span><i class="fas fa-circle-notch fa-spin"></i> Processando...</span>
-                    </template>
-                </button>
-            </div>
 
             <!-- LAYER 3: SUCCESS -->
             <div class="layer" x-show="step === 3" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
