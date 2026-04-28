@@ -2,21 +2,23 @@
 
 use Illuminate\Support\Facades\Route;
 
-function crc16(string $data): int
-{
-    $crc = 0xFFFF;
-    for ($i = 0; $i < strlen($data); $i++) {
-        $crc ^= ord($data[$i]);
-        for ($j = 0; $j < 8; $j++) {
-            if (($crc & 0x0001) !== 0) {
-                $crc = ($crc >> 1) ^ 0x1021;
-            } else {
-                $crc = $crc >> 1;
+if (!function_exists('crc16')) {
+    function crc16(string $data): int
+    {
+        $crc = 0xFFFF;
+        for ($i = 0; $i < strlen($data); $i++) {
+            $crc ^= ord($data[$i]);
+            for ($j = 0; $j < 8; $j++) {
+                if (($crc & 0x0001) !== 0) {
+                    $crc = ($crc >> 1) ^ 0x1021;
+                } else {
+                    $crc = $crc >> 1;
+                }
             }
         }
-    }
 
-    return $crc;
+        return $crc;
+    }
 }
 
 use App\Http\Controllers\AsaasCheckoutController;

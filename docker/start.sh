@@ -25,10 +25,11 @@ update_env() {
     local key=$1
     local value=$2
     if [ -n "$value" ]; then
-        # Remove any existing line for this key
-        sed -i "/^${key}=/d" .env
-        # Append the new value safely quoted
-        echo "${key}='${value}'" >> .env
+        if grep -q "^${key}=" .env; then
+            sed -i "s|^${key}=.*|${key}='${value}'|" .env
+        else
+            echo "${key}='${value}'" >> .env
+        fi
     fi
 }
 
