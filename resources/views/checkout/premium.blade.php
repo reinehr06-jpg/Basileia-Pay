@@ -101,8 +101,6 @@
             padding: 40px;
             color: #1e293b;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-origin: left center;
             z-index: 10;
         }
 
@@ -259,8 +257,11 @@
         /* ANIMATIONS */
         [x-cloak] { display: none !important; }
         
-        .layer-exit { transform: rotateY(-90deg) scale(0.9); opacity: 0; }
-        .layer-enter { transform: rotateY(0deg) scale(1); opacity: 1; }
+        .layer-enter-start { opacity: 0; transform: translateY(20px); }
+        .layer-enter-end { opacity: 1; transform: translateY(0); }
+        .layer-leave-start { opacity: 1; transform: translateY(0); }
+        .layer-leave-end { opacity: 0; transform: translateY(-20px); }
+        .layer-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
         /* PIX STYLES */
         .pix-container { text-align: center; }
@@ -383,7 +384,13 @@
             </div>
 
             <!-- LAYER 1: PAYMENT -->
-            <div class="layer" x-show="step === 1" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
+            <div class="layer" x-show="step === 1" 
+                 x-transition:enter="layer-transition"
+                 x-transition:enter-start="layer-enter-start"
+                 x-transition:enter-end="layer-enter-end"
+                 x-transition:leave="layer-transition"
+                 x-transition:leave-start="layer-leave-start"
+                 x-transition:leave-end="layer-leave-end">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div>
                         <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
@@ -506,7 +513,14 @@
             </div>
 
             <!-- LAYER 2: CONFIRMATION (DISTRACTION) -->
-            <div class="layer" x-show="step === 2" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
+            <div class="layer" x-show="step === 2" 
+                 x-transition:enter="layer-transition"
+                 x-transition:enter-start="layer-enter-start"
+                 x-transition:enter-end="layer-enter-end"
+                 x-transition:leave="layer-transition"
+                 x-transition:leave-start="layer-leave-start"
+                 x-transition:leave-end="layer-leave-end"
+                 x-cloak>
                 <div style="margin-bottom: 25px;">
                     <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
                     <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
@@ -545,7 +559,14 @@
             </div>
 
             <!-- LAYER 3: SUCCESS -->
-            <div class="layer" x-show="step === 3" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
+            <div class="layer" x-show="step === 3" 
+                 x-transition:enter="layer-transition"
+                 x-transition:enter-start="layer-enter-start"
+                 x-transition:enter-end="layer-enter-end"
+                 x-transition:leave="layer-transition"
+                 x-transition:leave-start="layer-leave-start"
+                 x-transition:leave-end="layer-leave-end"
+                 x-cloak>
                 <div class="success-icon">
                     <i class="fas fa-check"></i>
                 </div>

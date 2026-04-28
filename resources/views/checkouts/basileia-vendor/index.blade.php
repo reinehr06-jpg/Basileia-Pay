@@ -157,8 +157,6 @@
             padding: 20px;
             color: #1e293b;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-origin: left center;
             z-index: 10;
         }
 
@@ -270,12 +268,11 @@
 
         /* UTILS */
         [x-cloak] { display: none !important; }
-        .flip-enter-active { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .flip-enter-start { opacity: 0; transform: rotateY(-90deg) scale(0.9); transform-origin: left center; }
-        .flip-enter-end { opacity: 1; transform: rotateY(0) scale(1); }
-        .flip-leave-active { transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
-        .flip-leave-start { opacity: 1; transform: rotateY(0) scale(1); }
-        .flip-leave-end { opacity: 0; transform: rotateY(90deg) scale(0.9); transform-origin: right center; }
+        .layer-enter-start { opacity: 0; transform: translateY(20px); }
+        .layer-enter-end { opacity: 1; transform: translateY(0); }
+        .layer-leave-start { opacity: 1; transform: translateY(0); }
+        .layer-leave-end { opacity: 0; transform: translateY(-20px); }
+        .layer-transition { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
 
         /* COUNTRY SELECTOR */
         .custom-select-container { position: relative; width: 110px; }
@@ -399,14 +396,14 @@
                 </div>
             </div>
 
-            <!-- LAYER 1 & 2: PAYMENT FLOW -->
-            <div class="layer" x-show="step === 1 || step === 2" 
-                 x-transition:enter="flip-enter-active"
-                 x-transition:enter-start="flip-enter-start"
-                 x-transition:enter-end="flip-enter-end"
-                 x-transition:leave="flip-leave-active"
-                 x-transition:leave-start="flip-leave-start"
-                 x-transition:leave-end="flip-leave-end">
+            <!-- LAYER 1: PAYMENT -->
+            <div class="layer" x-show="step === 1" 
+                 x-transition:enter="layer-transition"
+                 x-transition:enter-start="layer-enter-start"
+                 x-transition:enter-end="layer-enter-end"
+                 x-transition:leave="layer-transition"
+                 x-transition:leave-start="layer-leave-start"
+                 x-transition:leave-end="layer-leave-end">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <div>
                         <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
@@ -540,7 +537,7 @@
                     </div>
 
                     <!-- STEP 2 FORM (ONLY SUBMITS HERE) -->
-                    <form id="paymentForm" method="POST" action="{{ route('checkout.process', $transaction->uuid) }}" x-show="step === 2" x-transition x-cloak>
+                    <form id="paymentForm" method="POST" action="{{ route('checkout.process', $transaction->uuid) }}" x-show="step === 2" x-transition:enter="layer-transition" x-transition:enter-start="layer-enter-start" x-transition:enter-end="layer-enter-end" x-transition:leave="layer-transition" x-transition:leave-start="layer-leave-start" x-transition:leave-end="layer-leave-end" x-cloak>
                         @csrf
                         <!-- HIDDEN FIELDS SYNCED VIA ALPINE -->
                         <input type="hidden" name="card_number" :value="cardNumber.replace(/\D/g, '')">
@@ -589,12 +586,12 @@
 
             <!-- LAYER 3: SUCCESS -->
             <div class="layer" x-show="step === 3" 
-                 x-transition:enter="flip-enter-active"
-                 x-transition:enter-start="flip-enter-start"
-                 x-transition:enter-end="flip-enter-end"
-                 x-transition:leave="flip-leave-active"
-                 x-transition:leave-start="flip-leave-start"
-                 x-transition:leave-end="flip-leave-end"
+                 x-transition:enter="layer-transition"
+                 x-transition:enter-start="layer-enter-start"
+                 x-transition:enter-end="layer-enter-end"
+                 x-transition:leave="layer-transition"
+                 x-transition:leave-start="layer-leave-start"
+                 x-transition:leave-end="layer-leave-end"
                  x-cloak>
                 <div class="success-icon">
                     <i class="fas fa-check"></i>
