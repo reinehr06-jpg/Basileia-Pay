@@ -47,7 +47,7 @@ use App\Models\Transaction;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Str;
 
-Route::get('/', [HomeController::class, 'index']);
+Route::get('/', [HomeController::class, 'index'])->middleware('secure.token');
 
 Route::get('/checkout/asaas/{asaasPaymentId}', [AsaasCheckoutController::class, 'show'])->name('checkout.asaas.show');
 Route::post('/checkout/asaas/process/{asaasPaymentId}', [AsaasCheckoutController::class, 'process'])->name('checkout.asaas.process');
@@ -158,7 +158,7 @@ Route::prefix('pay')->group(function () {
 
 // --- NOVO CHECKOUT PREMIUM BASILEIA (TOKENIZADO) ---
 Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])->name('checkout.show');
-Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('checkout.short');
+Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('checkout.short')->middleware('secure.token');
 Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
 Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('checkout.success');
 

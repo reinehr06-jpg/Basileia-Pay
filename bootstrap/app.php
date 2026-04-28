@@ -21,9 +21,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->web(append: [
-            \App\Http\Middleware\EnforceSecureTokenization::class,
-        ]);
         $middleware->statefulApi();
         $middleware->trustProxies(at: '*');
         $middleware->alias([
@@ -32,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'password.expiry' => \App\Http\Middleware\CheckPasswordExpiration::class,
             'enforce.2fa' => \App\Http\Middleware\EnforceTwoFactorAuth::class,
             'csrf' => \App\Http\Middleware\VerifyCsrfToken::class,
+            'secure.token' => \App\Http\Middleware\EnforceSecureTokenization::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
