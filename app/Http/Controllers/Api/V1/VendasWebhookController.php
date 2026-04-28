@@ -76,14 +76,34 @@ class VendasWebhookController extends Controller
 
             // Process the payload
             $payload = $request->all();
-            Log::info('Vendas Webhook received successfully', [
+            
+            // Generate a secure, tokenized transaction record for this notification
+            $transaction = \App\Models\Transaction::create([
+                'uuid' => (string) \Illuminate\Support\Str::uuid(),
+                'company_id' => $integration->company_id,
                 'integration_id' => $integration->id,
+                'asaas_payment_id' => $payload['asaas_payment_id'] ?? null,
+                'source' => 'vendas_webhook',
+                'amount' => $payload['valor'] ?? 0,
+                'description' => $payload['plano'] ?? 'Pagamento Basiléia',
+                'status' => 'pending',
+                'customer_name' => $payload['cliente'] ?? '',
+                'customer_email' => $payload['email'] ?? '',
+                'customer_document' => $payload['documento'] ?? '',
+                'customer_phone' => $payload['whatsapp'] ?? '',
+            ]);
+
+            Log::info('Vendas Webhook received and tokenized', [
+                'integration_id' => $integration->id,
+                'transaction_uuid' => $transaction->uuid,
                 'event' => $payload['event'] ?? 'unknown'
             ]);
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Notification received'
+                'message' => 'Notification received and link tokenized',
+                'checkout_url' => route('checkout.show', $transaction->uuid),
+                'short_url' => route('checkout.short', $transaction->asaas_payment_id ?? 'none')
             ]);
 
         } catch (\Exception $e) {
