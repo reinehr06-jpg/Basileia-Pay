@@ -12,12 +12,12 @@ class EnforceSecureTokenization
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if ($request->has('asaas_payment_id') && !$request->routeIs('checkout.*')) {
-            $asaasPaymentId = $request->get('asaas_payment_id');
-            $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
+        try {
+            if ($request->has('asaas_payment_id') && !$request->routeIs('checkout.*')) {
+                $asaasPaymentId = $request->get('asaas_payment_id');
+                $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
 
-            if (!$transaction) {
-                try {
+                if (!$transaction) {
                     $transaction = Transaction::create([
                         'uuid' => (string) Str::uuid(),
                         'company_id' => \App\Models\Company::first()?->id ?? 1,
@@ -32,13 +32,15 @@ class EnforceSecureTokenization
                         'customer_document' => $request->get('documento', ''),
                         'customer_phone' => $request->get('whatsapp', ''),
                     ]);
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error('Tokenization Failed', ['error' => $e->getMessage()]);
-                    return $next($request);
                 }
-            }
 
-            return redirect()->route('checkout.show', $transaction->uuid);
+                return redirect()->route('checkout.show', $transaction->uuid);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('EnforceSecureTokenization Error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
         }
 
         return $next($request);
