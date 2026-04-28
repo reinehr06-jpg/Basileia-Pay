@@ -1,32 +1,25 @@
 <?php
 
-/* 
-|--------------------------------------------------------------------------
-| Smart App Key & Cipher Detection
-|--------------------------------------------------------------------------
-| We dynamically detect the length of the APP_KEY to set the correct cipher.
-| AES-128-CBC for 16-byte keys and AES-256-CBC for 32-byte keys.
-*/
-$key = env('APP_KEY');
+$appKey = 'base64:8IlayQ1Ie/XZ8QMeJcK10vSZkwuCt3QjaIkm4W9Orz4=';
 $cipher = 'AES-256-CBC';
 
-if ($key) {
-    $tempKey = $key;
+if ($appKey) {
+    $tempKey = $appKey;
     if (str_starts_with($tempKey, 'base64:')) {
         $tempKey = base64_decode(substr($tempKey, 7));
     }
-    if (mb_strlen($tempKey, '8bit') === 16) {
+    if ($tempKey && mb_strlen($tempKey, '8bit') === 16) {
         $cipher = 'AES-128-CBC';
     }
 }
 
 return [
 
-    'name' => env('APP_NAME', 'Checkout'),
+    'name' => 'Checkout',
 
-    'env' => env('APP_ENV', 'production'),
+    'env' => 'production',
 
-    'debug' => (bool) env('APP_DEBUG', false),
+    'debug' => false,
 
     'url' => env('APP_URL', 'http://localhost'),
 
@@ -40,22 +33,15 @@ return [
 
     'faker_locale' => 'en_US',
 
-    'key' => env('APP_KEY', 'base64:YmFzaWxlaWEtY2hlY2tvdXQtc2VjcmV0LWtleS0yMDI='),
+    'key' => $appKey,
 
-    'cipher' => env('APP_CIPHER', $cipher),
+    'cipher' => $cipher,
 
     'maintenance' => [
         'driver' => 'file',
-        // 'store' => 'redis',
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Autoloaded Service Providers
-    |--------------------------------------------------------------------------
-    */
     'providers' => [
-        // Laravel Framework Service Providers
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
         Illuminate\Bus\BusServiceProvider::class,
@@ -79,15 +65,9 @@ return [
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
 
-        // Application Service Providers
         App\Providers\AppServiceProvider::class,
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Class Aliases
-    |--------------------------------------------------------------------------
-    */
     'aliases' => [
         'App' => Illuminate\Support\Facades\App::class,
         'Arr' => Illuminate\Support\Arr::class,
