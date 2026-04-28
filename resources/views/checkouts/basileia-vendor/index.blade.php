@@ -326,7 +326,6 @@
 <body x-data="checkoutFlow()" x-init="init()">
 
     <div class="checkout-wrapper">
-        <div style="position: fixed; bottom: 10px; right: 10px; font-size: 8px; opacity: 0.1; color: white; pointer-events: none;">v1.1.2</div>
         
         <!-- MOBILE SUMMARY TOGGLE -->
         <div class="mobile-summary-toggle" @click="mobileSummaryOpen = !mobileSummaryOpen">
@@ -427,24 +426,33 @@
                 @if(($asaasPayment['billingType'] ?? 'PIX') === 'PIX')
                     <!-- PIX FLOW -->
                     <div class="pix-container">
-                        <div class="pix-qr-box" style="border: 2px solid var(--primary); box-shadow: 0 0 20px rgba(124, 58, 237, 0.2);">
-                            <img src="data:image/png;base64,{{ $pixData['encodedImage'] ?? '' }}" alt="QR Code PIX">
-                        </div>
-                        
-                        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 25px; text-align: center;">
-                            <div class="summary-label" style="font-size: 12px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
-                            <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice(originalAmount)"></div>
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <div class="badge-secure" style="background: rgba(124, 58, 237, 0.1); color: var(--primary-light); border-color: rgba(124, 58, 237, 0.2);">
+                                <i class="fas fa-bolt"></i> Pagamento Instantâneo
+                            </div>
                         </div>
 
-                        <div class="pix-payload" id="pixPayload" style="text-align: left;">{{ $pixData['payload'] ?? '' }}</div>
+                        <div class="pix-qr-box" style="border: 2px solid var(--primary); box-shadow: 0 15px 35px rgba(124, 58, 237, 0.2); background: white; padding: 15px; border-radius: 20px; display: inline-block; margin-bottom: 20px;">
+                            <img src="data:image/png;base64,{{ $pixData['encodedImage'] ?? '' }}" alt="QR Code PIX" style="width: 180px; height: 180px; display: block;">
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 20px; text-align: center;">
+                            <div class="summary-label" style="font-size: 11px;" x-text="locale === 'pt-BR' ? 'VALOR TOTAL' : 'TOTAL VALUE'"></div>
+                            <div style="font-size: 36px; font-weight: 900; color: #1e293b; letter-spacing: -1px;" x-text="formatPrice(originalAmount)"></div>
+                        </div>
+
+                        <div style="text-align: left; margin-bottom: 15px;">
+                            <div class="summary-label" style="font-size: 10px; margin-bottom: 6px;">CÓDIGO PIX</div>
+                            <div class="pix-payload" id="pixPayload">{{ $pixData['payload'] ?? '' }}</div>
+                        </div>
                         
                         <button class="btn-pay" @click="copyPix()">
-                            <i class="fas fa-copy"></i> <span x-text="locale === 'pt-BR' ? 'Copiar Código Pix' : 'Copy Pix Code'"></span>
+                            <i class="fas fa-copy"></i> <span x-text="locale === 'pt-BR' ? 'Copiar Código' : 'Copy Code'"></span>
                         </button>
                         
-                        <div style="margin-top: 20px; color: #64748b; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                            <i class="fas fa-check-circle" style="color: #10b981;"></i>
-                            Após o pagamento, a confirmação é automática.
+                        <div style="margin-top: 15px; color: #64748b; font-size: 11px; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <i class="fas fa-shield-check" style="color: #10b981;"></i>
+                            <span x-text="locale === 'pt-BR' ? 'Confirmação automática em segundos' : 'Automatic confirmation in seconds'"></span>
                         </div>
                     </div>
                 @else
