@@ -440,7 +440,11 @@
                             <div class="card-face card-front">
                                 <div class="card-chip"></div>
                                 <div class="card-brand-logo default" x-show="cardBrand === 'default'">B</div>
-                                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" alt="Visa">
+                                <div class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" style="top: 22px; right: 22px;">
+                                    <svg viewBox="0 0 48 24" width="48" height="24">
+                                        <path d="M18.2 18.5l2.8-13h2.1l-2.8 13h-2.1zm11.7-12.7c-0.5-0.2-1.3-0.4-2.2-0.4-2.4 0-4.1 1.3-4.1 3.1 0 1.4 1.2 2.1 2.2 2.6 1 0.5 1.4 0.8 1.4 1.2 0 0.7-0.8 1-1.5 1-1 0-1.7-0.2-2.7-0.6l-0.4 1.8c0.5 0.2 1.5 0.4 2.5 0.4 2.4 0 4-1.2 4-3 0-1-0.6-1.8-1.9-2.4-0.8-0.4-1.3-0.7-1.3-1.2 0-0.4 0.5-0.9 1.5-0.9 0.9 0 1.5 0.2 2 0.4l0.4-1.8zm6.5 12.7h2l-1.8-13h-1.8c-0.6 0-1 0.3-1.2 0.9l-4.4 10.6h2.2l0.4-1.2h2.7l0.3 1.2zm-2-3.1l1.1-3 0.6 3h-1.7zm-26.6-9.6l-0.2 1.1c1.2 0.3 2.5 0.8 3.3 1.3l1.8 7.2h2.2l3.4-13h-2.2l-2.1 8.3-0.9-4.3c-0.3-1-1.1-1.8-2.1-2.2-1.2-0.6-2.4-1-3.2-1.4" fill="#fff"/>
+                                    </svg>
+                                </div>
                                 <div class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" style="top: 22px; right: 22px;">
                                     <svg viewBox="0 0 24 18" width="44" height="34">
                                         <circle cx="7" cy="9" r="7" fill="#eb001b" />

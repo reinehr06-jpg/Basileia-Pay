@@ -517,7 +517,11 @@
                 <div class="left-security-title">Pagamento 100% Seguro</div>
                 <div class="left-security-desc">Seus dados são protegidos por criptografia SSL.</div>
                 <div class="card-brands">
-                    <svg viewBox="0 0 80 30"><rect width="80" height="30" rx="4" fill="#fff"/><text x="40" y="21" font-size="16" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
+                    <div style="background: white; border-radius: 4px; padding: 4px 8px; display: flex; align-items: center; justify-content: center;">
+                        <svg viewBox="0 0 48 24" width="40" height="20">
+                            <path d="M18.2 18.5l2.8-13h2.1l-2.8 13h-2.1zm11.7-12.7c-0.5-0.2-1.3-0.4-2.2-0.4-2.4 0-4.1 1.3-4.1 3.1 0 1.4 1.2 2.1 2.2 2.6 1 0.5 1.4 0.8 1.4 1.2 0 0.7-0.8 1-1.5 1-1 0-1.7-0.2-2.7-0.6l-0.4 1.8c0.5 0.2 1.5 0.4 2.5 0.4 2.4 0 4-1.2 4-3 0-1-0.6-1.8-1.9-2.4-0.8-0.4-1.3-0.7-1.3-1.2 0-0.4 0.5-0.9 1.5-0.9 0.9 0 1.5 0.2 2 0.4l0.4-1.8zm6.5 12.7h2l-1.8-13h-1.8c-0.6 0-1 0.3-1.2 0.9l-4.4 10.6h2.2l0.4-1.2h2.7l0.3 1.2zm-2-3.1l1.1-3 0.6 3h-1.7zm-26.6-9.6l-0.2 1.1c1.2 0.3 2.5 0.8 3.3 1.3l1.8 7.2h2.2l3.4-13h-2.2l-2.1 8.3-0.9-4.3c-0.3-1-1.1-1.8-2.1-2.2-1.2-0.6-2.4-1-3.2-1.4" fill="#1A1F71"/>
+                        </svg>
+                    </div>
                     <svg viewBox="0 0 24 18" width="44" height="34">
                         <circle cx="7" cy="9" r="7" fill="#eb001b" />
                         <circle cx="17" cy="9" r="7" fill="#f79e1b" opacity="0.85" />
