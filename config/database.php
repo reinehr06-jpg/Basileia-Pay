@@ -3,7 +3,7 @@
 use Illuminate\Support\Str;
 
 return [
-    'default' => 'sqlite',
+    'default' => env('DB_CONNECTION', 'sqlite'),
 
     'connections' => [
         'sqlite' => [
@@ -17,16 +17,11 @@ return [
     'migrations' => 'migrations',
 
     'redis' => [
-        'client' => 'array',
+        'client' => env('REDIS_CLIENT', 'array'),
         'default' => [
             'host' => '127.0.0.1',
             'port' => 6379,
             'database' => 0,
-        ],
-        'cache' => [
-            'host' => '127.0.0.1',
-            'port' => 6379,
-            'database' => 1,
         ],
     ],
 ];
