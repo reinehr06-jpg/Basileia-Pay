@@ -19,7 +19,7 @@ return [
 
     'env' => 'production',
 
-    'debug' => (bool) env('APP_DEBUG', true),
+    'debug' => true,
 
     'url' => env('APP_URL', 'http://localhost'),
 
