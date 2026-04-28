@@ -98,40 +98,43 @@
             z-index: 10;
         }
 
-        /* Camadas de fundo para o efeito de "book" */
         .book-bg-layer {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(124, 58, 237, 0.3);
+            top: 10px;
+            left: 10px;
+            right: -10px;
+            bottom: -10px;
+            background: #e2e8f0;
             border-radius: 24px;
-            transform: translate(12px, 12px) rotate(2deg);
-            z-index: 1;
-            filter: blur(2px);
+            z-index: 5;
+            transform: rotate(-2deg);
         }
         .book-bg-layer-2 {
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(124, 58, 237, 0.15);
+            top: 20px;
+            left: 20px;
+            right: -20px;
+            bottom: -20px;
+            background: #cbd5e1;
             border-radius: 24px;
-            transform: translate(24px, 24px) rotate(4deg);
-            z-index: 0;
-            filter: blur(4px);
+            z-index: 2;
+            transform: rotate(-4deg);
         }
 
-        /* 3D CARD */
+        /* CARD DESIGN */
         .card-scene {
             width: 100%;
             height: 200px;
             perspective: 1000px;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
+            cursor: pointer;
         }
         .card-inner {
             position: relative;
             width: 100%;
             height: 100%;
-            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: transform 0.8s;
             transform-style: preserve-3d;
-            cursor: pointer;
         }
         .card-inner.is-flipped { transform: rotateY(180deg); }
         .card-face {
@@ -140,223 +143,122 @@
             height: 100%;
             backface-visibility: hidden;
             border-radius: 16px;
-            padding: 24px;
+            padding: 25px;
             color: white;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
-            background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
-        }
-        .card-back { transform: rotateY(180deg); display: flex; flex-direction: column; justify-content: center; padding: 0; }
-        .card-magnetic-strip { height: 40px; background: rgba(0,0,0,0.8); margin-top: 20px; }
-        .card-cvv-strip { height: 35px; background: white; margin: 15px 20px; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px; color: #1e293b; font-family: 'Share Tech Mono', monospace; font-weight: bold; }
-        
-        .card-chip { width: 45px; height: 34px; background: linear-gradient(135deg, #ffd700 0%, #daa520 100%); border-radius: 6px; margin-bottom: 20px; }
-        .card-number-display { font-family: 'Share Tech Mono', monospace; font-size: 22px; letter-spacing: 2px; margin-bottom: 25px; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-        .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
-        .card-label { font-size: 9px; opacity: 0.7; text-transform: uppercase; margin-bottom: 4px; }
-        .card-value { font-size: 14px; font-weight: 600; text-transform: uppercase; }
-        .card-brand-logo { position: absolute; top: 24px; right: 24px; height: 30px; opacity: 0; transition: opacity 0.3s; }
-        .card-brand-logo.visible { opacity: 1; }
-        .card-brand-logo.default { 
-            opacity: 1; 
-            background: white; 
-            color: #7c3aed; 
-            width: 40px; 
-            height: 40px; 
-            border-radius: 8px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            font-size: 20px; 
-            font-weight: 900; 
-        }
-
-        /* Custom Selector */
-        .custom-select-container { position: relative; width: 140px; }
-        .custom-select-trigger {
-            background: #f1f5f9;
-            border: 1px solid #e2e8f0;
-            padding: 8px 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 600;
-            color: #475569;
-            cursor: pointer;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: space-between;
-            gap: 6px;
+            background: linear-gradient(135deg, #4c1d95 0%, #7c3aed 100%);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            overflow: hidden;
         }
-        .custom-select-options {
+        .card-face::before {
+            content: '';
             position: absolute;
-            top: calc(100% + 5px);
-            right: 0;
-            width: 180px;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
-            z-index: 100;
-            max-height: 250px;
-            overflow-y: auto;
-            display: none;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 80%);
+            pointer-events: none;
         }
-        .custom-select-options.show { display: block; }
-        .custom-select-option {
-            padding: 10px 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: background 0.2s;
-            font-size: 13px;
-        }
-        .custom-select-option:hover { background: #f8fafc; }
+        .card-back { transform: rotateY(180deg); background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); }
+        .card-chip { width: 45px; height: 35px; background: linear-gradient(135deg, #ffd700 0%, #facc15 100%); border-radius: 6px; margin-bottom: 20px; }
+        .card-number-display { font-family: 'Share Tech Mono', monospace; font-size: 22px; letter-spacing: 2px; margin-bottom: 20px; }
+        .card-bottom { display: flex; justify-content: space-between; align-items: flex-end; }
+        .card-label { font-size: 10px; text-transform: uppercase; opacity: 0.7; margin-bottom: 4px; }
+        .card-value { font-size: 14px; font-weight: 600; text-transform: uppercase; }
+        .card-brand-logo { position: absolute; top: 25px; right: 25px; height: 30px; opacity: 0.5; transition: opacity 0.3s; }
+        .card-brand-logo.visible { opacity: 1; }
+        .card-brand-logo.default { font-weight: 900; font-size: 24px; color: white; opacity: 0.3; }
 
-        /* FORMS */
-        .form-title { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
-        .form-subtitle { font-size: 14px; color: #64748b; margin-bottom: 25px; }
-        .form-group { margin-bottom: 15px; }
-        .form-label { display: block; font-size: 12px; font-weight: 700; color: #64748b; margin-bottom: 6px; text-transform: uppercase; }
-        .form-input { width: 100%; height: 48px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 0 16px; font-size: 15px; font-family: inherit; transition: all 0.2s; }
-        .form-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
+        .card-magnetic-strip { height: 40px; background: #000; width: 120%; margin: 0 -25px; }
+        .card-cvv-strip { height: 35px; background: white; width: 80%; border-radius: 4px; margin-top: 20px; display: flex; align-items: center; justify-content: flex-end; padding-right: 15px; color: #1e293b; font-weight: 700; font-family: 'Share Tech Mono', monospace; }
+
+        /* FORM ELEMENTS */
+        .form-title { font-size: 24px; font-weight: 800; color: #1e293b; margin-bottom: 8px; }
+        .form-subtitle { font-size: 14px; color: #64748b; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; }
+        .form-label { display: block; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; margin-bottom: 8px; }
+        .form-input { width: 100%; padding: 14px 18px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 15px; transition: all 0.3s; background: #f8fafc; color: #1e293b; font-weight: 500; }
+        .form-input:focus { border-color: var(--primary); outline: none; background: white; box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1); }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        
-        .btn-pay {
-            width: 100%;
-            height: 56px;
-            background: linear-gradient(90deg, #7c3aed, #a855f7);
-            color: white;
-            border: none;
-            border-radius: 16px;
-            font-size: 16px;
-            font-weight: 800;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 10px 20px rgba(124, 58, 237, 0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 15px 30px rgba(124, 58, 237, 0.4); }
-        .btn-pay:active { transform: translateY(0); }
 
-        .expired-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(30, 41, 59, 0.95); z-index: 1000; display: flex; align-items: center; justify-content: center; border-radius: 20px; color: white; text-align: center; }
-        .expired-box { padding: 40px; }
-        .expired-box i { font-size: 48px; color: #ef4444; margin-bottom: 20px; }
-        .expired-box h3 { font-size: 24px; margin-bottom: 10px; }
-        .expired-box p { font-size: 14px; opacity: 0.8; }
+        .btn-pay { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 14px; font-size: 16px; font-weight: 700; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; }
+        .btn-pay:hover { background: var(--primary-dark); transform: translateY(-2px); box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3); }
+        .btn-pay:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
 
-        /* ANIMATIONS */
-        [x-cloak] { display: none !important; }
-        
-        .layer-exit { transform: rotateY(-90deg) scale(0.9); opacity: 0; }
-        .layer-enter { transform: rotateY(0deg) scale(1); opacity: 1; }
-
-        /* PIX STYLES */
-        .pix-container { text-align: center; }
-        .pix-qr-box { background: white; padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); display: inline-block; margin-bottom: 20px; }
-        .pix-qr-box img { width: 180px; height: 180px; }
-        .pix-payload { background: #f8fafc; border: 1px dashed #cbd5e1; padding: 15px; border-radius: 10px; font-family: 'Share Tech Mono', monospace; font-size: 12px; word-break: break-all; margin-bottom: 20px; }
-
-        /* SUCCESS STYLES */
-        .success-icon { width: 80px; height: 80px; background: #ecfdf5; color: #10b981; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; margin: 0 auto 20px; }
-        .success-btns { display: grid; gap: 12px; margin-top: 30px; }
-        .btn-secondary { background: #f1f5f9; color: #1e293b; text-decoration: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.2s; }
+        .btn-secondary { width: 100%; padding: 12px; background: #f1f5f9; color: #475569; border: none; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-secondary:hover { background: #e2e8f0; }
 
+        /* SUCCESS STATE */
+        .success-icon { width: 80px; height: 80px; background: #f0fdf4; color: #22c55e; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 30px; }
+        .success-btns { display: flex; flex-direction: column; gap: 12px; margin-top: 40px; }
+
+        /* PIX ELEMENTS */
+        .pix-container { text-align: center; }
+        .pix-qr-box { background: white; padding: 20px; border-radius: 20px; display: inline-block; margin-bottom: 25px; }
+        .pix-qr-box img { width: 220px; height: 220px; }
+        .pix-payload { background: #f1f5f9; padding: 15px; border-radius: 12px; font-family: 'Share Tech Mono', monospace; font-size: 12px; color: #475569; word-break: break-all; margin-bottom: 20px; border: 1px dashed #cbd5e1; }
+
+        /* UTILS */
+        [x-cloak] { display: none !important; }
+        .layer-enter { opacity: 0; transform: rotateY(-30deg) translateX(50px); }
+        .layer-exit { opacity: 0; transform: rotateY(30deg) translateX(-50px); }
+
+        /* COUNTRY SELECTOR */
+        .custom-select-container { position: relative; width: 120px; }
+        .custom-select-trigger { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; font-weight: 600; color: #475569; cursor: pointer; }
+        .custom-select-options { position: absolute; top: calc(100% + 5px); right: 0; width: 180px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; z-index: 100; max-height: 300px; overflow-y: auto; display: none; }
+        .custom-select-options.show { display: block; }
+        .custom-select-option { padding: 10px 15px; display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13px; transition: background 0.2s; }
+        .custom-select-option:hover { background: #f1f5f9; }
+
+        /* EXPIRED OVERLAY */
+        .expired-overlay { position: absolute; inset: 0; background: rgba(255,255,255,0.95); z-index: 1000; border-radius: 24px; display: flex; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+        .expired-box i { font-size: 48px; color: #dc2626; margin-bottom: 20px; }
+
         @media (max-width: 900px) {
-            body { padding: 10px; align-items: flex-start; }
-            .checkout-wrapper { grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
-            
-            .order-summary { 
-                background: rgba(255, 255, 255, 0.05); 
-                padding: 20px; 
-                border-radius: 20px; 
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                text-align: left;
-                cursor: pointer;
-                order: -1;
-                transition: all 0.3s ease;
-            }
-            .order-summary:hover { background: rgba(255, 255, 255, 0.08); }
-            
-            .brand-logo { margin-bottom: 0; flex-direction: row; justify-content: flex-start; gap: 10px; }
-            .brand-logo img { height: 40px; }
-            .brand-logo span { font-size: 20px; }
-            
-            .plan-title { font-size: 28px; margin: 15px 0 5px; }
-            .price-row { margin-bottom: 20px; }
-            .price-value { font-size: 32px; }
-            
-            .mobile-collapse-content { 
-                max-height: 0; 
-                overflow: hidden; 
-                transition: max-height 0.5s ease-out, opacity 0.3s ease;
-                opacity: 0;
-            }
-            .mobile-collapse-content.expanded { 
-                max-height: 1000px; 
-                opacity: 1;
-                margin-top: 20px;
-                padding-top: 20px;
-                border-top: 1px solid rgba(255, 255, 255, 0.1);
-            }
-            
-            .features-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 30px; }
-            .trust-footer { flex-direction: column; gap: 15px; }
-            
-            .book-container { max-width: 100%; }
-            .layer { padding: 30px 20px; border-radius: 20px; }
-            
-            /* Toggle indicator */
-            .expand-indicator {
-                margin-left: auto;
-                transition: transform 0.3s;
-            }
-            .expanded .expand-indicator { transform: rotate(180deg); }
-        }
-        
-        @media (min-width: 901px) {
-            .expand-indicator { display: none; }
-            .mobile-collapse-content { max-height: none !important; opacity: 1 !important; }
+            .checkout-wrapper { grid-template-columns: 1fr; gap: 40px; }
+            .order-summary { text-align: center; padding-right: 0; }
+            .plan-title { font-size: 42px; }
+            .price-row { justify-content: center; }
+            .features-grid { justify-content: center; }
+            .book-container { margin: 0 auto; }
         }
     </style>
 </head>
-<body x-data="checkoutFlow()">
+<body x-data="checkoutFlow()" x-init="init()">
+
     <div class="checkout-wrapper">
-        <!-- SUMMARY PANEL -->
-        <div class="order-summary" @click="summaryExpanded = !summaryExpanded">
-            <div style="display: flex; align-items: center; width: 100%;">
-                <div class="brand-logo" style="margin-bottom: 0; align-items: flex-start;">
-                    <span style="font-size: 28px; font-weight: 900; color: white; letter-spacing: -1px;">Basiléia</span>
+        <!-- LEFT PANEL -->
+        <div class="order-summary">
+            <div class="brand-logo">
+                <img src="https://dash.basileia.global/assets/logo-basileia-horizontal.png" alt="Basiléia Logo">
+                <div style="background: rgba(124, 58, 237, 0.1); padding: 6px 15px; border-radius: 20px; font-size: 12px; font-weight: 700; color: var(--primary-light); text-transform: uppercase; letter-spacing: 1px;">
+                    Checkout 100% Seguro
                 </div>
-                <i class="fas fa-chevron-down expand-indicator" :class="{ 'expanded': summaryExpanded }"></i>
             </div>
-            
-            <div class="mobile-collapse-content" :class="{ 'expanded': summaryExpanded }">
-                <div class="summary-label" x-text="locale === 'pt-BR' ? 'RESUMO DO PEDIDO' : 'ORDER SUMMARY'" style="margin-top: 30px;"></div>
-                <h1 class="plan-title" style="margin-bottom: 10px;">{{ $plano }}</h1>
-                
-                <div class="price-row" style="margin-bottom: 40px;">
-                    <span class="price-value" style="font-size: 56px;" x-text="formatPrice(originalAmount)"></span>
-                    <span class="price-period">/{{ $ciclo }}</span>
-                </div>
 
-                <div class="features-grid">
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'IA via WhatsApp' : 'AI via WhatsApp'"></span></div>
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Gestão de Células' : 'Cell Management'"></span></div>
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Conformidade LGPD' : 'GDPR/LGPD Compliance'"></span></div>
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Suporte Humanizado' : 'Human Support'"></span></div>
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Múltiplas Igrejas' : 'Multiple Churches'"></span></div>
-                    <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Implantação Rápida' : 'Quick Deployment'"></span></div>
-                </div>
+            <div class="summary-label" x-text="locale === 'pt-BR' ? 'Você selecionou o plano' : 'You selected the plan'"></div>
+            <h1 class="plan-title" style="color: white;">{{ $plano }}</h1>
 
-                <div class="trust-footer">
-                    <div class="trust-item"><i class="fas fa-lock"></i> <span x-text="locale === 'pt-BR' ? 'Pagamento 100% seguro' : '100% secure payment'"></span></div>
-                    <div class="trust-item"><i class="fas fa-shield-alt"></i> <span x-text="locale === 'pt-BR' ? 'Garantia de 7 dias' : '7-day guarantee'"></span></div>
-                </div>
+            <div class="price-row">
+                <span class="price-currency" x-text="currencySymbol"></span>
+                <span class="price-value" x-text="formatPrice(originalAmount).replace(/[^0-9,.]/g, '')"></span>
+                <span class="price-period" x-text="locale === 'pt-BR' ? '/ mês' : '/ month'"></span>
+            </div>
+
+            <div class="features-grid">
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Conformidade LGPD' : 'GDPR/LGPD Compliance'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Suporte Humanizado' : 'Human Support'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Múltiplas Igrejas' : 'Multiple Churches'"></span></div>
+                <div class="feature-item"><i class="fas fa-check-circle"></i> <span x-text="locale === 'pt-BR' ? 'Implantação Rápida' : 'Quick Deployment'"></span></div>
+            </div>
+
+            <div class="trust-footer">
+                <div class="trust-item"><i class="fas fa-lock"></i> <span x-text="locale === 'pt-BR' ? 'Pagamento 100% seguro' : '100% secure payment'"></span></div>
+                <div class="trust-item"><i class="fas fa-shield-alt"></i> <span x-text="locale === 'pt-BR' ? 'Garantia de 7 dias' : '7-day guarantee'"></span></div>
             </div>
         </div>
 
@@ -374,8 +276,8 @@
                 </div>
             </div>
 
-            <!-- LAYER 1: PAYMENT -->
-            <div class="layer" x-show="step === 1" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
+            <!-- LAYER 1 & 2: PAYMENT FLOW -->
+            <div class="layer" x-show="step === 1 || step === 2" x-transition:enter="layer-enter" x-transition:leave="layer-exit">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
                     <div>
                         <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
@@ -427,7 +329,7 @@
                     </div>
                 @else
                     <!-- CARD FLOW -->
-                    <div class="card-scene" @click="isFlipped = !isFlipped">
+                    <div class="card-scene" @click="isFlipped = !isFlipped" x-show="step === 1">
                         <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
                             <div class="card-face card-front">
                                 <div class="card-chip"></div>
@@ -455,7 +357,7 @@
                         </div>
                     </div>
 
-                    <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="text-align: center; margin-bottom: 20px;" x-show="step === 1">
                         <div class="summary-label" style="font-size: 12px;" x-text="locale === 'pt-BR' ? 'VALOR' : 'VALUE'"></div>
                         <div style="font-size: 32px; font-weight: 900; color: #1e293b;" x-text="formatPrice(originalAmount)"></div>
                     </div>
@@ -488,10 +390,6 @@
 
                         <!-- LAYER 2: CONFIRMATION -->
                         <div x-show="step === 2" x-cloak>
-                            <div style="margin-bottom: 25px;">
-                                <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
-                                <div style="font-size: 14px; font-weight: 800; background: #fef2f2; color: #dc2626; padding: 6px 12px; border-radius: 10px; display: inline-block; letter-spacing: 1px;" x-text="timeLeft"></div>
-                            </div>
                             <h2 class="form-title" x-text="locale === 'pt-BR' ? 'Confirme seus dados' : 'Confirm your details'"></h2>
                             <p class="form-subtitle" x-text="locale === 'pt-BR' ? 'Quase lá! Verifique se as informações da sua igreja estão corretas.' : 'Almost there! Check if your information is correct.'"></p>
 
@@ -529,6 +427,8 @@
                             </button>
                         </div>
                     </form>
+                @endif
+            </div>
 
             <!-- LAYER 3: SUCCESS -->
             <div class="layer" x-show="step === 3" x-transition:enter="layer-enter" x-transition:leave="layer-exit" x-cloak>
@@ -764,7 +664,7 @@
                 goToStep2() { this.step = 2; },
                 processPayment() {
                     this.processing = true;
-                    setTimeout(() => { this.step = 3; this.processing = false; }, 2000);
+                    // Real form submission happens via button type="submit"
                 },
                 copyPix() {
                     const el = document.createElement('textarea');
