@@ -1,4 +1,5 @@
 <?php
+die("CODE VERSION: " . date("H:i:s"));
 
 /**
  * CheckOut - Entry point with recovery logic
