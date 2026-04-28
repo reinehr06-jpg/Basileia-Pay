@@ -338,7 +338,7 @@
         function checkoutFlow() {
             const uuid = {!! json_encode($transaction->uuid) !!};
             return {
-                step: parseInt(localStorage.getItem('checkout_step_' + uuid)) || 1,
+                step: (localStorage.getItem('checkout_step_' + uuid) == 3) ? 3 : 1,
                 isFlipped: false,
                 processing: false,
                 showSelector: false,
@@ -359,7 +359,7 @@
                 vendorDoc: {!! json_encode($customerData['document'] ?? '') !!},
                 mobileSummaryOpen: false,
                 isExpired: false,
-                originalAmount: {{ number_format($transaction->amount ?? 0, 2, '.', '') }},
+                originalAmount: {!! json_encode(number_format($transaction->amount ?? 0, 2, '.', '')) !!},
                 selectedCountry: {code:'BR',name:'Brasil',flag:'🇧🇷',locale:'pt-BR',currency:'BRL',symbol:'R$',rate:1},
                 countries: [
                     {code:'AF',name:'Afghanistan',flag:'🇦🇫',currency:'AFN',symbol:'Af',rate:0.015},
