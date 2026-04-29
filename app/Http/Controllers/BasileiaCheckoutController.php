@@ -18,8 +18,10 @@ class BasileiaCheckoutController extends Controller
 
     public function show(string $uuid, Request $request)
     {
-        $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
-        return $this->renderCheckout($transaction->asaas_payment_id, $transaction, $request);
+        $transaction = Transaction::where('uuid', $uuid)->first() 
+                    ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+
+        return $this->renderCheckout($transaction->asaas_payment_id ?? $transaction->gateway_subscription_id, $transaction, $request);
     }
 
     public function handle(string $asaasPaymentId, Request $request)
@@ -38,17 +40,37 @@ class BasileiaCheckoutController extends Controller
         $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
         
         if (!$asaasPayment) {
-            return view('checkout.error', ['message' => 'Pagamento não encontrado no gateway']);
+            Log::warning('BasileiaCheckout: Payment not found in gateway, using local fallback', [
+                'asaas_payment_id' => $asaasPaymentId,
+                'transaction_uuid' => $transaction?->uuid,
+            ]);
+
+            // Fallback to local data to avoid crashing the user experience
+            $methodMap = ['credit_card' => 'CREDIT_CARD', 'pix' => 'PIX', 'boleto' => 'BOLETO'];
+            $billingType = $methodMap[$transaction->payment_method ?? 'credit_card'] ?? 'CREDIT_CARD';
+            
+            $asaasPayment = [
+                'billingType' => $billingType,
+                'installmentCount' => 1,
+                'value' => $transaction->amount ?? 0,
+                'description' => $transaction->description ?? 'Pagamento Basiléia',
+                'status' => 'PENDING',
+                'customer' => [
+                    'name' => $transaction->customer_name ?? '',
+                    'email' => $transaction->customer_email ?? '',
+                    'phone' => $transaction->customer_phone ?? '',
+                ]
+            ];
         }
 
         $customer = $asaasPayment['customer'] ?? [];
         $billingType = $asaasPayment['billingType'] ?? 'CREDIT_CARD';
         
         $customerData = [
-            'name' => $customer['name'] ?? $request->get('cliente', ''),
-            'email' => $customer['email'] ?? '',
-            'phone' => $customer['phone'] ?? '',
-            'document' => $customer['cpfCnpj'] ?? '',
+            'name' => $customer['name'] ?? ($transaction->customer_name ?? $request->get('cliente', '')),
+            'email' => $customer['email'] ?? ($transaction->customer_email ?? ''),
+            'phone' => $customer['phone'] ?? ($transaction->customer_phone ?? ''),
+            'document' => $customer['cpfCnpj'] ?? ($transaction->customer_document ?? ''),
             'address' => [
                 'street' => $customer['address'] ?? '',
                 'number' => $customer['addressNumber'] ?? '',
@@ -103,10 +125,19 @@ class BasileiaCheckoutController extends Controller
             }
         }
 
+        $pixData = [];
+        if ($billingType === 'PIX') {
+            $pixData = $this->asaasService->getPixQrCode($asaasPaymentId) ?? [
+                'payload' => 'PENDENTE_SYNC',
+                'encodedImage' => '',
+            ];
+        }
+
         return view('checkout.basileia', [
             'transaction' => $transaction,
             'asaasPayment' => $asaasPayment,
             'customerData' => $customerData,
+            'pixData' => $pixData,
             'plano' => $plano,
             'ciclo' => $ciclo,
             'i18n' => $i18n,
