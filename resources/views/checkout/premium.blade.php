@@ -639,18 +639,12 @@
                             <div class="card-face card-front">
                                 <div class="card-chip"></div>
                                 <div class="card-brand-logo default" x-show="cardBrand === 'default'">B</div>
-                                <div class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" style="top: 22px; right: 22px; width: 60px; height: 30px;">
-                                    <svg viewBox="0 0 65 22" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
-                                        <path fill="#FFFFFF" d="M25.333 1.1c-1.2-.5-3.1-1.1-5.4-1.1-5.7 0-9.8 3.1-9.8 7.6 0 3.3 2.9 5.1 5.2 6.3 2.3 1.1 3.1 1.9 3.1 2.9 0 1.6-1.9 2.3-3.7 2.3-2.4 0-4.2-.4-6.4-1.4l-.9 4.2c1.2.6 3.5 1.1 5.9 1.1 6.1 0 10.1-3.1 10.1-7.9 0-2.6-1.6-4.6-5-6.2-2.1-1-3.3-1.7-3.3-2.8 0-1 1-2.1 3.3-2.1 2 0 3.4.4 4.5.9l1-4.1zm12.3 0h-5.2c-.6 0-1 .3-1.2.9L22.8 21h5.6l1.1-3.1h6.8l.6 3.1h5.1L37.633 1.1zm-1.8 13h-4.3l2.1-5.9 2.2 5.9zm-31.5-13L-.5 21h5.6L11.533 1.1H5.833zm43 0L42.233 14.8l-.5-2.5c-.8-2.7-3.3-5.6-6.1-7.1l.1-.3h8.5l5.5 21.2h5.6l6.8-19.9h-5.3L52.133 13 49.833 1.1h-5.4z"/>
-                                    </svg>
-                                </div>
-                                <div class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" style="top: 22px; right: 22px;">
-                                    <svg viewBox="0 0 24 18" width="44" height="34">
-                                        <circle cx="7" cy="9" r="7" fill="#eb001b" />
-                                        <circle cx="17" cy="9" r="7" fill="#f79e1b" opacity="0.85" />
-                                        <path d="M12 2.2a7 7 0 0 1 0 13.6 7 7 0 0 1 0-13.6z" fill="#ff5f00" />
-                                    </svg>
-                                </div>
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/visa.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" alt="Visa">
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/mastercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" alt="Mastercard">
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/amex.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'amex' }" alt="Amex">
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/elo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'elo' }" alt="Elo">
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/hipercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'hipercard' }" alt="Hipercard">
+                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/diners.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'diners' }" alt="Diners">
                                 
                                 <div class="card-number-display" x-text="formatCardNumber(cardNumber)"></div>
                                 <div class="card-bottom">
