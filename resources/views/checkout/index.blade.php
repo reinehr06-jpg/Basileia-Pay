@@ -19,23 +19,14 @@
             --text-muted: #64748b;
             --border: #e2e8f0;
         }
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            background: #0f0a1e;
-        }
         body {
             font-family: 'Inter', sans-serif;
             min-height: 100vh;
-            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
             background: linear-gradient(135deg, #0f0a1e 0%, #1a103c 50%, #2d1b69 100%);
-            background-attachment: fixed;
         }
         .checkout-container {
             display: grid;
@@ -475,7 +466,8 @@
 <body
     x-data="{
         country: 'BR',
-        locale: 'pt-BR',
+        locale: '{{ $currentLocale }}',
+        i18n: {{ json_encode($i18n) }},
         currency: 'BRL',
         currencySymbol: 'R$',
         planLabel: '{{ $plano }}',
@@ -490,9 +482,12 @@
         showCvv: false,
         pixCopied: false,
         timeLeft: 3600,
-        localeData: {},
+        t(key) {
+            return (this.i18n[this.locale] && this.i18n[this.locale][key]) || 
+                   (this.i18n['pt'] && this.i18n['pt'][key]) || key;
+        },
         updateCard() {
-            const num = this.cardNumber.replace(/\s+/g, '').replace(/\D/g, '');
+            const num = this.cardNumber.replace(/\D/g, '');
             if (num.startsWith('4')) this.cardBrand = 'visa';
             else if (num.match(/^5[1-5]/)) this.cardBrand = 'mastercard';
             else if (num.match(/^3[47]/)) this.cardBrand = 'amex';
@@ -503,28 +498,24 @@
             this.showCvv = !this.showCvv;
         },
         copyPixCode() {
-            const code = '{{ $pixData['payload'] ?? '' }}';
-            if (!code) return;
-            navigator.clipboard.writeText(code);
+            navigator.clipboard.writeText('{{ $pixData['payload'] ?? '' }}');
             this.pixCopied = true;
             setTimeout(() => this.pixCopied = false, 2000);
         },
         changeCountry() {
-            const data = this.localeData[this.country] || this.localeData.default;
-            this.locale = data.locale;
-            this.currency = data.currency;
-            this.currencySymbol = data.symbol;
-            this.planLabel = data.planLabel;
-            this.periodLabel = data.periodLabel;
-            this.payBtnLabel = data.payBtn;
-            this.features = data.features;
-            localStorage.setItem('selected_country_code', this.country);
+            const countryData = this.countries.find(c => c.code === this.country);
+            if (countryData) {
+                this.locale = countryData.lang;
+                this.currency = countryData.currency || 'USD';
+                this.currencySymbol = countryData.symbol || '$';
+                document.documentElement.lang = countryData.lang;
+            }
         },
         formatPrice(amount) {
             try {
                 return new Intl.NumberFormat(this.locale, {style: 'currency', currency: this.currency}).format(amount);
             } catch(e) {
-                return this.currencySymbol + ' ' + (amount ? parseFloat(amount).toFixed(2) : '0.00');
+                return this.currencySymbol + ' ' + amount.toFixed(2);
             }
         },
         formatTime() {
@@ -533,44 +524,37 @@
             return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
         },
         init() {
-            const savedCode = localStorage.getItem('selected_country_code');
-            if (savedCode) this.country = savedCode;
-
             if (this.billingType === 'PIX') {
                 setInterval(() => { if(this.timeLeft > 0) this.timeLeft--; }, 1000);
             }
-            this.localeData = {
-                BR: {locale: 'pt-BR', currency: 'BRL', symbol: 'R$', lang: 'pt', planLabel: 'PLANO PREMIUM', periodLabel: 'por mês', features: ['Acesso completo', 'Suporte 24h', 'Cancelamento fácil'], payBtn: 'Pagar'},
-                US: {locale: 'en-US', currency: 'USD', symbol: '$', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'},
-                PT: {locale: 'pt-PT', currency: 'EUR', symbol: '€', lang: 'pt', planLabel: 'PLANO PREMIUM', periodLabel: 'por mês', features: ['Acesso completo', 'Suporte 24h', 'Cancelamento fácil'], payBtn: 'Pagar'},
-                ES: {locale: 'es-ES', currency: 'EUR', symbol: '€', lang: 'es', planLabel: 'PLAN PREMIUM', periodLabel: 'por mes', features: ['Acceso completo', 'Soporte 24h', 'Cancelación fácil'], payBtn: 'Pagar'},
-                FR: {locale: 'fr-FR', currency: 'EUR', symbol: '€', lang: 'fr', planLabel: 'PLAN PREMIUM', periodLabel: 'par mois', features: ['Accès complet', 'Support 24h', 'Annulation facile'], payBtn: 'Payer'},
-                DE: {locale: 'de-DE', currency: 'EUR', symbol: '€', lang: 'de', planLabel: 'PREMIUM PLAN', periodLabel: 'pro Monat', features: ['Voller Zugriff', '24h Support', 'Einfache Stornierung'], payBtn: 'Bezahlen'},
-                IT: {locale: 'it-IT', currency: 'EUR', symbol: '€', lang: 'it', planLabel: 'PIANO PREMIUM', periodLabel: 'al mese', features: ['Accesso completo', 'Supporto 24h', 'Cancellazione facile'], payBtn: 'Paga'},
-                GB: {locale: 'en-GB', currency: 'GBP', symbol: '£', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'},
-                CA: {locale: 'en-CA', currency: 'CAD', symbol: 'C$', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'},
-                MX: {locale: 'es-MX', currency: 'MXN', symbol: 'MX$', lang: 'es', planLabel: 'PLAN PREMIUM', periodLabel: 'por mes', features: ['Acceso completo', 'Soporte 24h', 'Cancelación fácil'], payBtn: 'Pagar'},
-                AR: {locale: 'es-AR', currency: 'ARS', symbol: 'ARS$', lang: 'es', planLabel: 'PLAN PREMIUM', periodLabel: 'por mes', features: ['Acceso completo', 'Soporte 24h', 'Cancelación fácil'], payBtn: 'Pagar'},
-                JP: {locale: 'ja-JP', currency: 'JPY', symbol: '¥', lang: 'ja', planLabel: 'プレミアムプラン', periodLabel: '月額', features: ['フルアクセス', '24時間サポート', '簡単なキャンセル'], payBtn: '支払う'},
-                CN: {locale: 'zh-CN', currency: 'CNY', symbol: '¥', lang: 'zh', planLabel: '高级套餐', periodLabel: '每月', features: ['完全访问', '24小时支持', '轻松取消'], payBtn: '支付'},
-                KR: {locale: 'ko-KR', currency: 'KRW', symbol: '₩', lang: 'ko', planLabel: '프리미엄 플랜', periodLabel: '월간', features: ['전액 접근', '24시간 지원', '쉬운 취소'], payBtn: '지불'},
-                default: {locale: 'en-US', currency: 'USD', symbol: '$', lang: 'en', planLabel: 'PREMIUM PLAN', periodLabel: 'per month', features: ['Full access', '24h Support', 'Easy cancellation'], payBtn: 'Pay'}
-            };
             this.changeCountry();
         },
         countries: [
-            {code:'BR',name:'Brasil',flag:'🇧🇷'},{code:'US',name:'Estados Unidos',flag:'🇺🇸'},{code:'PT',name:'Portugal',flag:'🇵🇹'},{code:'ES',name:'Espanha',flag:'🇪🇸'},{code:'FR',name:'França',flag:'🇫🇷'},{code:'DE',name:'Alemanha',flag:'🇩🇪'},{code:'IT',name:'Itália',flag:'🇮🇹'},{code:'GB',name:'Reino Unido',flag:'🇬🇧'},{code:'CA',name:'Canadá',flag:'🇨🇦'},{code:'MX',name:'México',flag:'🇲🇽'},{code:'AR',name:'Argentina',flag:'🇦🇷'}
+            {code:'BR',name:'Brasil',flag:'🇧🇷',lang:'pt',currency:'BRL',symbol:'R$'},
+            {code:'JP',name:'Japão',flag:'🇯🇵',lang:'ja',currency:'JPY',symbol:'¥'},
+            {code:'US',name:'Estados Unidos',flag:'🇺🇸',lang:'en',currency:'USD',symbol:'$'},
+            {code:'PT',name:'Portugal',flag:'🇵🇹',lang:'pt',currency:'EUR',symbol:'€'}
         ]
     }"
 >
     <div class="checkout-container">
         <!-- Card Valor -->
         <div class="value-card">
-            <div class="value-card-logo" style="background:transparent;width:72px;height:72px;display:flex;align-items:center;justify-content:center;padding:0;box-shadow:none;margin:0 auto 24px auto;">
-                <img src="{{ asset('img/basileia-logo-clean-b.png') }}" alt="Basileia" style="width:100%;height:100%;object-fit:contain;">
+            <div class="value-card-logo" style="
+                background: transparent; 
+                width: 72px; 
+                height: 72px; 
+                display: flex; 
+                align-items: center; 
+                justify-content: center; 
+                padding: 0;
+                box-shadow: none;
+                margin: 0 auto 24px auto;
+            ">
+                <img src="{{ asset('img/basileia-logo-clean-b.png') }}" alt="Basileia" style="width: 100%; height: 100%; object-fit: contain;">
             </div>
             <div class="value-card-plan" x-text="planLabel"></div>
-            <div class="value-card-amount" x-text="formatPrice({{ $resource->amount }})"></div>
+            <div class="value-card-amount" x-text="formatPrice({{ $transaction->amount }})"></div>
             <div class="value-card-period" x-text="periodLabel"></div>
             <div class="value-card-features">
                 <template x-for="feature in features" :key="feature">
@@ -593,27 +577,29 @@
                 </div>
             </div>
             
-            <!-- Cartão 3D -->
+
+            
+            <!-- Cartão 3D (Show only for Credit Card) -->
             <template x-if="billingType === 'CREDIT_CARD'">
                 <div class="card-preview" :class="[cardBrand, showCvv ? 'flipped' : '']">
                     <div class="card-front">
                         <div class="card-chip"></div>
                         <div class="card-brand-logo">
                             <template x-if="cardBrand === 'visa'">
-                                <div style="width: 50px; height: 25px;">
-                                    <svg viewBox="0 0 120 40" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
-                                        <path fill="#FFFFFF" d="M45.2,27.9l2.8-12.8h2.1l-2.8,12.8H45.2z M56.9,15.1c-0.5-0.2-1.3-0.4-2.2-0.4c-2.4,0-4.1,1.3-4.1,3.1 c0,1.4,1.2,2.1,2.2,2.6c1,0.5,1.4,0.8,1.4,1.2c0,0.7-0.8,1-1.5,1c-1,0-1.7-0.2-2.7-0.6l-0.4,1.8c0.5,0.2,1.5,0.4,2.5,0.4 c2.4,0,4-1.2,4-3c0-1-0.6-1.8-1.9-2.4c-0.8-0.4-1.3-0.7-1.3-1.2c0-0.4,0.5-0.9,1.5-0.9c0.9,0,1.5,0.2,2,0.4L56.9,15.1z M63.4,15.1 h-1.8c-0.6,0-1,0.3-1.2,0.9l-4.4,10.6h2.2l0.4-1.2h2.7l0.3,1.2h2L63.4,15.1z M61.4,22l-1.1-3l-0.6,3H61.4z M36.8,15.1l-0.2,1.1 c1.2,0.3,2.5,0.8,3.3,1.3l1.8,7.2h2.2l3.4-13h-2.2l-2.1,8.3l-0.9-4.3c-0.3-1-1.1-1.8-2.1-2.2C39.2,15.9,38,15.5,36.8,15.1z"/>
-                                    </svg>
-                                </div>
+                                <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#fff"/><text x="24" y="22" font-size="16" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
                             </template>
                             <template x-if="cardBrand === 'mastercard'">
-                                <svg viewBox="0 0 24 18" width="44" height="34">
-                                    <circle cx="7" cy="9" r="7" fill="#eb001b" />
-                                    <circle cx="17" cy="9" r="7" fill="#f79e1b" opacity="0.85" />
-                                    <path d="M12 2.2a7 7 0 0 1 0 13.6 7 7 0 0 1 0-13.6z" fill="#ff5f00" />
-                                </svg>
+                                <svg viewBox="0 0 48 32" height="32"><circle cx="18" cy="16" r="10" fill="#EB001B"/><circle cx="30" cy="16" r="10" fill="#F79E1B"/><path d="M24 9a10 10 0 0 1 0 14 10 10 0 0 1 0-14z" fill="#FF5F00"/></svg>
                             </template>
-                            <template x-if="cardBrand === 'default'"><span class="brand-text">💳</span></template>
+                            <template x-if="cardBrand === 'amex'">
+                                <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#006FCF"/><text x="24" y="20" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">AMEX</text></svg>
+                            </template>
+                            <template x-if="cardBrand === 'elo'">
+                                <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#FFCB05"/><text x="24" y="20" font-size="14" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
+                            </template>
+                            <template x-if="cardBrand === 'default'">
+                                <span class="brand-text">💳</span>
+                            </template>
                         </div>
                         <div class="card-number" x-text="cardNumber || '•••• •••• •••• ••••'"></div>
                         <div class="card-details">
@@ -629,49 +615,101 @@
                 </div>
             </template>
 
-            <!-- PIX QR Code -->
+            <!-- PIX QR Code (Show only for PIX) -->
             <template x-if="billingType === 'PIX'">
-                <div class="pix-qrcode" style="margin-bottom: 24px; text-align: center;">
+                <div class="pix-qrcode" style="margin-bottom: 24px;">
                     @if(!empty($pixData['encodedImage']))
-                        <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" alt="QR Code PIX" style="width: 200px; height: 200px;">
+                        <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" alt="QR Code PIX" style="width: 200px; height: 200px; border-radius: 12px; border: 1px solid var(--border);">
                     @else
-                        <div style="width: 200px; height: 200px; background: white; display: flex; align-items: center; justify-content: center; margin: 0 auto; border: 1px solid var(--border);">
-                            <i class="fas fa-qrcode fa-5x" style="opacity: 0.2;"></i>
+                        <div style="width: 200px; height: 200px; background: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--border);">
+                            <i class="fas fa-qrcode fa-5x" style="color: var(--text-muted); opacity: 0.3;"></i>
                         </div>
                     @endif
                 </div>
             </template>
             
-            <!-- Form -->
+            <!-- Credit Card Form -->
             <template x-if="billingType === 'CREDIT_CARD'">
-                <form method="POST" action="{{ route('checkout.process', $resource->uuid) }}">
+                <form method="POST" action="{{ route('checkout.process', $transaction->uuid) }}">
                     @csrf
+                    <input type="hidden" name="payment_method" value="credit_card">
+                    
                     <div class="form-group">
-                        <label class="form-label">Número do Cartão</label>
-                        <input type="text" name="card_number" class="form-input" maxlength="19" required x-model="cardNumber" @input="cardNumber = $event.target.value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim(); updateCard()">
+                        <label class="form-label" x-text="t('email') || 'Email'">Email</label>
+                        <input type="email" name="email" class="form-input" placeholder="seu@email.com" required>
                     </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" x-text="t('card_number')">Número do Cartão</label>
+                        <input type="text" name="card_number" class="form-input" 
+                            placeholder="0000 0000 0000 0000" maxlength="19" required
+                            x-model="cardNumber"
+                            @input="cardNumber = $event.target.value.replace(/\s+/g, '').replace(/(\d{4})/g, '$1 ').trim(); updateCard()">
+                    </div>
+                    
                     <div class="form-row">
-                        <div class="form-group"><label class="form-label">Validade</label><input type="text" name="expiry" class="form-input" placeholder="MM/AA" maxlength="5" required x-model="cardExpiry" @input="cardExpiry = $event.target.value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2')"></div>
-                        <div class="form-group" style="grid-column: span 2;"><label class="form-label">CVC</label><input type="text" name="cvv" class="form-input" maxlength="4" required x-ref="cvvInput" @focus="showCvv = true" @blur="showCvv = false"></div>
+                        <div class="form-group">
+                            <label class="form-label" x-text="t('expiry_date')">Validade</label>
+                            <input type="text" name="card_expiry" class="form-input" placeholder="MM/AA" maxlength="5" required
+                                x-model="cardExpiry"
+                                @input="cardExpiry = $event.target.value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2')">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label class="form-label" x-text="t('cvv')">CVC</label>
+                            <input type="text" name="card_cvv" class="form-input" placeholder="123" maxlength="4" required
+                                x-ref="cvvInput"
+                                @focus="showCvv = true"
+                                @blur="showCvv = false">
+                        </div>
                     </div>
+                    
                     <div class="form-group">
-                        <label class="form-label">Nome do Titular</label>
-                        <input type="text" name="holder_name" class="form-input" required x-model="cardHolder">
+                        <label class="form-label" x-text="t('card_holder')">Nome do Titular</label>
+                        <input type="text" name="card_holder_name" class="form-input" placeholder="NOME COMPLETO" required
+                            x-model="cardHolder">
                     </div>
-                    <button type="submit" class="cta-button">Pagar</button>
+                    
+                    <button type="submit" class="cta-button">
+                        <span x-text="t('pay_now')"></span>
+                    </button>
+                    
+                    <div class="accepted-cards">
+                        <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
+                        <svg viewBox="0 0 40 28" title="Mastercard"><circle cx="15" cy="14" r="8" fill="#EB001B"/><circle cx="25" cy="14" r="8" fill="#F79E1B"/><path d="M20 8a8 8 0 0 1 0 12 8 8 0 0 1 0-12z" fill="#FF5F00"/></svg>
+                        <svg viewBox="0 0 40 28" title="Elo"><rect width="40" height="28" rx="3" fill="#FFCB05"/><text x="20" y="19" font-size="10" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
+                        <svg viewBox="0 0 40 28" title="Hipercard"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="8" fill="#ef4444" text-anchor="middle" font-weight="bold">HIPER</text></svg>
+                    </div>
                 </form>
             </template>
 
+            <!-- PIX Copy Logic -->
             <template x-if="billingType === 'PIX'">
-                <div style="text-align: center;">
+                <div style="width: 100%;">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; text-align: center;">
+                        Escaneie o código QR ou copie o código PIX abaixo para pagar.
+                    </p>
+                    
                     <button @click="copyPixCode()" class="cta-button">
-                        <span x-show="!pixCopied">Copiar Código PIX</span>
-                        <span x-show="pixCopied">Copiado!</span>
+                        <span x-show="!pixCopied"><i class="fas fa-copy"></i> Copiar Código PIX</span>
+                        <span x-show="pixCopied"><i class="fas fa-check"></i> Código Copiado!</span>
                     </button>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <div style="font-size: 14px; font-weight: 700; color: #ef4444;">
+                            Expira em: <span x-text="formatTime()"></span>
+                        </div>
+                    </div>
+                    
+                    <div class="pix-info" style="margin-top: 20px; background: #f0fdf4; color: #065f46; border: 1px solid #bbf7d0;">
+                        <i class="fas fa-clock"></i> O pagamento é processado instantaneamente 24/7.
+                    </div>
                 </div>
             </template>
             
-            <div class="security-footer">Pagamento 100% Seguro</div>
+            <div class="security-footer">
+                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                Pagamento 100% Seguro
+            </div>
         </div>
     </div>
 </body>

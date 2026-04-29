@@ -4,648 +4,794 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $plano }} - Pagamento Basileia</title>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="/js/card-engine.js"></script>
+    <title>{{ $plano }} - Basileia Checkout</title>
+    
+    <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        html, body {
-            height: 100%;
-            margin: 0;
-            padding: 0;
-            overflow-x: hidden;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6b3fa0 100%);
+        :root {
+            --primary: #7c3aed;
+            --primary-dark: #6d28d9;
+            --primary-light: #a78bfa;
+            --accent: #10b981;
+            --bg-deep: #0f0a1e;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
         }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
             font-family: 'Inter', sans-serif;
+            background-color: var(--bg-deep);
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%);
             min-height: 100vh;
-            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #6b3fa0 100%);
-            background-attachment: fixed;
-            padding: 20px;
+            color: white;
+            overflow-x: hidden;
         }
-        .main-card {
-            width: 1100px;
-            min-height: 650px;
-            border-radius: 28px;
+
+        /* Animated background mesh */
+        .mesh-gradient {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            filter: blur(100px);
+            opacity: 0.5;
+        }
+        .mesh-ball-1 { position: absolute; top: 10%; left: 10%; width: 400px; height: 400px; background: #4f46e5; border-radius: 50%; animation: float 20s infinite alternate; }
+        .mesh-ball-2 { position: absolute; bottom: 10%; right: 10%; width: 500px; height: 500px; background: #7c3aed; border-radius: 50%; animation: float 25s infinite alternate-reverse; }
+
+        @keyframes float {
+            0% { transform: translate(0, 0); }
+            100% { transform: translate(100px, 50px); }
+        }
+
+        .checkout-wrapper {
+            display: flex;
+            width: 100%;
+            max-width: 1100px;
+            min-height: 720px;
+            background: rgba(15, 10, 30, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            margin: 20px;
             overflow: hidden;
-            background: #fff;
-            box-shadow: 0 20px 60px rgba(80,40,140,0.12);
-            display: grid;
-            grid-template-columns: 49% 51%;
-            position: relative;
+            animation: fadeIn 0.8s ease-out;
         }
-        .left-panel {
-            background: linear-gradient(145deg, #5a1d9a 0%, #7b2ff7 50%, #9944dd 100%);
-            padding: 40px 44px 30px;
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Left Panel - Summary */
+        .summary-panel {
+            flex: 1;
+            padding: 60px;
             display: flex;
             flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-        .left-panel::before {
-            content: '';
-            position: absolute;
-            top: -40%;
-            right: -30%;
-            width: 80%;
-            height: 80%;
-            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
-            pointer-events: none;
-        }
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 2;
-        }
-        .brand-logo {
-            width: 52px;
-            height: 52px;
-            border-radius: 12px;
-            background: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        .brand-logo span { color: #7b2ff7; font-size: 26px; font-weight: 800; }
-        .brand-text { color: #fff; font-size: 28px; font-weight: 700; }
-        .plan-badge {
-            display: inline-block;
-            padding: 10px 24px;
-            border-radius: 999px;
-            background: rgba(255,255,255,0.18);
-            color: #fff;
-            font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.8px;
-            margin-bottom: 20px;
-            width: fit-content;
-            position: relative;
-            z-index: 2;
-        }
-        .plan-title {
-            color: #fff;
-            font-size: 42px;
-            font-weight: 700;
-            line-height: 1.1;
-            margin-bottom: 6px;
-            position: relative;
-            z-index: 2;
-        }
-        .price-row {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-            color: #fff;
-            margin-bottom: 30px;
-            position: relative;
-            z-index: 2;
-        }
-        .price-currency { font-size: 24px; font-weight: 500; }
-        .price-value { font-size: 56px; font-weight: 800; line-height: 1; }
-        .price-period { font-size: 15px; font-weight: 500; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
-        .features {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            position: relative;
-            z-index: 2;
-            margin-bottom: auto;
-        }
-        .feature-item {
-            display: grid;
-            grid-template-columns: 30px 1fr;
-            column-gap: 14px;
-            align-items: start;
-        }
-        .feature-icon {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            background: #54d28a;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 15px;
-            font-weight: 700;
-            margin-top: 2px;
-        }
-        .feature-title { color: #fff; font-size: 17px; font-weight: 600; }
-        .feature-desc { color: rgba(255,255,255,0.82); font-size: 14px; margin-top: 2px; }
-        .left-bottom {
-            position: relative;
-            z-index: 2;
-            margin-top: auto;
-            padding-top: 20px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-        .left-security-title { color: #fff; font-size: 18px; font-weight: 600; }
-        .left-security-desc { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 4px; }
-        .card-brands {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: rgba(255,255,255,0.92);
-            padding: 10px 20px;
-            border-radius: 10px;
-            margin-top: 14px;
-            width: fit-content;
-        }
-        .right-panel {
-            background: #fbf8fc;
-            padding: 36px 48px 24px;
-            display: flex;
-            flex-direction: column;
+            border-right: 1px solid var(--glass-border);
             position: relative;
         }
-        .form-title { color: #221749; font-size: 26px; font-weight: 700; margin-bottom: 14px; }
-        .payment-via {
+
+        .logo-container {
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 18px;
+            margin-bottom: 60px;
         }
-        .payment-label { color: #817796; font-size: 13px; font-weight: 500; }
-        .payment-chip {
-            padding: 8px 16px;
-            border-radius: 8px;
-            background: linear-gradient(90deg, #7b35f4, #9b59b6);
-            color: #fff;
-            font-size: 12px;
-            font-weight: 600;
-        }
-        .form-label { display: block; color: #43395d; font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-        .form-input {
-            width: 100%;
-            height: 44px;
-            border: 1px solid #e1dbe9;
-            border-radius: 10px;
-            background: #fbf9fd;
-            color: #2b2340;
-            padding: 0 14px;
-            font-size: 14px;
-            font-family: 'Inter', sans-serif;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        .form-input::placeholder { color: #a99fbb; }
-        .form-input:focus { outline: none; border-color: #7b2ff7; box-shadow: 0 0 0 3px rgba(123,47,247,0.08); }
-        .form-input.input-error { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
-        .form-input.input-valid { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
-        .form-group { margin-bottom: 10px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .cta-button {
-            width: 100%;
+
+        .logo-icon {
+            width: 48px;
             height: 48px;
-            border: none;
+            background: white;
             border-radius: 12px;
-            background: linear-gradient(90deg, #7b2ff7, #a855f7);
-            color: #fff;
-            font-size: 15px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
-            box-shadow: 0 6px 16px rgba(123,47,247,0.25);
-            margin-top: 8px;
-            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
         }
-        .cta-button:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(123,47,247,0.35); }
-        .cta-button:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .security-footer {
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .badge-secure {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 16px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-radius: 99px;
+            margin-bottom: 32px;
+        }
+
+        .plan-selection {
+            margin-bottom: 40px;
+        }
+
+        .plan-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--primary-light);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .plan-name {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+        .price-box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 24px;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 40px;
+        }
+
+        .currency-symbol {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--primary-light);
+        }
+
+        .price-val {
+            font-size: 56px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .price-period {
+            font-size: 16px;
+            color: var(--text-muted);
+        }
+
+        .feature-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .feature-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .feature-check {
+            width: 20px;
+            height: 20px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .feature-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #d1d5db;
+        }
+
+        .summary-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            padding-top: 40px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Right Panel - Payment */
+        .payment-panel {
+            flex: 1.1;
+            background: var(--card-bg);
+            padding: 60px;
+            color: var(--text-main);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .payment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 40px;
+        }
+
+        .payment-title {
+            font-size: 28px;
+            font-weight: 800;
+            color: #111827;
+        }
+
+        .timer-box {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px;
+        }
+
+        .timer-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .timer-value { 
+            font-family: 'JetBrains Mono', monospace;
+            background: #fee2e2;
+            color: #ef4444;
+            padding: 4px 12px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 16px;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        /* Country Selector */
+        .locale-select {
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .custom-select {
+            position: relative;
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #3ca95c;
-            font-size: 13px;
-            font-weight: 500;
-            margin-top: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .custom-select:hover { border-color: var(--primary-light); }
+
+        /* Card Preview */
+        .card-container {
+            perspective: 1000px;
+            margin-bottom: 40px;
         }
 
-        /* Card 3D */
-        .card-scene {
-            perspective: 1000px;
+        .card-preview {
             width: 100%;
-            max-width: 340px;
-            height: 200px;
-            margin: 0 auto 24px;
+            height: 220px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             cursor: pointer;
         }
-        .card-inner {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
-            transform-style: preserve-3d;
-        }
-        .card-inner.is-flipped { transform: rotateY(180deg); }
+
+        .card-preview.flipped { transform: rotateY(180deg); }
+
         .card-face {
             position: absolute;
             width: 100%;
             height: 100%;
             backface-visibility: hidden;
-            border-radius: 16px;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
             overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         }
-        .card-front {
+
+        .card-face-front {
+            background: linear-gradient(135deg, #7c3aed 0%, #4c1d95 100%);
+            color: white;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: 24px;
-            color: #fff;
         }
-        .card-back { transform: rotateY(180deg); display: flex; flex-direction: column; justify-content: center; }
-        .card-back-bg { position: absolute; top: 0; left: 0; right: 0; bottom: 0; }
-        .card-back-magnetic { height: 45px; background: rgba(0,0,0,0.6); margin-top: 30px; }
-        .card-back-strip {
-            height: 36px;
-            background: rgba(255,255,255,0.9);
-            margin: 16px 20px;
-            border-radius: 6px;
+
+        .card-face-back {
+            background: linear-gradient(135deg, #4c1d95 0%, #2e1065 100%);
+            transform: rotateY(180deg);
+            padding: 0;
             display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 0 16px;
+            flex-direction: column;
+            justify-content: center;
         }
-        .card-back-strip .cvc-display {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 18px;
-            color: #333;
-            letter-spacing: 3px;
-            font-weight: 700;
-        }
-        .card-top-row { display: flex; justify-content: space-between; align-items: flex-start; }
-        .card-chip {
-            width: 45px;
-            height: 34px;
-            border-radius: 6px;
-            background: linear-gradient(135deg, #f0c040, #d4a020);
-            position: relative;
-            overflow: hidden;
-        }
-        .card-chip::before {
-            content: '';
+
+        .card-gloss {
             position: absolute;
-            top: 50%; left: 0; right: 0;
-            height: 1px;
-            background: rgba(0,0,0,0.15);
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+            pointer-events: none;
         }
+
+        .card-chip {
+            width: 50px;
+            height: 38px;
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            border-radius: 6px;
+            position: relative;
+        }
+
         .card-chip::after {
             content: '';
             position: absolute;
-            left: 50%; top: 0; bottom: 0;
-            width: 1px;
-            background: rgba(0,0,0,0.15);
+            top: 50%; left: 0; width: 100%; height: 1px; background: rgba(0,0,0,0.1);
         }
-        .card-contactless { width: 30px; height: 30px; opacity: 0.7; }
-        .card-contactless svg { width: 100%; height: 100%; }
-        .card-brand-logo { height: 36px; display: flex; align-items: center; }
-        .card-brand-logo svg { height: 100%; width: auto; }
-        .card-number-display {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 20px;
-            letter-spacing: 3px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-            word-spacing: 8px;
-        }
-        .card-bottom-row { display: flex; justify-content: space-between; align-items: flex-end; }
-        .card-holder-display {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            opacity: 0.9;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .card-holder-label {
-            font-size: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.6;
-            margin-bottom: 2px;
-        }
-        .card-expiry-display { text-align: right; }
-        .card-expiry-label {
-            font-size: 8px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.6;
-            margin-bottom: 2px;
-        }
-        .card-expiry-value {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 14px;
-            letter-spacing: 1px;
-        }
-        .card-shine {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.05) 100%);
-            pointer-events: none;
-        }
-        .card-pattern {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            opacity: 0.08;
-            background-image: radial-gradient(circle at 20% 50%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 0%, transparent 40%);
-            pointer-events: none;
-        }
-        .brand-visa { background: linear-gradient(135deg, #1a1f71, #2b3990, #1a1f71); }
-        .brand-mastercard { background: linear-gradient(135deg, #eb001b, #f79e1b); }
-        .brand-amex { background: linear-gradient(135deg, #006fcf, #00a1e0); }
-        .brand-elo { background: linear-gradient(135deg, #0047bb, #0066cc); }
-        .brand-default { background: linear-gradient(135deg, #2d2d2d, #4a4a4a); }
-        .card-scene:hover .card-inner { transform: rotateY(5deg) rotateX(-3deg); }
-        .card-scene:hover .card-inner.is-flipped { transform: rotateY(185deg) rotateX(-3deg); }
 
-        /* Pre-filled info */
-        .customer-info {
-            background: rgba(123, 47, 247, 0.08);
-            border: 1px solid rgba(123, 47, 247, 0.15);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
+        .card-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 22px;
+            letter-spacing: 4px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
-        .customer-info-row {
+
+        .card-info-row {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(123, 47, 247, 0.1);
+            align-items: flex-end;
         }
-        .customer-info-row:last-child { border-bottom: none; }
-        .customer-info-label { font-size: 12px; color: #817796; text-transform: uppercase; letter-spacing: 0.5px; }
-        .customer-info-value { font-size: 14px; font-weight: 600; color: #221749; }
 
-        @media (max-width: 768px) {
-            .main-card { grid-template-columns: 1fr; width: 100%; min-height: auto; }
-            .left-panel { padding: 30px 24px; }
-            .right-panel { padding: 24px; }
-            .plan-title { font-size: 32px; }
-            .price-value { font-size: 40px; }
-            .card-scene { max-width: 300px; height: 180px; }
+        .info-label { font-size: 9px; font-weight: 700; opacity: 0.6; text-transform: uppercase; margin-bottom: 4px; }
+        .info-value { font-size: 14px; font-weight: 600; text-transform: uppercase; }
+
+        .magnetic-stripe { height: 44px; background: #111; width: 100%; margin-top: 20px; }
+        .signature-area { 
+            height: 40px; 
+            background: rgba(255,255,255,0.9); 
+            margin: 20px; 
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+        }
+        .cvv-text { font-family: 'JetBrains Mono', monospace; color: #111; font-weight: 700; letter-spacing: 2px; }
+
+        /* Form */
+        .payment-form {
+            display: grid;
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-label {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            color: var(--text-muted);
+            width: 18px;
+        }
+
+        .form-control {
+            width: 100%;
+            height: 52px;
+            background: #f9fafb;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 0 16px 0 44px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-main);
+            transition: all 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            background: white;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .submit-btn {
+            height: 56px;
+            background: linear-gradient(to right, var(--primary), #a855f7);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px -5px rgba(124, 58, 237, 0.4);
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -5px rgba(124, 58, 237, 0.5);
+        }
+
+        .submit-btn:active { transform: translateY(0); }
+
+        .submit-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .footer-badges {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 24px;
+            margin-top: 32px;
+            opacity: 0.5;
+            filter: grayscale(1);
+            transition: all 0.3s;
+        }
+
+        .footer-badges:hover { opacity: 0.8; filter: grayscale(0); }
+
+        @media (max-width: 900px) {
+            .checkout-wrapper { flex-direction: column; max-width: 500px; height: auto; }
+            .summary-panel { border-right: none; border-bottom: 1px solid var(--glass-border); padding: 40px; }
+            .payment-panel { padding: 40px; }
         }
     </style>
 </head>
-<body
-    x-data="{
-        cardNumber: '',
-        cardExpiry: '',
-        cardCvv: '',
-        cardHolder: '',
-        detectedBrand: 'default',
-        isFlipped: false,
-        isProcessing: false,
-        validationState: { number: '', expiry: '', cvv: '', holder: '' },
-        formatCardNumber(value) {
-            const digits = value.replace(/\\D/g, '').substring(0, 19);
-            const groups = digits.match(/.{1,4}/g) || [];
-            return groups.join(' ');
-        },
-        getDisplayNumber() {
-            if (!this.cardNumber) return '•••• •••• •••• ••••';
-            return this.formatCardNumber(this.cardNumber).padEnd(19, '•');
-        },
-        getDisplayExpiry() { return this.cardExpiry || 'MM/AA'; },
-        getDisplayHolder() { return this.cardHolder ? this.cardHolder.toUpperCase() : 'FULL NAME'; },
-        getDisplayCvv() { return this.cardCvv || '•••'; },
-        handleCardNumberInput(e) {
-            const raw = e.target.value.replace(/\\D/g, '').substring(0, 19);
-            this.cardNumber = raw;
-            e.target.value = this.formatCardNumber(raw);
-            if (raw.length >= 6) {
-                this.detectedBrand = this.detectBrand(raw);
-                this.validationState.number = 'valid';
-            } else {
-                this.validationState.number = '';
-            }
-        },
-        detectBrand(number) {
-            const digits = number.replace(/\\D/g, '');
-            if (/^4/.test(digits)) return 'visa';
-            if (/^5[1-5]/.test(digits) || /^2[2-7]/.test(digits)) return 'mastercard';
-            if (/^3[47]/.test(digits)) return 'amex';
-            if (/^(636368|438935|504175|451416|636297|5067|4576|4011)/.test(digits)) return 'elo';
-            return 'default';
-        },
-        handleExpiryInput(e) {
-            let raw = e.target.value.replace(/\\D/g, '').substring(0, 4);
-            if (raw.length >= 2) {
-                raw = raw.substring(0, 2) + '/' + raw.substring(2);
-            }
-            this.cardExpiry = raw;
-            e.target.value = raw;
-            if (raw.length === 5) this.validationState.expiry = 'valid';
-            else this.validationState.expiry = '';
-        },
-        handleCvvInput(e) {
-            this.cardCvv = e.target.value.replace(/\\D/g, '').substring(0, 4);
-            e.target.value = this.cardCvv;
-            if (this.cardCvv.length >= 3) this.validationState.cvv = 'valid';
-            else this.validationState.cvv = '';
-        },
-        handleHolderInput(e) {
-            this.cardHolder = e.target.value;
-            if (this.cardHolder.trim().length >= 3) this.validationState.holder = 'valid';
-            else this.validationState.holder = '';
-        },
-        flipCard() { this.isFlipped = !this.isFlipped; },
-        focusCvv() { this.isFlipped = true; },
-        blurCvv() { this.isFlipped = false; },
-        isFormValid() {
-            return this.validationState.number === 'valid' &&
-                   this.validationState.expiry === 'valid' &&
-                   this.validationState.cvv === 'valid' &&
-                   this.validationState.holder === 'valid';
-        },
-        async handleSubmit(e) {
-            e.preventDefault();
-            if (!this.isFormValid() || this.isProcessing) return;
-            this.isProcessing = true;
-            e.target.submit();
-        }
-    }"
->
-    <section class="main-card">
-        <div class="left-panel">
-            <div class="brand">
-                <div class="brand-logo"><span>B</span></div>
-                <div class="brand-text">Basileia</div>
-            </div>
-            <div class="plan-badge">{{ strtoupper($ciclo) }}</div>
-            <h1 class="plan-title">{{ $plano }}</h1>
-            <div class="price-row">
-                <span class="price-currency">R$</span>
-                <span class="price-value">{{ number_format($transaction->amount, 2, ',', '.') }}</span>
-                <span class="price-period">{{ $ciclo === 'anual' ? '/ano' : '/mês' }}</span>
-            </div>
-            <div class="features">
-                <div class="feature-item">
-                    <div class="feature-icon">✓</div>
-                    <div>
-                        <div class="feature-title">Acesso Completo</div>
-                        <div class="feature-desc">Todos os recursos do plano</div>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">✓</div>
-                    <div>
-                        <div class="feature-title">Renovação Automática</div>
-                        <div class="feature-desc">Sem necessidade de ação manual</div>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">✓</div>
-                    <div>
-                        <div class="feature-title">Suporte Prioritário</div>
-                        <div class="feature-desc">Assistência dedicada</div>
-                    </div>
-                </div>
-            </div>
-            <div class="left-bottom">
-                <div class="left-security-title">Pagamento 100% Seguro</div>
-                <div class="left-security-desc">Seus dados são protegidos por criptografia SSL.</div>
-                <div class="card-brands">
-                    <div style="background: white; border-radius: 4px; padding: 4px 8px; display: flex; align-items: center; justify-content: center;">
-                        <svg viewBox="0 0 48 24" width="40" height="20">
-                            <path d="M18.2 18.5l2.8-13h2.1l-2.8 13h-2.1zm11.7-12.7c-0.5-0.2-1.3-0.4-2.2-0.4-2.4 0-4.1 1.3-4.1 3.1 0 1.4 1.2 2.1 2.2 2.6 1 0.5 1.4 0.8 1.4 1.2 0 0.7-0.8 1-1.5 1-1 0-1.7-0.2-2.7-0.6l-0.4 1.8c0.5 0.2 1.5 0.4 2.5 0.4 2.4 0 4-1.2 4-3 0-1-0.6-1.8-1.9-2.4-0.8-0.4-1.3-0.7-1.3-1.2 0-0.4 0.5-0.9 1.5-0.9 0.9 0 1.5 0.2 2 0.4l0.4-1.8zm6.5 12.7h2l-1.8-13h-1.8c-0.6 0-1 0.3-1.2 0.9l-4.4 10.6h2.2l0.4-1.2h2.7l0.3 1.2zm-2-3.1l1.1-3 0.6 3h-1.7zm-26.6-9.6l-0.2 1.1c1.2 0.3 2.5 0.8 3.3 1.3l1.8 7.2h2.2l3.4-13h-2.2l-2.1 8.3-0.9-4.3c-0.3-1-1.1-1.8-2.1-2.2-1.2-0.6-2.4-1-3.2-1.4" fill="#1A1F71"/>
-                        </svg>
-                    </div>
-                    <svg viewBox="0 0 24 18" width="44" height="34">
-                        <circle cx="7" cy="9" r="7" fill="#eb001b" />
-                        <circle cx="17" cy="9" r="7" fill="#f79e1b" opacity="0.85" />
-                        <path d="M12 2.2a7 7 0 0 1 0 13.6 7 7 0 0 1 0-13.6z" fill="#ff5f00" />
-                    </svg>
-                    <svg viewBox="0 0 80 30"><rect width="80" height="30" rx="4" fill="#006FCF"/><text x="40" y="19" font-size="11" fill="#fff" text-anchor="middle" font-weight="bold">AMEX</text></svg>
-                    <svg viewBox="0 0 60 30"><rect width="60" height="30" rx="4" fill="#FFCB05"/><text x="30" y="20" font-size="14" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
-                </div>
-            </div>
-        </div>
+<body x-data="checkoutApp({{ json_encode($i18n) }}, '{{ $currentLocale }}')">
+    <div class="mesh-gradient">
+        <div class="mesh-ball-1"></div>
+        <div class="mesh-ball-2"></div>
+    </div>
 
-        <div class="right-panel">
-            <h2 class="form-title">Pagamento Seguro</h2>
-            <div class="payment-via">
-                <span class="payment-label">PAGAMENTO VIA:</span>
-                <span class="payment-chip">CARTÃO DE CRÉDITO</span>
+    <main class="checkout-wrapper">
+        <!-- Left Panel: Order Summary -->
+        <section class="summary-panel">
+            <div class="logo-container">
+                <div class="logo-icon">
+                    <img src="{{ asset('img/basileia-logo-clean-b.png') }}" alt="B" style="width: 32px;">
+                </div>
+                <span class="logo-text">Basiléia</span>
             </div>
 
-            <div class="customer-info">
-                <div class="customer-info-row">
-                    <span class="customer-info-label">Cliente</span>
-                    <span class="customer-info-value">{{ $customerData['name'] }}</span>
+            <div class="badge-secure">
+                <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i>
+                <span x-text="t('secure_checkout')">Checkout 100% Seguro</span>
+            </div>
+
+            <div class="plan-selection">
+                <span class="plan-label" x-text="t('selected_plan')">PLANO SELECIONADO</span>
+                <h1 class="plan-name">{{ $plano }}</h1>
+            </div>
+
+            <div class="price-box">
+                <span class="currency-symbol" x-text="currentCountry.symbol">R$</span>
+                <span class="price-val" x-text="formatPrice({{ $transaction->amount }})">{{ number_format($transaction->amount, 2, ',', '.') }}</span>
+                <span class="price-period" x-text="'/' + (ciclo === 'anual' ? t('year') : t('month'))">/mês</span>
+            </div>
+
+            <div class="feature-list">
+                <div class="feature-row">
+                    <div class="feature-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+                    <div>
+                        <div class="feature-label" x-text="t('immediate_access')">Acesso imediato ao painel</div>
+                        <div style="font-size: 11px; opacity: 0.6;" x-text="t('immediate_access_desc')">Credenciais enviadas no seu e-mail.</div>
+                    </div>
                 </div>
-                <div class="customer-info-row">
-                    <span class="customer-info-label">E-mail</span>
-                    <span class="customer-info-value">{{ $customerData['email'] }}</span>
+                <div class="feature-row">
+                    <div class="feature-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+                    <div>
+                        <div class="feature-label" x-text="t('ai_assistant')">Assistente IA no WhatsApp</div>
+                        <div style="font-size: 11px; opacity: 0.6;" x-text="t('ai_assistant_desc')">Atenda membros 24h com inteligência artificial.</div>
+                    </div>
                 </div>
-                <div class="customer-info-row">
-                    <span class="customer-info-label">Plano</span>
-                    <span class="customer-info-value">{{ $plano }} - {{ $ciclo }}</span>
+                <div class="feature-row">
+                    <div class="feature-check"><i data-lucide="check" style="width: 14px; height: 14px;"></i></div>
+                    <div>
+                        <div class="feature-label" x-text="t('member_management')">Gestão completa de membros</div>
+                        <div style="font-size: 11px; opacity: 0.6;" x-text="t('member_management_desc')">Cadastros, trilha de crescimento e árvore genealógica.</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="card-scene" @click="flipCard()">
-                <div class="card-inner" :class="{ 'is-flipped': isFlipped }">
-                    <div class="card-face card-front" :class="'brand-' + detectedBrand">
-                        <div class="card-pattern"></div>
-                        <div class="card-shine"></div>
-                        <div class="card-top-row">
-                            <div style="display:flex;align-items:center;gap:12px;">
-                                <div class="card-chip"></div>
-                                <div class="card-contactless">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="2">
-                                        <path d="M8.5 16.5a5 5 0 0 1 0-9"/><path d="M12 19a8 8 0 0 0 0-14"/><path d="M15.5 21.5a11 11 0 0 0 0-19"/>
-                                    </svg>
-                                </div>
+            <div class="summary-footer">
+                <span>Basiléia Church © 2026</span>
+                <div style="display:flex; gap: 10px;">
+                    <i data-lucide="lock" style="width: 14px;"></i>
+                    <span x-text="t('encryption_notice')">Criptografia 256-bit</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Payment Details -->
+        <section class="payment-panel">
+            <div class="payment-header">
+                <h2 class="payment-title" x-text="t('payment_details')">Detalhes do Pagamento</h2>
+                <div class="timer-box">
+                    <span class="timer-label" x-text="t('expires_in')">Expira em</span>
+                    <div class="timer-value" x-text="formatTime()">10:00</div>
+                </div>
+            </div>
+
+            <div class="locale-select">
+                <div class="custom-select" @click="showDropdown = !showDropdown" style="position: relative;">
+                    <span x-text="currentCountry.flag"></span>
+                    <span x-text="currentCountry.code" style="font-weight: 700; font-size: 12px;"></span>
+                    <i data-lucide="chevron-down" style="width: 14px;"></i>
+                    
+                    <div x-show="showDropdown" @click.away="showDropdown = false" 
+                         style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; width: 150px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: 8px;">
+                        <template x-for="country in countries" :key="country.code">
+                            <div @click="setCountry(country)" 
+                                 style="padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.2s;"
+                                 onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='transparent'">
+                                <span x-text="country.flag"></span>
+                                <span x-text="country.name" style="font-size: 12px; font-weight: 500; color: #374151;"></span>
                             </div>
-                            <div class="card-brand-logo">
-                                <svg viewBox="0 0 80 30"><text x="40" y="20" font-size="14" font-weight="bold" fill="#fff" text-anchor="middle">VISA</text></svg>
-                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-container">
+                <div class="card-preview" :class="{ 'flipped': isFlipped }">
+                    <div class="card-face card-face-front">
+                        <div class="card-gloss"></div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <div class="card-chip"></div>
+                            <div class="brand-logo" x-html="getBrandLogo()"></div>
                         </div>
-                        <div class="card-number-display" x-text="getDisplayNumber()"></div>
-                        <div class="card-bottom-row">
+                        <div class="card-number" x-text="displayCardNumber">•••• •••• •••• ••••</div>
+                        <div class="card-info-row">
                             <div>
-                                <div class="card-holder-label">TITULAR</div>
-                                <div class="card-holder-display" x-text="getDisplayHolder()"></div>
+                                <div class="info-label" x-text="t('card_holder')">Titular</div>
+                                <div class="info-value" x-text="cardHolder || t('card_holder_placeholder')">Nome no Cartão</div>
                             </div>
-                            <div class="card-expiry-display">
-                                <div class="card-expiry-label">VALIDADE</div>
-                                <div class="card-expiry-value" x-text="getDisplayExpiry()"></div>
+                            <div style="text-align: right;">
+                                <div class="info-label" x-text="t('expiry_date')">Validade</div>
+                                <div class="info-value" x-text="cardExpiry || 'MM/AA'">MM/AA</div>
                             </div>
                         </div>
                     </div>
-                    <div class="card-face card-back brand-default">
-                        <div class="card-back-bg"></div>
-                        <div class="card-back-magnetic"></div>
-                        <div class="card-back-strip">
-                            <span class="cvc-display" x-text="getDisplayCvv()"></span>
+                    <div class="card-face card-face-back">
+                        <div class="magnetic-stripe"></div>
+                        <div class="signature-area">
+                            <div class="cvv-text" x-text="cardCvv || '•••'"></div>
                         </div>
+                        <div style="padding: 15px; font-size: 7px; color: rgba(255,255,255,0.4); text-align: center;" x-text="t('card_property_notice')"></div>
                     </div>
                 </div>
             </div>
 
-            <form method="POST" action="{{ route('basileia.checkout.process', $transaction->asaas_payment_id) }}" @submit="handleSubmit($event)">
+            <form class="payment-form" method="POST" action="{{ route('basileia.checkout.process', $transaction->asaas_payment_id) }}" id="checkoutForm">
                 @csrf
-                
-                <div class="form-group">
-                    <label class="form-label">NÚMERO DO CARTÃO</label>
-                    <input type="text" class="form-input" :class="validationState.number === 'valid' ? 'input-valid' : ''" 
-                           placeholder="1234 5678 9012 3456" 
-                           @input="handleCardNumberInput($event)"
-                           required>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">NOME COMPLETO (ESCRITO NO CARTÃO)</label>
-                    <input type="text" class="form-input" :class="validationState.holder === 'valid' ? 'input-valid' : ''"
-                           placeholder="Nome como está no cartão"
-                           @input="handleHolderInput($event)"
-                           required>
+                <div class="input-group">
+                    <label class="input-label" x-text="t('card_number')">Número do Cartão</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="credit-card" class="input-icon"></i>
+                        <input type="text" name="card_number" class="form-control" 
+                               placeholder="0000 0000 0000 0000" 
+                               x-model="cardNumber" 
+                               @input="formatCardNumber"
+                               @focus="isFlipped = false"
+                               required>
+                    </div>
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">EXPIRAÇÃO</label>
-                        <input type="text" class="form-input" :class="validationState.expiry === 'valid' ? 'input-valid' : ''"
-                               placeholder="MM/AA"
-                               @input="handleExpiryInput($event)"
-                               @focus="focusCvv()"
-                               @blur="blurCvv()"
-                               required>
+                    <div class="input-group">
+                        <label class="input-label" x-text="t('expiry_date')">Validade</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="calendar" class="input-icon"></i>
+                            <input type="text" name="card_expiry" class="form-control" 
+                                   placeholder="MM/AA" 
+                                   x-model="cardExpiry"
+                                   @input="formatExpiry"
+                                   @focus="isFlipped = false"
+                                   required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">CVV</label>
-                        <input type="text" class="form-input" :class="validationState.cvv === 'valid' ? 'input-valid' : ''"
-                               placeholder="123"
-                               @input="handleCvvInput($event)"
+                    <div class="input-group">
+                        <label class="input-label" x-text="t('cvv')">CVV</label>
+                        <div class="input-wrapper">
+                            <i data-lucide="shield" class="input-icon"></i>
+                            <input type="text" name="card_cvv" class="form-control" 
+                                   placeholder="000" 
+                                   x-model="cardCvv"
+                                   maxlength="4"
+                                   @focus="isFlipped = true"
+                                   @blur="isFlipped = false"
+                                   required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" x-text="t('card_holder')">Nome no Cartão</label>
+                    <div class="input-wrapper">
+                        <i data-lucide="user" class="input-icon"></i>
+                        <input type="text" name="card_name" class="form-control" 
+                               :placeholder="t('card_holder_placeholder')" 
+                               x-model="cardHolder"
+                               @focus="isFlipped = false"
                                required>
                     </div>
                 </div>
 
-                <button type="submit" class="cta-button" :disabled="isProcessing">
-                    <span x-show="!isProcessing">Pagar Agora</span>
-                    <span x-show="isProcessing">Processando...</span>
+                <button type="submit" class="submit-btn" :disabled="loading" @click="loading = true">
+                    <template x-if="!loading">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span x-text="t('pay_now')">Inscrever-se Agora</span>
+                            <i data-lucide="arrow-right" style="width: 18px;"></i>
+                        </div>
+                    </template>
+                    <template x-if="loading">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span x-text="t('processing')">Processando...</span>
+                            <div class="spinner" style="width: 16px; height: 16px; border: 2px solid white; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        </div>
+                    </template>
                 </button>
-
-                <div class="security-footer">
-                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
-                    </svg>
-                    Pagamento 100% Seguro
-                </div>
             </form>
-        </div>
-    </section>
+
+            <div class="footer-badges">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" height="12">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" height="20">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" height="18">
+            </div>
+        </section>
+    </main>
+
+    <style>
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+
+    <script>
+        function checkoutApp(i18nData, initialLocale) {
+            return {
+                cardNumber: '',
+                cardExpiry: '',
+                cardCvv: '',
+                cardHolder: '',
+                isFlipped: false,
+                loading: false,
+                showDropdown: false,
+                timeLeft: 600, 
+                i18n: i18nData,
+                locale: initialLocale || 'pt',
+                ciclo: '{{ $ciclo }}',
+                
+                countries: [
+                    { code: 'BR', flag: '🇧🇷', name: 'Brasil', lang: 'pt', currency: 'BRL', symbol: 'R$' },
+                    { code: 'JP', flag: '🇯🇵', name: 'Japan', lang: 'ja', currency: 'JPY', symbol: '¥' },
+                    { code: 'US', flag: '🇺🇸', name: 'USA', lang: 'en', currency: 'USD', symbol: '$' }
+                ],
+
+                get currentCountry() {
+                    return this.countries.find(c => c.lang === this.locale) || this.countries[0];
+                },
+                
+                init() {
+                    lucide.createIcons();
+                    this.startTimer();
+                },
+
+                t(key) {
+                    return (this.i18n[this.locale] && this.i18n[this.locale][key]) || 
+                           (this.i18n['pt'] && this.i18n['pt'][key]) || key;
+                },
+
+                setCountry(country) {
+                    this.locale = country.lang;
+                    this.showDropdown = false;
+                    document.documentElement.lang = country.lang;
+                    // Trigger icon refresh if needed
+                    this.$nextTick(() => lucide.createIcons());
+                },
+
+                formatPrice(amount) {
+                    return new Intl.NumberFormat(this.locale === 'pt' ? 'pt-BR' : (this.locale === 'ja' ? 'ja-JP' : 'en-US'), {
+                        minimumFractionDigits: this.locale === 'ja' ? 0 : 2,
+                        maximumFractionDigits: this.locale === 'ja' ? 0 : 2
+                    }).format(this.locale === 'ja' ? amount * 25 : amount); // Fake conversion for demo if needed
+                },
+
+                formatTime() {
+                    const m = Math.floor(this.timeLeft / 60);
+                    const s = this.timeLeft % 60;
+                    return `${m}:${s.toString().padStart(2, '0')}`;
+                },
+
+                startTimer() {
+                    setInterval(() => {
+                        if (this.timeLeft > 0) this.timeLeft--;
+                    }, 1000);
+                },
+
+                formatCardNumber(e) {
+                    let val = e.target.value.replace(/\D/g, '');
+                    val = val.substring(0, 16);
+                    let formatted = val.match(/.{1,4}/g)?.join(' ') || val;
+                    this.cardNumber = formatted;
+                    e.target.value = formatted;
+                },
+
+                get displayCardNumber() {
+                    return this.cardNumber || '•••• •••• •••• ••••';
+                },
+
+                formatExpiry(e) {
+                    let val = e.target.value.replace(/\D/g, '');
+                    if (val.length >= 2) {
+                        val = val.substring(0, 2) + '/' + val.substring(2, 4);
+                    }
+                    this.cardExpiry = val;
+                    e.target.value = val;
+                },
+
+                getBrandLogo() {
+                    const num = this.cardNumber.replace(/\s/g, '');
+                    if (num.startsWith('4')) return '<span style="font-weight:900;font-style:italic">VISA</span>';
+                    if (num.match(/^5[1-5]/)) return '<span style="font-weight:900">mastercard</span>';
+                    return '<i data-lucide="credit-card"></i>';
+                }
+            }
+        }
+    </script>
 </body>
 </html>

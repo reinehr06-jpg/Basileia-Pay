@@ -18,156 +18,121 @@ class BasileiaCheckoutController extends Controller
 
     public function handle(string $asaasPaymentId, Request $request)
     {
-        try {
-            // Se for um slug de evento, delega para o EventCheckoutController
-            $event = \App\Models\Event::where('slug', $asaasPaymentId)->first();
-            if ($event) {
-                return app(\App\Http\Controllers\Public\EventCheckoutController::class)->show($asaasPaymentId);
-            }
+        Log::info('BasileiaCheckout: Iniciando checkout', [
+            'asaas_payment_id' => $asaasPaymentId,
+            'params' => $request->all(),
+        ]);
 
-            Log::info('BasileiaCheckout: Iniciando link vendor', [
+        $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
+        
+        if (!$asaasPayment) {
+            Log::warning('BasileiaCheckout: Payment not found', [
                 'asaas_payment_id' => $asaasPaymentId,
             ]);
-
-            $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
-
-            if (!$transaction) {
-                // Se não existe a transação, buscamos os dados no Asaas para criar o registro seguro
-                $apiKey = config('services.asaas.api_key');
-                if (empty($apiKey)) {
-                    $defaultGateway = \App\Models\Gateway::where('status', 'active')
-                        ->where('is_default', true)
-                        ->first() ?? \App\Models\Gateway::where('status', 'active')->first();
-                    if ($defaultGateway) {
-                        config(['services.asaas.api_key' => $defaultGateway->getConfig('api_key')]);
-                    }
-                }
-
-                $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
-                if (!$asaasPayment) {
-                    return "Pagamento não encontrado no Asaas.";
-                }
-
-                $customer = $asaasPayment['customer'] ?? [];
-                $isCustomerArray = is_array($customer);
-
-                $transaction = Transaction::create([
-                    'uuid' => (string) Str::uuid(),
-                    'company_id' => \App\Models\Company::first()?->id ?? 1,
-                    'asaas_payment_id' => $asaasPaymentId,
-                    'source' => 'basileia_vendas',
-                    'amount' => $asaasPayment['value'] ?? 0,
-                    'description' => $asaasPayment['description'] ?? 'Pagamento Basiléia',
-                    'payment_method' => $this->mapPaymentMethod($asaasPayment['billingType'] ?? 'CREDIT_CARD'),
-                    'status' => 'pending',
-                    'customer_name' => ($isCustomerArray ? ($customer['name'] ?? '') : '') ?: $request->get('cliente', ''),
-                    'customer_email' => ($isCustomerArray ? ($customer['email'] ?? '') : '') ?: $request->get('email', ''),
-                    'customer_document' => ($isCustomerArray ? ($customer['cpfCnpj'] ?? '') : '') ?: $request->get('documento', ''),
-                    'customer_phone' => ($isCustomerArray ? ($customer['phone'] ?? '') : '') ?: $request->get('whatsapp', ''),
-                ]);
-            }
-
-            // REDIRECIONA PARA O LINK SEGURO (Ocultando os dados da URL)
-            return redirect()->route('checkout.show', $transaction->uuid);
-
-        } catch (\Exception $e) {
-            Log::error('BasileiaCheckout: Handle Error', ['msg' => $e->getMessage()]);
-            return "Erro ao processar checkout seguro.";
+            return view('checkout.error', ['message' => 'Pagamento não encontrado']);
         }
-    }
 
-    public function show(string $uuid, Request $request)
-    {
-        try {
-            $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
+        $customer = $asaasPayment['customer'] ?? [];
+        $billingType = $asaasPayment['billingType'] ?? 'CREDIT_CARD';
+        
+        $customerData = [
+            'name' => $customer['name'] ?? $request->get('cliente', ''),
+            'email' => $customer['email'] ?? '',
+            'phone' => $customer['phone'] ?? '',
+            'document' => $customer['cpfCnpj'] ?? '',
+            'address' => [
+                'street' => $customer['address'] ?? '',
+                'number' => $customer['addressNumber'] ?? '',
+                'neighborhood' => $customer['neighborhood'] ?? '',
+                'city' => $customer['city'] ?? '',
+                'state' => $customer['state'] ?? '',
+                'postalCode' => $customer['postalCode'] ?? '',
+            ],
+        ];
 
-            // Se já foi pago, redireciona para sucesso diretamente
-            if ($transaction->status === 'approved') {
-                return view('BasileiaVendor.premium', [
-                    'step' => 3,
-                    'transaction' => $transaction,
-                    'plano' => $transaction->description,
-                    'ciclo' => 'mensal',
-                ]);
-            }
+        $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
 
-            $asaasPaymentId = $transaction->asaas_payment_id;
+        $plano = $request->get('plano', $asaasPayment['description'] ?? 'Plano');
+        $ciclo = $request->get('ciclo', 'mensal');
+
+        if (!$transaction) {
+            $companyId = \App\Models\Company::first()?->id;
             
-            // Re-configura API Key
-            $apiKey = config('services.asaas.api_key');
-            if (empty($apiKey)) {
-                $defaultGateway = \App\Models\Gateway::where('status', 'active')
-                    ->where('is_default', true)
-                    ->first() ?? \App\Models\Gateway::where('status', 'active')->first();
-                if ($defaultGateway) {
-                    config(['services.asaas.api_key' => $defaultGateway->getConfig('api_key')]);
-                }
-            }
-
-            $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
-            
-            $pixData = [];
-            if (($asaasPayment['billingType'] ?? '') === 'PIX') {
-                $pixData = $this->asaasService->getPixQrCode($asaasPaymentId) ?? [];
-            }
-
-            return view('BasileiaVendor.index', [
-                'step' => $request->get('success') ? 3 : 1,
-                'transaction' => $transaction,
-                'paymentMethod' => strtolower($asaasPayment['billingType'] ?? 'pix'),
-                'asaasPayment' => $asaasPayment,
-                'customerData' => [
-                    'name' => $transaction->customer_name,
-                    'email' => $transaction->customer_email,
-                    'phone' => $transaction->customer_phone,
-                    'document' => $transaction->customer_document,
+            $transaction = Transaction::create([
+                'uuid' => Str::uuid(),
+                'company_id' => $companyId,
+                'asaas_payment_id' => $asaasPaymentId,
+                'source' => 'basileia_vendas',
+                'product_type' => 'saas',
+                'external_id' => $request->get('venda_id', ''),
+                'callback_url' => config('basileia.callback_url', $request->get('callback_url', '')),
+                'amount' => $asaasPayment['value'] ?? 0,
+                'description' => $asaasPayment['description'] ?? 'Pagamento Basileia',
+                'payment_method' => $this->mapPaymentMethod($billingType),
+                'status' => 'pending',
+                'customer_name' => $customerData['name'],
+                'customer_email' => $customerData['email'],
+                'customer_phone' => $customerData['phone'],
+                'customer_document' => $customerData['document'],
+                'customer_address' => json_encode($customerData['address']),
+                'metadata' => [
+                    'plano' => $plano,
+                    'ciclo' => $ciclo,
+                    'venda_id' => $request->get('venda_id', ''),
+                    'hash' => $request->get('hash', ''),
                 ],
-                'plano' => $transaction->description,
-                'ciclo' => 'mensal',
-                'pixData' => $pixData ?? ['payload' => '', 'encodedImage' => ''],
             ]);
 
-        } catch (\Exception $e) {
-            Log::error('BasileiaCheckout: Show Error', ['msg' => $e->getMessage()]);
-            return view('checkout.error', ['message' => 'Link de checkout inválido ou expirado.']);
+            Log::info('BasileiaCheckout: Transação criada', [
+                'transaction_id' => $transaction->id,
+                'uuid' => $transaction->uuid,
+            ]);
         }
+
+        $locale = $request->get('lang', 'pt');
+        app()->setLocale($locale);
+
+        $i18n = [];
+        $locales = ['pt', 'ja', 'en'];
+        foreach ($locales as $l) {
+            $path = base_path("lang/{$l}.json");
+            if (file_exists($path)) {
+                $i18n[$l] = json_decode(file_get_contents($path), true);
+            }
+        }
+
+        return view('checkout.basileia', [
+            'transaction' => $transaction,
+            'asaasPayment' => $asaasPayment,
+            'customerData' => $customerData,
+            'plano' => $plano,
+            'ciclo' => $ciclo,
+            'i18n' => $i18n,
+            'currentLocale' => $locale,
+        ]);
     }
 
-    public function process(string $uuid, Request $request)
+    public function process(string $asaasPaymentId, Request $request)
     {
-        $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
+        $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->firstOrFail();
 
         $request->validate([
-            'card_number' => 'required|string',
-            'card_name' => 'required|string',
+            'card_number' => 'required|string|min:13|max:19',
+            'card_name' => 'required|string|min:3',
             'card_expiry' => 'required|string',
-            'card_cvv' => 'required|string',
-            'customer_name' => 'nullable|string',
-            'customer_email' => 'nullable|email',
-            'customer_document' => 'nullable|string',
+            'card_cvv' => 'required|string|min:3|max:4',
         ]);
 
         try {
-            // Re-configura API Key para o processamento
-            $apiKey = config('services.asaas.api_key');
-            if (empty($apiKey)) {
-                $defaultGateway = \App\Models\Gateway::where('status', 'active')
-                    ->where('is_default', true)
-                    ->first() ?? \App\Models\Gateway::where('status', 'active')->first();
-                if ($defaultGateway) {
-                    config(['services.asaas.api_key' => $defaultGateway->getConfig('api_key')]);
-                }
-            }
-
-            $asaasResponse = $this->asaasService->processCardPayment($transaction->asaas_payment_id, [
+            $asaasResponse = $this->asaasService->processCardPayment($asaasPaymentId, [
                 'card_number' => $request->input('card_number'),
                 'card_name' => $request->input('card_name'),
                 'card_expiry' => $request->input('card_expiry'),
                 'card_cvv' => $request->input('card_cvv'),
-                'card_document' => $request->input('customer_document', $transaction->customer_document),
-                'card_email' => $request->input('customer_email', $transaction->customer_email),
+                'card_document' => $transaction->customer_document,
+                'card_email' => $transaction->customer_email,
                 'card_phone' => $transaction->customer_phone,
-            ]);
+            ], $request->ip());
 
             $status = $this->mapStatus($asaasResponse['status'] ?? '');
             $paidAt = in_array($asaasResponse['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
@@ -175,25 +140,38 @@ class BasileiaCheckoutController extends Controller
             $transaction->update([
                 'status' => $status,
                 'paid_at' => $paidAt,
-                'customer_name' => $request->input('customer_name', $transaction->customer_name),
-                'customer_email' => $request->input('customer_email', $transaction->customer_email),
-                'customer_document' => $request->input('customer_document', $transaction->customer_document),
                 'gateway_response' => json_encode($asaasResponse),
+            ]);
+
+            Log::info('BasileiaCheckout: Pagamento processado', [
+                'transaction_id' => $transaction->id,
+                'asaas_status' => $asaasResponse['status'] ?? 'unknown',
+                'transaction_status' => $status,
             ]);
 
             $this->webhookNotifier->notify($transaction);
 
-            return redirect()->to(route('checkout.show', $uuid) . '?success=1');
+            return redirect()->route('basileia.checkout.success', $transaction->uuid);
 
         } catch (\Exception $e) {
-            Log::error('BasileiaCheckout: Payment processing failed', ['error' => $e->getMessage()]);
-            return back()->withErrors(['payment' => $e->getMessage()])->withInput();
+            Log::error('BasileiaCheckout: Payment processing failed', [
+                'asaas_payment_id' => $asaasPaymentId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->withErrors([
+                'payment' => 'Erro ao processar pagamento: ' . $e->getMessage(),
+            ])->withInput();
         }
     }
 
     public function success(string $uuid)
     {
-        return redirect()->route('checkout.show', $uuid);
+        $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
+        
+        return view('checkout.asaas-success', [
+            'transaction' => $transaction,
+        ]);
     }
 
     private function mapPaymentMethod(string $billingType): string
