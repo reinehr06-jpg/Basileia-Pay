@@ -30,7 +30,7 @@ class BasileiaCheckoutController extends Controller
         return $this->renderCheckout($asaasPaymentId, $transaction, $request);
     }
 
-    private function renderCheckout(string $asaasPaymentId, ?Transaction $transaction, Request $request)
+    private function renderCheckout(string $asaasPaymentId, $transaction, Request $request)
     {
         Log::info('BasileiaCheckout: Renderizando checkout', [
             'asaas_payment_id' => $asaasPaymentId,
