@@ -16,20 +16,29 @@ class BasileiaCheckoutController extends Controller
         private WebhookNotifierService $webhookNotifier,
     ) {}
 
+    public function show(string $uuid, Request $request)
+    {
+        $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
+        return $this->renderCheckout($transaction->asaas_payment_id, $transaction, $request);
+    }
+
     public function handle(string $asaasPaymentId, Request $request)
     {
-        Log::info('BasileiaCheckout: Iniciando checkout', [
+        $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
+        return $this->renderCheckout($asaasPaymentId, $transaction, $request);
+    }
+
+    private function renderCheckout(string $asaasPaymentId, ?Transaction $transaction, Request $request)
+    {
+        Log::info('BasileiaCheckout: Renderizando checkout', [
             'asaas_payment_id' => $asaasPaymentId,
-            'params' => $request->all(),
+            'transaction_uuid' => $transaction?->uuid,
         ]);
 
         $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
         
         if (!$asaasPayment) {
-            Log::warning('BasileiaCheckout: Payment not found', [
-                'asaas_payment_id' => $asaasPaymentId,
-            ]);
-            return view('checkout.error', ['message' => 'Pagamento não encontrado']);
+            return view('checkout.error', ['message' => 'Pagamento não encontrado no gateway']);
         }
 
         $customer = $asaasPayment['customer'] ?? [];
@@ -49,8 +58,6 @@ class BasileiaCheckoutController extends Controller
                 'postalCode' => $customer['postalCode'] ?? '',
             ],
         ];
-
-        $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
 
         $plano = $request->get('plano', $asaasPayment['description'] ?? 'Plano');
         $ciclo = $request->get('ciclo', 'mensal');
@@ -82,11 +89,6 @@ class BasileiaCheckoutController extends Controller
                     'hash' => $request->get('hash', ''),
                 ],
             ]);
-
-            Log::info('BasileiaCheckout: Transação criada', [
-                'transaction_id' => $transaction->id,
-                'uuid' => $transaction->uuid,
-            ]);
         }
 
         $locale = $request->get('lang', 'pt');
@@ -112,9 +114,12 @@ class BasileiaCheckoutController extends Controller
         ]);
     }
 
-    public function process(string $asaasPaymentId, Request $request)
+    public function process(string $uuid, Request $request)
     {
-        $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->firstOrFail();
+        $transaction = Transaction::where('uuid', $uuid)->first() 
+                    ?? Transaction::where('asaas_payment_id', $uuid)->firstOrFail();
+
+        $asaasPaymentId = $transaction->asaas_payment_id;
 
         $request->validate([
             'card_number' => 'required|string|min:13|max:19',

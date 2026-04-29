@@ -157,10 +157,10 @@ Route::prefix('pay')->group(function () {
 });
 
 // --- NOVO CHECKOUT PREMIUM BASILEIA (TOKENIZADO) ---
-Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])->name('checkout.show');
-Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('checkout.short')->middleware('secure.token');
-Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
-Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('checkout.success');
+Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])->name('basileia.checkout.show');
+Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('basileia.checkout.short')->middleware('secure.token');
+Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('basileia.checkout.process');
+Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('basileia.checkout.success');
 
 
 Route::get('/clear-views', function () {

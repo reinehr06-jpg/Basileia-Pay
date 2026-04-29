@@ -618,7 +618,7 @@
                 </div>
             </div>
 
-            <form class="payment-form" method="POST" action="{{ route('basileia.checkout.process', $transaction->asaas_payment_id) }}" id="checkoutForm">
+            <form class="payment-form" method="POST" action="{{ route('basileia.checkout.process', $transaction->uuid) }}" id="checkoutForm">
                 @csrf
                 <div class="input-group">
                     <label class="input-label" x-text="t('card_number')">Número do Cartão</label>
