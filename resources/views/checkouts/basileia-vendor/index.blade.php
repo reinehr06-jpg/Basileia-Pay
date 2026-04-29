@@ -592,14 +592,8 @@
                 </div>
             </div>
 
-            <!-- LAYER 1: PAYMENT -->
-            <div class="layer" x-show="step === 1" 
-                 x-transition:enter="layer-transition"
-                 x-transition:enter-start="layer-enter-start"
-                 x-transition:enter-end="layer-enter-end"
-                 x-transition:leave="layer-transition"
-                 x-transition:leave-start="layer-leave-start"
-                 x-transition:leave-end="layer-leave-end">
+            <!-- LAYER: PAYMENT (Steps 1 & 2) -->
+            <div class="layer" x-show="step === 1 || step === 2">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <div>
                         <div class="summary-label" style="font-size: 10px; margin-bottom: 4px;" x-text="locale === 'pt-BR' ? 'EXPIRA EM' : 'EXPIRES IN'"></div>
@@ -665,12 +659,12 @@
                             <div class="card-face card-front">
                                 <div class="card-chip"></div>
                                 <div class="card-brand-logo default" x-show="cardBrand === 'default'">B</div>
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/visa.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" alt="Visa">
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/mastercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" alt="Mastercard">
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/amex.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'amex' }" alt="Amex">
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/elo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'elo' }" alt="Elo">
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/hipercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'hipercard' }" alt="Hipercard">
-                                <img src="https://cdn.jsdelivr.net/npm/payment-icons@1.1.0/svg/flat/diners.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'diners' }" alt="Diners">
+                                <img src="https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/main/flat-rounded/visa.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'visa' }" alt="Visa">
+                                <img src="https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/main/flat-rounded/mastercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'mastercard' }" alt="Mastercard">
+                                <img src="https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/main/flat-rounded/amex.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'amex' }" alt="Amex">
+                                <img src="https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/main/flat-rounded/elo.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'elo' }" alt="Elo">
+                                <img src="https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/main/flat-rounded/hipercard.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'hipercard' }" alt="Hipercard">
+                                <img src="https://raw.githubusercontent.com/aaronfagan/svg-credit-card-payment-icons/main/flat-rounded/diners.svg" class="card-brand-logo" :class="{ 'visible': cardBrand === 'diners' }" alt="Diners">
                                 
                                 <div class="card-number-display" x-text="formatCardNumber(cardNumber)"></div>
                                 <div class="card-bottom">
