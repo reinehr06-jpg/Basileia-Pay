@@ -617,7 +617,7 @@
                     <i data-lucide="chevron-down" style="width: 14px;"></i>
                     
                     <div x-show="showDropdown" @click.away="showDropdown = false" 
-                         style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; width: 150px; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: 8px;">
+                         style="position: absolute; top: 100%; right: 0; background: white; border: 1px solid #ddd; border-radius: 8px; width: 180px; z-index: 1000; box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-top: 8px; max-height: 200px; overflow-y: auto;">
                         <template x-for="country in countries" :key="country.code">
                             <div @click="setCountry(country)" 
                                  style="padding: 10px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.2s;"
