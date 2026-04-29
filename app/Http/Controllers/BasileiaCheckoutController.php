@@ -83,7 +83,7 @@ class BasileiaCheckoutController extends Controller
 
             // Se já foi pago, redireciona para sucesso diretamente
             if ($transaction->status === 'approved') {
-                return view('checkout.premium', [
+                return view('BasileiaVendor.premium', [
                     'step' => 3,
                     'transaction' => $transaction,
                     'plano' => $transaction->description,
@@ -111,7 +111,7 @@ class BasileiaCheckoutController extends Controller
                 $pixData = $this->asaasService->getPixQrCode($asaasPaymentId) ?? [];
             }
 
-            return view('checkouts.basileia-vendor.index', [
+            return view('BasileiaVendor.index', [
                 'step' => $request->get('success') ? 3 : 1,
                 'transaction' => $transaction,
                 'paymentMethod' => strtolower($asaasPayment['billingType'] ?? 'pix'),
