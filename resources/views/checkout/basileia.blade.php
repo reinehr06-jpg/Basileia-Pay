@@ -107,6 +107,14 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 0 10px rgba(124, 58, 237, 0.15);
+            overflow: hidden;
+        }
+
+        .logo-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            padding: 4px;
         }
 
         .logo-text {
@@ -535,7 +543,7 @@
         <section class="summary-panel">
             <div class="logo-container">
                 <div class="logo-icon">
-                    <img src="{{ asset('img/basileia-logo-clean-b.png') }}" alt="B" style="width: 32px;">
+                    <img src="{{ asset('img/basileia-logo.png') }}" alt="Basiléia">
                 </div>
                 <span class="logo-text">Basiléia</span>
             </div>
@@ -584,7 +592,7 @@
                 <span>Basiléia Church © 2026</span>
                 <div style="display:flex; gap: 10px;">
                     <i data-lucide="lock" style="width: 14px;"></i>
-                    <span x-text="t('encryption_notice')">Criptografia 256-bit</span>
+                    <span x-text="t('encryption_notice')">Conexão Segura SSL</span>
                 </div>
             </div>
         </section>
@@ -723,10 +731,9 @@
                 </button>
             </form>
 
-            <div class="footer-badges">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" alt="Visa" height="12">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" height="20">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/b/b5/PayPal.svg" alt="PayPal" height="18">
+            <div class="summary-footer" style="margin-top: auto; padding-top: 30px; border-top: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 11px; color: var(--text-muted);">
+                <i data-lucide="shield-check" style="width: 14px; color: #22c55e;"></i>
+                <span x-text="t('secure_checkout')">Pagamento 100% Seguro</span>
             </div>
         </section>
     </main>
@@ -756,11 +763,24 @@
                     { code: 'JP', flag: '🇯🇵', name: 'Japan', lang: 'ja', currency: 'JPY', symbol: '¥' },
                     { code: 'ES', flag: '🇪🇸', name: 'España', lang: 'es', currency: 'EUR', symbol: '€' },
                     { code: 'PT', flag: '🇵🇹', name: 'Portugal', lang: 'pt', currency: 'EUR', symbol: '€' },
-                    { code: 'DE', flag: '🇩🇪', name: 'Deutschland', lang: 'de', currency: 'EUR', symbol: '€' },
+                    { code: 'GB', flag: '🇬🇧', name: 'United Kingdom', lang: 'en', currency: 'GBP', symbol: '£' },
                     { code: 'FR', flag: '🇫🇷', name: 'France', lang: 'fr', currency: 'EUR', symbol: '€' },
+                    { code: 'DE', flag: '🇩🇪', name: 'Deutschland', lang: 'de', currency: 'EUR', symbol: '€' },
                     { code: 'IT', flag: '🇮🇹', name: 'Italia', lang: 'it', currency: 'EUR', symbol: '€' },
+                    { code: 'CA', flag: '🇨🇦', name: 'Canada', lang: 'en', currency: 'CAD', symbol: '$' },
+                    { code: 'AU', flag: '🇦🇺', name: 'Australia', lang: 'en', currency: 'AUD', symbol: '$' },
                     { code: 'CN', flag: '🇨🇳', name: 'China', lang: 'zh', currency: 'CNY', symbol: '¥' },
-                    { code: 'TR', flag: '🇹🇷', name: 'Türkiye', lang: 'tr', currency: 'TRY', symbol: '₺' }
+                    { code: 'AR', flag: '🇦🇷', name: 'Argentina', lang: 'es', currency: 'ARS', symbol: '$' },
+                    { code: 'CL', flag: '🇨🇱', name: 'Chile', lang: 'es', currency: 'CLP', symbol: '$' },
+                    { code: 'CO', flag: '🇨🇴', name: 'Colombia', lang: 'es', currency: 'COP', symbol: '$' },
+                    { code: 'MX', flag: '🇲🇽', name: 'México', lang: 'es', currency: 'MXN', symbol: '$' },
+                    { code: 'TR', flag: '🇹🇷', name: 'Türkiye', lang: 'tr', currency: 'TRY', symbol: '₺' },
+                    { code: 'CH', flag: '🇨🇭', name: 'Switzerland', lang: 'en', currency: 'CHF', symbol: 'Fr' },
+                    { code: 'NL', flag: '🇳🇱', name: 'Netherlands', lang: 'nl', currency: 'EUR', symbol: '€' },
+                    { code: 'BE', flag: '🇧🇪', name: 'Belgium', lang: 'fr', currency: 'EUR', symbol: '€' },
+                    { code: 'SE', flag: '🇸🇪', name: 'Sweden', lang: 'sv', currency: 'SEK', symbol: 'kr' },
+                    { code: 'NO', flag: '🇳🇴', name: 'Norway', lang: 'no', currency: 'NOK', symbol: 'kr' },
+                    { code: 'DK', flag: '🇩🇰', name: 'Denmark', lang: 'da', currency: 'DKK', symbol: 'kr' }
                 ],
 
                 get currentCountry() {
