@@ -151,8 +151,8 @@ Route::get('/{uuid}', [CheckoutController::class, 'show'])
     ->name('checkout.pay');
 
 Route::prefix('pay')->group(function () {
-    Route::post('/{uuid}/process', [CheckoutController::class, 'process'])->name('checkout.process');
-    Route::get('/{uuid}/success', [CheckoutController::class, 'success'])->name('checkout.success');
+    Route::post('/{uuid}/process', [CheckoutController::class, 'process'])->name('checkout.legacy.process');
+    Route::get('/{uuid}/success', [CheckoutController::class, 'success'])->name('checkout.legacy.success');
     Route::get('/{uuid}/receipt', [CheckoutController::class, 'receipt'])->name('checkout.receipt');
 });
 
@@ -258,9 +258,17 @@ Route::get('/demo/pix/{uuid}', function ($uuid) {
 Route::get('/demo/cartao/{uuid}', function ($uuid) {
     $resource = Transaction::where('uuid', $uuid)->firstOrFail();
 
-    return view('checkout.index-card', [
+    return view('BasileiaVendor.index', [
+        'step' => 1,
         'transaction' => $resource,
-        'billingType' => 'CREDIT_CARD',
+        'customerData' => [
+            'name' => $resource->customer_name ?? '',
+            'email' => $resource->customer_email ?? '',
+            'phone' => $resource->customer_phone ?? '',
+            'document' => $resource->customer_document ?? '',
+        ],
+        'plano' => $resource->description,
+        'ciclo' => 'mensal',
     ]);
 })->name('demo.cartao');
 
