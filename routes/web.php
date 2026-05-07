@@ -147,7 +147,7 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
 
 // Minimalist Checkout Links (secure.basileia.global/{uuid})
 Route::get('/{uuid}', [CheckoutController::class, 'show'])
-    ->where('uuid', '[a-zA-Z0-9-]+')
+    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
     ->name('checkout.pay');
 
 Route::prefix('pay')->group(function () {
@@ -157,7 +157,20 @@ Route::prefix('pay')->group(function () {
 });
 
 // --- NOVO CHECKOUT PREMIUM BASILEIA (TOKENIZADO) ---
-Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])->name('checkout.show');
+// Rota para a aplicação Next.js (sem UUID)
+Route::get('/checkout', function () {
+    $htmlPath = public_path('checkout-app/index.html');
+    if (file_exists($htmlPath)) {
+        return response(file_get_contents($htmlPath));
+    }
+    return abort(404);
+});
+
+// Rota para o processamento de pagamento (com UUID válido)
+Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])
+    ->name('checkout.show')
+    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
 Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('checkout.short')->middleware('secure.token');
 Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
 Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('checkout.success');

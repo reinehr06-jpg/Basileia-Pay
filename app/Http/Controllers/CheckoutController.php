@@ -20,10 +20,13 @@ class CheckoutController extends Controller
 
     /**
      * Show the checkout page.
-     * GET /pay/{uuid}
-     */
     public function show(Request $request, string $uuid)
     {
+        // Valida formato UUID antes de bater no banco (camada dupla de segurança)
+        if (!preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $uuid)) {
+            return $this->showDemo($request, $uuid);
+        }
+
         $resource = Transaction::where('uuid', $uuid)->first() 
                    ?? Subscription::where('uuid', $uuid)->firstOrFail();
 
@@ -180,5 +183,31 @@ class CheckoutController extends Controller
         ];
 
         return view('checkout.receipt_template', ['transaction' => $resource, 'company' => $company, 'receipt' => $receipt]);
+    /**
+     * Show a demo/fallback version of the checkout.
+     */
+    private function showDemo(Request $request, string $uuid)
+    {
+        $htmlPath = public_path('checkout-app/index.html');
+        if (!file_exists($htmlPath)) {
+            return response("Checkout app not found at public/checkout-app/index.html", 404);
+        }
+
+        $html = file_get_contents($htmlPath);
+        
+        $checkoutData = [
+            'uuid' => 'demo',
+            'amount' => 5.12,
+            'description' => 'Basiléia Church — Plano Anual (Demo)',
+            'customerName' => 'Usuário Demonstração',
+            'customerEmail' => 'demo@basileia.global',
+            'csrfToken' => csrf_token(),
+            'step' => 1,
+        ];
+
+        $injection = "<script>window.CHECKOUT_DATA = " . json_encode($checkoutData) . ";</script>";
+        $html = str_replace('<head>', "<head>\n    " . $injection, $html);
+
+        return response($html);
     }
 }
