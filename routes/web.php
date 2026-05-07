@@ -167,6 +167,7 @@ Route::prefix('pay')->group(function () {
 Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('checkout.short')->middleware('secure.token');
 Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
 Route::get('/checkout/success/{uuid}', [BasileiaCheckoutController::class, 'success'])->name('checkout.success');
+Route::get('/checkout/status/{uuid}', [BasileiaCheckoutController::class, 'status'])->name('checkout.status');
 
 
 Route::get('/clear-views', function () {

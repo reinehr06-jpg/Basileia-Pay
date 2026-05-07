@@ -146,4 +146,50 @@ class AsaasGateway implements PaymentGatewayInterface
             'raw' => $json,
         ];
     }
+
+    public function chargeViaPix(array $input, string $customerId): array
+    {
+        $amountBRL = $input['amountBRL'];
+
+        $payload = [
+            'customer' => $customerId,
+            'billingType' => 'PIX',
+            'value' => $amountBRL,
+            'dueDate' => now()->format('Y-m-d'),
+            'description' => $input['description'] ?? 'Pagamento Pix',
+            'remoteIp' => $input['remoteIp'],
+        ];
+
+        $response = Http::withHeaders($this->getHeaders())
+            ->post("{$this->getBaseUrl()}/payments", $payload);
+
+        $json = $response->json();
+
+        if (!$response->successful()) {
+            throw new \Exception("Asaas Pix charge error: " . json_encode($json));
+        }
+
+        $paymentId = $json['id'];
+
+        // Now we need to fetch the QR Code payload
+        $qrResponse = Http::withHeaders($this->getHeaders())
+            ->get("{$this->getBaseUrl()}/payments/{$paymentId}/pixQrCode");
+
+        $qrJson = $qrResponse->json();
+
+        if (!$qrResponse->successful()) {
+            throw new \Exception("Asaas Pix QR Code error: " . json_encode($qrJson));
+        }
+
+        return [
+            'success' => true,
+            'gatewayId' => $paymentId,
+            'status' => $json['status'],
+            'amountCharged' => $amountBRL,
+            'qrCodeBase64' => $qrJson['encodedImage'] ?? '',
+            'qrCodePayload' => $qrJson['payload'] ?? '',
+            'expiresAt' => $qrJson['expirationDate'] ?? now()->addMinutes(30)->toIso8601String(),
+            'raw' => array_merge($json, ['qrCode' => $qrJson]),
+        ];
+    }
 }

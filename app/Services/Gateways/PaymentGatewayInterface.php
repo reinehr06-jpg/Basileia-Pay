@@ -23,4 +23,11 @@ interface PaymentGatewayInterface
      * @return array [success, gatewayId, status, installments, amountCharged, raw]
      */
     public function createSubscription(array $input, string $customerId): array;
+
+    /**
+     * @param array $input [amountBRL, description, remoteIp]
+     * @param string $customerId
+     * @return array [success, gatewayId, status, amountCharged, qrCodeBase64, qrCodePayload, expiresAt, raw]
+     */
+    public function chargeViaPix(array $input, string $customerId): array;
 }

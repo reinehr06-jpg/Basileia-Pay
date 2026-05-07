@@ -170,55 +170,146 @@ class BasileiaCheckoutController extends Controller
         $transaction = Transaction::where('uuid', $uuid)->first() 
                     ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
 
-        $asaasPaymentId = $transaction->asaas_payment_id ?? $transaction->gateway_subscription_id;
-
-        $request->validate([
-            'card_number' => 'required|string|min:13|max:19',
-            'card_name' => 'required|string|min:3',
-            'card_expiry' => 'required|string',
-            'card_cvv' => 'required|string|min:3|max:4',
-        ]);
-
         try {
-            $asaasResponse = $this->asaasService->processCardPayment($asaasPaymentId, [
-                'card_number' => $request->input('card_number'),
-                'card_name' => $request->input('card_name'),
-                'card_expiry' => $request->input('card_expiry'),
-                'card_cvv' => $request->input('card_cvv'),
-                'card_document' => $transaction->customer_document,
-                'card_email' => $transaction->customer_email,
-                'card_phone' => $transaction->customer_phone,
-            ], $request->ip());
+            $paymentMethod = $request->input('paymentMethod', 'credit_card');
+            $gateway = \App\Services\Gateways\GatewayFactory::create();
 
-            $status = $this->mapStatus($asaasResponse['status'] ?? '');
-            $paidAt = in_array($asaasResponse['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
+            if ($paymentMethod === 'pix') {
+                $request->validate([
+                    'customerData.name' => 'required|string|min:3',
+                    'customerData.email' => 'required|email',
+                    'customerData.document' => 'required|string',
+                ]);
 
-            $transaction->update([
-                'status' => $status,
-                'paid_at' => $paidAt,
-                'gateway_response' => json_encode($asaasResponse),
-            ]);
+                $customerId = $gateway->createCustomer([
+                    'name' => $request->input('customerData.name'),
+                    'email' => $request->input('customerData.email'),
+                    'phone' => '',
+                    'document' => $request->input('customerData.document'),
+                    'zip' => '',
+                ]);
 
-            Log::info('BasileiaCheckout: Pagamento processado', [
-                'transaction_id' => $transaction->id,
-                'asaas_status' => $asaasResponse['status'] ?? 'unknown',
-                'transaction_status' => $status,
-            ]);
+                $result = $gateway->chargeViaPix([
+                    'amountBRL' => $request->input('amountBRL', $transaction->amount),
+                    'description' => $request->input('description', $transaction->description),
+                    'remoteIp' => $request->ip(),
+                ], $customerId);
 
-            $this->webhookNotifier->notify($transaction);
+                $transaction->update([
+                    'asaas_payment_id' => $result['gatewayId'],
+                    'payment_method' => 'pix',
+                    'status' => 'pending',
+                ]);
 
-            return redirect()->route('checkout.success', $transaction->uuid);
+                return response()->json([
+                    'ok' => true,
+                    'status' => 'success',
+                    'paymentMethod' => 'pix',
+                    'qrCodeBase64' => $result['qrCodeBase64'],
+                    'qrCodePayload' => $result['qrCodePayload'],
+                    'expiresAt' => $result['expiresAt'],
+                    'gatewayId' => $result['gatewayId'],
+                ]);
+
+            } else {
+                $request->validate([
+                    'cardToken' => 'required|string',
+                    'cardHolderName' => 'required|string',
+                    'cardExpiry' => 'required|string',
+                    'cardCvv' => 'required|string',
+                ]);
+
+                $customerId = $gateway->createCustomer([
+                    'name' => $request->input('customerData.name'),
+                    'email' => $request->input('customerData.email'),
+                    'phone' => '',
+                    'document' => $request->input('customerData.document'),
+                    'zip' => '',
+                ]);
+
+                $input = [
+                    'amountBRL' => $request->input('amountBRL', $transaction->amount),
+                    'installments' => $request->input('installments', 1),
+                    'description' => $request->input('description', $transaction->description),
+                    'cardToken' => $request->input('cardToken'),
+                    'cardHolderName' => $request->input('cardHolderName'),
+                    'cardExpiry' => $request->input('cardExpiry'),
+                    'cardCvv' => $request->input('cardCvv'),
+                    'remoteIp' => $request->ip(),
+                ];
+
+                $billingCycle = $request->input('billingCycle', 'once');
+
+                if ($billingCycle === 'annual') {
+                    $result = $gateway->createSubscription($input, $customerId);
+                } else {
+                    $result = $gateway->charge($input, $customerId);
+                }
+
+                $status = $this->mapStatus($result['status'] ?? '');
+                $paidAt = in_array($result['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
+
+                $transaction->update([
+                    'asaas_payment_id' => $result['gatewayId'],
+                    'payment_method' => 'credit_card',
+                    'status' => $status,
+                    'paid_at' => $paidAt,
+                    'gateway_response' => json_encode($result['raw']),
+                ]);
+
+                Log::info('BasileiaCheckout: Pagamento processado via GatewayFactory', [
+                    'transaction_id' => $transaction->id,
+                    'status' => $status,
+                ]);
+
+                $this->webhookNotifier->notify($transaction);
+
+                return response()->json([
+                    'ok' => true,
+                    'status' => 'success',
+                    'paymentMethod' => 'credit_card',
+                    'gatewayId' => $result['gatewayId'],
+                ]);
+            }
 
         } catch (\Exception $e) {
             Log::error('BasileiaCheckout: Payment processing failed', [
-                'asaas_payment_id' => $asaasPaymentId,
                 'error' => $e->getMessage(),
             ]);
 
-            return back()->withErrors([
-                'payment' => 'Erro ao processar pagamento: ' . $e->getMessage(),
-            ])->withInput();
+            return response()->json([
+                'ok' => false,
+                'status' => 'error',
+                'error' => 'Erro ao processar pagamento: ' . $e->getMessage(),
+            ], 400);
         }
+    }
+
+    public function status(string $uuid)
+    {
+        $transaction = Transaction::where('uuid', $uuid)->first();
+        if (!$transaction) {
+            return response()->json(['status' => 'not_found'], 404);
+        }
+
+        // Ideally we should sync with Asaas here, but for this polling we just check the local status
+        // or trigger a quick sync if it's pending.
+        if ($transaction->status === 'pending' && $transaction->asaas_payment_id) {
+            $asaasPayment = $this->asaasService->getPayment($transaction->asaas_payment_id);
+            if ($asaasPayment) {
+                $status = $this->mapStatus($asaasPayment['status'] ?? 'PENDING');
+                if ($status !== 'pending') {
+                    $paidAt = in_array($asaasPayment['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
+                    $transaction->update([
+                        'status' => $status,
+                        'paid_at' => $paidAt,
+                    ]);
+                    $this->webhookNotifier->notify($transaction);
+                }
+            }
+        }
+
+        return response()->json(['status' => $transaction->status]);
     }
 
     public function success(string $uuid)
