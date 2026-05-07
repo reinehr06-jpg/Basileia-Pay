@@ -1,6 +1,6 @@
 1:"$Sreact.fragment"
 3:I[10927,["/checkout-app/_next/static/chunks/120m7ir7w-3sq.js"],"OutletBoundary"]
 4:"$Sreact.suspense"
-0:{"rsc":["$","$1","c",{"children":["$L2",null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"8Wtzy807SsZj-cO7V-nts"}
+0:{"rsc":["$","$1","c",{"children":["$L2",null,["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"I8rx_wmgkXfs3FOTtu-_S"}
 5:null
 2:E{"digest":"NEXT_REDIRECT;replace;/checkout;307;"}
