@@ -72,7 +72,7 @@ class TransactionDashboardController extends Controller
 
         $transaction = Transaction::where('company_id', $companyId)
             ->orWhereHas('integration', fn ($q) => $q->where('company_id', $companyId))
-            ->with(['customer', 'integration', 'payments', 'items', 'fraudAnalysis'])
+            ->with(['customer', 'integration', 'payments', 'items'])
             ->find($id);
 
         if (!$transaction) {

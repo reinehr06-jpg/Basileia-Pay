@@ -52,6 +52,7 @@
     </div>
 </div>
 
+{{--
 @if($tx->fraudAnalysis)
 <div class="card animate-up" style="animation-delay: 0.4s; margin-bottom: 24px;">
     <h3 style="font-size: 1rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px;">Análise de Fraude</h3>
@@ -73,6 +74,7 @@
     </div>
 </div>
 @endif
+--}}
 
 @if($tx->items && $tx->items->count())
 <div class="card animate-up" style="animation-delay: 0.5s;">
