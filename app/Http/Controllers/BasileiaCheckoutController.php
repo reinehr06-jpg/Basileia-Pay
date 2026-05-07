@@ -133,16 +133,36 @@ class BasileiaCheckoutController extends Controller
             ];
         }
 
-        return view('checkout.basileia', [
-            'transaction' => $transaction,
-            'asaasPayment' => $asaasPayment,
-            'customerData' => $customerData,
-            'pixData' => $pixData,
-            'plano' => $plano,
-            'ciclo' => $ciclo,
-            'i18n' => $i18n,
-            'currentLocale' => $locale,
-        ]);
+        $htmlPath = public_path('checkout-app/index.html');
+        if (!file_exists($htmlPath)) {
+            return view('checkout.basileia', [
+                'transaction' => $transaction,
+                'asaasPayment' => $asaasPayment,
+                'customerData' => $customerData,
+                'pixData' => $pixData,
+                'plano' => $plano,
+                'ciclo' => $ciclo,
+                'i18n' => $i18n,
+                'currentLocale' => $locale,
+            ]);
+        }
+
+        $html = file_get_contents($htmlPath);
+        
+        $checkoutData = [
+            'uuid' => $transaction->uuid,
+            'amount' => $asaasPayment['value'] ?? 0,
+            'description' => $plano,
+            'customerName' => $customerData['name'],
+            'customerEmail' => $customerData['email'],
+            'csrfToken' => csrf_token(),
+            'step' => 1,
+        ];
+
+        $injection = "<script>window.CHECKOUT_DATA = " . json_encode($checkoutData) . ";</script>";
+        $html = str_replace('<head>', "<head>\n    " . $injection, $html);
+
+        return response($html);
     }
 
     public function process(string $uuid, Request $request)
