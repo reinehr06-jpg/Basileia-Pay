@@ -143,21 +143,8 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
     Route::delete('/sources/{source}', [SourceConfigController::class, 'destroy'])->name('dashboard.sources.destroy');
 });
 
-// --- CATCH-ALL CHECKOUT ROUTES (KEEP AT BOTTOM) ---
-
-// Minimalist Checkout Links (secure.basileia.global/{uuid})
-Route::get('/{uuid}', [CheckoutController::class, 'show'])
-    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
-    ->name('checkout.pay');
-
-Route::prefix('pay')->group(function () {
-    Route::post('/{uuid}/process', [CheckoutController::class, 'process'])->name('checkout.legacy.process');
-    Route::get('/{uuid}/success', [CheckoutController::class, 'success'])->name('checkout.legacy.success');
-    Route::get('/{uuid}/receipt', [CheckoutController::class, 'receipt'])->name('checkout.receipt');
-});
-
 // --- NOVO CHECKOUT PREMIUM BASILEIA (TOKENIZADO) ---
-// Rota para a aplicação Next.js (sem UUID)
+// Rota para a aplicação Next.js (sem UUID) — DEVE VIR ANTES da catch-all
 Route::get('/checkout', function () {
     $htmlPath = public_path('checkout-app/index.html');
     if (file_exists($htmlPath)) {
@@ -170,6 +157,12 @@ Route::get('/checkout', function () {
 Route::get('/checkout/{uuid}', [BasileiaCheckoutController::class, 'show'])
     ->name('checkout.show')
     ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}');
+
+Route::prefix('pay')->group(function () {
+    Route::post('/{uuid}/process', [CheckoutController::class, 'process'])->name('checkout.legacy.process');
+    Route::get('/{uuid}/success', [CheckoutController::class, 'success'])->name('checkout.legacy.success');
+    Route::get('/{uuid}/receipt', [CheckoutController::class, 'receipt'])->name('checkout.receipt');
+});
 
 Route::get('/c/{asaasPaymentId}', [BasileiaCheckoutController::class, 'handle'])->name('checkout.short')->middleware('secure.token');
 Route::post('/checkout/process/{uuid}', [BasileiaCheckoutController::class, 'process'])->name('checkout.process');
@@ -359,3 +352,9 @@ Route::get('/test-db', function () {
         return "Erro de Conexão: " . $e->getMessage();
     }
 });
+
+// --- CATCH-ALL — ABSOLUTAMENTE A ÚLTIMA ROTA DO ARQUIVO ---
+// Minimalist Checkout Links (secure.basileia.global/{uuid})
+Route::get('/{uuid}', [CheckoutController::class, 'show'])
+    ->where('uuid', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')
+    ->name('checkout.pay');
