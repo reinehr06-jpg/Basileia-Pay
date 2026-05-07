@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\AsaasService;
+use App\Services\AsaasPaymentService;
 use App\Models\Transaction;
 use App\Models\Subscription;
 use Illuminate\Support\Facades\Log;
@@ -13,7 +13,7 @@ class CheckoutController extends Controller
 {
     protected $asaas;
 
-    public function __construct(AsaasService $asaas)
+    public function __construct(AsaasPaymentService $asaas)
     {
         $this->asaas = $asaas;
     }
