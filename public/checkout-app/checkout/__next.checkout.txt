@@ -2,4 +2,4 @@
 2:I[84008,["/checkout-app/_next/static/chunks/120m7ir7w-3sq.js"],"default"]
 3:I[29599,["/checkout-app/_next/static/chunks/120m7ir7w-3sq.js"],"default"]
 4:[]
-0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"aKJ2RJDvxPbrNX4xFzzr0"}
+0:{"rsc":["$","$1","c",{"children":[null,["$","$L2",null,{"parallelRouterKey":"children","template":["$","$L3",null,{}]}]]}],"isPartial":false,"staleTime":300,"varyParams":"$W4","buildId":"agcC2oBCTuJ8PqDmtxPBT"}
