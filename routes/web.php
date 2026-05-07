@@ -146,7 +146,7 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
 // --- NOVO CHECKOUT PREMIUM BASILEIA (TOKENIZADO) ---
 // Rota para a aplicação Next.js (sem UUID) — DEVE VIR ANTES da catch-all
 Route::get('/checkout', function () {
-    $htmlPath = public_path('checkout-app/index.html');
+    $htmlPath = public_path('checkout-app/checkout.html');
     if (file_exists($htmlPath)) {
         return response(file_get_contents($htmlPath));
     }

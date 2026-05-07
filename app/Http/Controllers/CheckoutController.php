@@ -65,7 +65,7 @@ class CheckoutController extends Controller
             }
         }
 
-        $htmlPath = public_path('checkout-app/index.html');
+        $htmlPath = public_path('checkout-app/checkout.html');
         if (!file_exists($htmlPath)) {
             return view('checkout.index', [
                 'transaction' => $resource, 
@@ -188,9 +188,9 @@ class CheckoutController extends Controller
      */
     private function showDemo(Request $request, string $uuid)
     {
-        $htmlPath = public_path('checkout-app/index.html');
+        $htmlPath = public_path('checkout-app/checkout.html');
         if (!file_exists($htmlPath)) {
-            return response("Checkout app not found at public/checkout-app/index.html", 404);
+            return response("Checkout app not found at public/checkout-app/checkout.html", 404);
         }
 
         $html = file_get_contents($htmlPath);

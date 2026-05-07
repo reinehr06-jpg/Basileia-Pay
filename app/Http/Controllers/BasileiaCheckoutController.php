@@ -133,7 +133,7 @@ class BasileiaCheckoutController extends Controller
             ];
         }
 
-        $htmlPath = public_path('checkout-app/index.html');
+        $htmlPath = public_path('checkout-app/checkout.html');
         if (!file_exists($htmlPath)) {
             return view('checkout.basileia', [
                 'transaction' => $transaction,
