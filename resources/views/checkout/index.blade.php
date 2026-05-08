@@ -1,716 +1,890 @@
+{{-- resources/views/checkout/index.blade.php --}}
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ $transaction->description ?? 'Pagamento' }} - Basileia</title>
+    <title>{{ $plano ?? $transaction->description }} - Checkout</title>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        :root {
-            --primary: #7c3aed;
-            --primary-dark: #5b21b6;
-            --primary-light: #a78bfa;
-            --bg-dark: #0f172a;
-            --text-dark: #1e293b;
-            --text-muted: #64748b;
-            --border: #e2e8f0;
-        }
-        body {
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
             font-family: 'Inter', sans-serif;
-            min-height: 100vh;
+            background: #0d0d1a;
+            overflow-x: hidden;
+        }
+
+        /* ─── MESH GRADIENT BACKGROUND ─────────────────────── */
+        .mesh-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background: #0d0d1a;
+            overflow: hidden;
+        }
+        .mesh-bg::before {
+            content: '';
+            position: absolute;
+            width: 600px; height: 600px;
+            top: -200px; left: -200px;
+            background: radial-gradient(circle, rgba(99,102,241,0.35) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: floatA 12s ease-in-out infinite;
+        }
+        .mesh-bg::after {
+            content: '';
+            position: absolute;
+            width: 500px; height: 500px;
+            bottom: -150px; right: -150px;
+            background: radial-gradient(circle, rgba(236,72,153,0.3) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: floatB 15s ease-in-out infinite;
+        }
+        .mesh-ball-mid {
+            position: absolute;
+            width: 400px; height: 400px;
+            top: 40%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: radial-gradient(circle, rgba(139,92,246,0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: floatC 10s ease-in-out infinite;
+        }
+        @keyframes floatA { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,60px)} }
+        @keyframes floatB { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-50px,-40px)} }
+        @keyframes floatC { 0%,100%{transform:translate(-50%,-50%) scale(1)} 50%{transform:translate(-50%,-50%) scale(1.2)} }
+
+        /* ─── TOP BAR ────────────────────────────────────────── */
+        .top-bar {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 32px;
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .top-bar-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .top-bar-logo {
+            width: 36px; height: 36px;
+            background: white;
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden;
+        }
+        .top-bar-logo img { width: 100%; height: 100%; object-fit: contain; }
+        .top-bar-name { color: white; font-weight: 700; font-size: 16px; }
+        .top-bar-right { display: flex; align-items: center; gap: 16px; }
+        .top-bar-secure {
+            display: flex; align-items: center; gap: 6px;
+            color: rgba(255,255,255,0.6); font-size: 12px; font-weight: 500;
+        }
+
+        /* Country selector */
+        .country-selector { position: relative; }
+        .country-btn {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 8px 14px;
+            color: white; font-size: 13px; font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .country-btn:hover { background: rgba(255,255,255,0.14); }
+        .country-dropdown {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            background: #1e1b2e;
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 14px;
+            width: 200px;
+            max-height: 280px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            padding: 6px;
+        }
+        .country-dropdown::-webkit-scrollbar { width: 4px; }
+        .country-dropdown::-webkit-scrollbar-track { background: transparent; }
+        .country-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+        .country-option {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.85); font-size: 13px;
+            transition: background 0.15s;
+        }
+        .country-option:hover { background: rgba(255,255,255,0.08); }
+        .country-option.active { background: rgba(139,92,246,0.2); color: white; }
+
+        /* ─── MAIN WRAPPER ──────────────────────────────────── */
+        .page-body {
+            position: relative;
+            z-index: 1;
+            min-height: calc(100vh - 69px);
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
-            background: linear-gradient(135deg, #0f0a1e 0%, #1a103c 50%, #2d1b69 100%);
+            padding: 40px 20px;
         }
-        .checkout-container {
+        .checkout-wrapper {
             display: grid;
-            grid-template-columns: 280px 380px;
-            gap: 20px;
-            max-width: 700px;
+            grid-template-columns: 1fr 1fr;
+            gap: 32px;
+            max-width: 960px;
             width: 100%;
         }
-        
-        /* Card Valor - Roxo Escuro para Claro */
-        .value-card {
-            background: linear-gradient(135deg, #2e1065 0%, #4c1d95 50%, #7c3aed 100%);
-            border-radius: 20px;
-            padding: 30px 24px;
+
+        /* ─── LEFT CARD (INFO) ──────────────────────────────── */
+        .info-card {
+            background: rgba(255,255,255,0.04);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 24px;
+            padding: 40px 36px;
             color: white;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            position: relative;
-            overflow: hidden;
-            min-height: 320px;
+            gap: 28px;
         }
-        .value-card::before {
+        .info-logo-wrap {
+            width: 64px; height: 64px;
+            background: white;
+            border-radius: 14px;
+            overflow: hidden;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .info-logo-wrap img { width: 100%; object-fit: contain; }
+        .info-badge {
+            display: inline-block;
+            background: rgba(139,92,246,0.25);
+            border: 1px solid rgba(139,92,246,0.4);
+            color: #c4b5fd;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 5px 14px;
+            border-radius: 999px;
+        }
+        .info-plan { font-size: 36px; font-weight: 800; line-height: 1.1; }
+        .info-price { display: flex; align-items: baseline; gap: 4px; }
+        .info-price-sym { font-size: 20px; font-weight: 500; opacity: 0.7; margin-top: 4px; }
+        .info-price-val { font-size: 52px; font-weight: 800; line-height: 1; }
+        .info-price-per { font-size: 14px; opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; }
+        .info-divider { height: 1px; background: rgba(255,255,255,0.08); }
+        .info-features { display: flex; flex-direction: column; gap: 14px; }
+        .info-feature { display: flex; align-items: flex-start; gap: 12px; }
+        .info-feature-check {
+            width: 22px; height: 22px; min-width: 22px;
+            background: rgba(34,197,94,0.2);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            margin-top: 1px;
+        }
+        .info-feature-check svg { color: #4ade80; }
+        .info-feature-text { font-size: 14px; line-height: 1.5; }
+        .info-feature-title { font-weight: 600; }
+        .info-feature-desc { opacity: 0.6; font-size: 12px; }
+        .info-footer {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 12px; color: rgba(255,255,255,0.4);
+            margin-top: auto;
+        }
+
+        /* ─── RIGHT CARD (PAYMENT) ──────────────────────────── */
+        .payment-card {
+            background: white;
+            border-radius: 24px;
+            padding: 36px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+        }
+        .payment-header { margin-bottom: 24px; }
+        .payment-title { font-size: 22px; font-weight: 800; color: #0f0a1e; }
+        .payment-subtitle { font-size: 13px; color: #64748b; margin-top: 4px; }
+
+        /* ─── 3D CREDIT CARD ───────────────────────────────── */
+        .card-3d-scene {
+            width: 100%;
+            height: 185px;
+            perspective: 1200px;
+            margin-bottom: 24px;
+            cursor: pointer;
+        }
+        .card-3d-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.7s cubic-bezier(0.4, 0.2, 0.2, 1);
+            filter: drop-shadow(0 20px 40px rgba(99,60,220,0.4));
+        }
+        .card-3d-inner.flipped { transform: rotateY(180deg); }
+        .card-3d-face {
+            position: absolute;
+            width: 100%; height: 100%;
+            backface-visibility: hidden;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        /* Gradiente azul → rosa suave e leve */
+        .card-3d-front {
+            background: linear-gradient(135deg,
+                #4f46e5 0%,
+                #6d28d9 35%,
+                #9333ea 65%,
+                #db2777 100%
+            );
+            padding: 22px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            color: white;
+            position: relative;
+        }
+        .card-3d-front::before {
             content: '';
             position: absolute;
-            top: -30%;
-            right: -30%;
-            width: 150%;
-            height: 150%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 50%);
+            top: -40%; right: -20%;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 60%);
+            border-radius: 50%;
             pointer-events: none;
         }
-        .value-card-logo {
-            width: 80px;
-            height: 80px;
-            background: white;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-        .value-card-logo img {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        .value-card-plan {
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            margin-bottom: 8px;
-        }
-        .value-card-amount {
-            font-size: 36px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-        .value-card-period {
-            font-size: 13px;
-            opacity: 0.8;
-        }
-        .plan-name-text {
-            text-transform: uppercase;
-            font-size: 14px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            margin-bottom: 8px;
-        }
-        .amount-text {
-            font-size: 36px;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-        .period-text {
-            font-size: 13px;
-            opacity: 0.8;
-        }
-        .feature-text {
-            font-size: 12px;
-            opacity: 0.9;
-        }
-        .value-card-features {
-            margin-top: 24px;
-            display: grid;
-            gap: 8px;
-        }
-        .value-card-feature {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 12px;
-            opacity: 0.9;
-        }
-        
-        /* Card Pagamento - Cinza Prateado */
-        .payment-card {
-            background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
-            border-radius: 20px;
-            padding: 24px;
-            position: relative;
-        }
-        
-        /* Locale Switcher - Above card */
-        .locale-row {
-            display: flex;
-            justify-content: flex-end;
-            margin-bottom: 12px;
-        }
-        .locale-switcher {
-            position: relative;
-        }
-        .locale-switcher select {
-            appearance: none;
-            background: white;
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 36px 10px 14px;
-            font-size: 13px;
-            cursor: pointer;
-            color: var(--text-dark);
-            font-weight: 500;
-            min-width: 160px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2364748b' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 12px center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            transition: all 0.2s;
-        }
-        .locale-switcher select:hover {
-            border-color: var(--primary-light);
-        }
-        .locale-switcher select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-        }
-        
-        /* Payment Method Toggle */
-        .payment-method-toggle {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 16px;
-            background: #f1f5f9;
-            padding: 4px;
-            border-radius: 10px;
-        }
-        .payment-method-btn {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            background: transparent;
-            color: var(--text-muted);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-        }
-        .payment-method-btn.active {
-            background: white;
-            color: var(--primary);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        /* Cartão 3D Preto */
-        .card-preview {
-            width: 100%;
-            height: 180px;
-            border-radius: 14px;
-            position: relative;
-            margin-bottom: 20px;
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-style: preserve-3d;
-            color: white;
-        }
-        .card-preview.flipped {
-            transform: rotateY(180deg);
-        }
-        .card-front, .card-back {
+        .card-3d-front::after {
+            content: '';
             position: absolute;
-            width: 100%;
-            height: 100%;
-            backface-visibility: hidden;
-            border-radius: 14px;
-            padding: 20px;
+            bottom: -30%; left: -10%;
+            width: 200px; height: 200px;
+            background: radial-gradient(circle, rgba(219,39,119,0.2) 0%, transparent 60%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .card-3d-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, #3730a3 0%, #5b21b6 50%, #7e22ce 100%);
             display: flex;
             flex-direction: column;
-            justify-content: space-between;
-        }
-        .card-front {
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-            justify-content: space-between;
-        }
-        .card-back {
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-            transform: rotateY(180deg);
             justify-content: center;
-            align-items: center;
         }
-        .card-preview.visa .card-front { background: linear-gradient(135deg, #1A1F71 0%, #2A3F91 100%); }
-        .card-preview.visa .card-back { background: linear-gradient(135deg, #1A1F71 0%, #2A3F91 100%); }
-        .card-preview.mastercard .card-front { background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%); }
-        .card-preview.mastercard .card-back { background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%); }
-        .card-preview.amex .card-front { background: linear-gradient(135deg, #0070d1 0%, #00a0f0 100%); }
-        .card-preview.amex .card-back { background: linear-gradient(135deg, #0070d1 0%, #00a0f0 100%); }
-        .card-preview.elo .card-front { background: linear-gradient(135deg, #0047BB 0%, #FFCB05 100%); }
-        .card-preview.elo .card-back { background: linear-gradient(135deg, #0047BB 0%, #FFCB05 100%); }
-        
-        .cvv-strip {
-            width: 100%;
-            height: 40px;
-            background: #fff;
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 15px;
-            border-radius: 4px;
-        }
-        .cvv-value {
-            color: #1e1e1e;
-            font-size: 18px;
-            font-weight: 700;
-            letter-spacing: 3px;
-        }
-        .card-preview.default {
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-        }
-        .card-preview.visa {
-            background: linear-gradient(135deg, #1A1F71 0%, #2A3F91 100%);
-        }
-        .card-preview.mastercard {
-            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d2d 100%);
-            position: relative;
-        }
-        .card-preview.mastercard::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 20px;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: #eb001b;
-            transform: translateY(-50%);
-        }
-        .card-preview.mastercard::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 40px;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: #f79e1b;
-            transform: translateY(-50%);
-        }
-        .card-preview.amex {
-            background: linear-gradient(135deg, #0070d1 0%, #00a0f0 100%);
-        }
-        .card-preview.elo {
-            background: linear-gradient(135deg, #0047BB 0%, #FFCB05 100%);
-        }
-        
         .card-chip {
-            width: 36px;
-            height: 28px;
-            background: linear-gradient(135deg, #d4af37 0%, #f0d075 100%);
-            border-radius: 4px;
+            width: 42px; height: 32px;
+            background: linear-gradient(135deg, #f0c040 0%, #d4a017 100%);
+            border-radius: 6px;
+            position: relative;
+            z-index: 1;
         }
-        .card-brand-logo {
+        .card-chip::after {
+            content: '';
             position: absolute;
-            top: 20px;
-            right: 20px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            width: 60%; height: 40%;
+            border: 1.5px solid rgba(0,0,0,0.2);
+            border-radius: 3px;
         }
-        .card-brand-logo svg, .card-brand-logo img {
-            height: 100%;
-            width: auto;
-        }
-        .card-brand-logo .brand-text {
-            font-size: 20px;
-            font-weight: bold;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
-        .card-number {
-            font-size: 18px;
-            font-weight: 600;
-            letter-spacing: 3px;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-        }
-        .card-details {
+        .card-top-row {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
+            align-items: flex-start;
+            position: relative; z-index: 1;
         }
-        .card-holder-name {
-            text-transform: uppercase;
-            letter-spacing: 1px;
+        .card-number-display {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 19px;
+            letter-spacing: 3px;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            position: relative; z-index: 1;
         }
-        
-        /* Form */
-        .form-group {
-            margin-bottom: 12px;
+        .card-bottom-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            position: relative; z-index: 1;
         }
+        .card-field-label { font-size: 9px; opacity: 0.65; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
+        .card-field-value { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-brand-area { display: flex; align-items: center; }
+        /* Back */
+        .card-mag-strip { height: 42px; background: rgba(0,0,0,0.7); margin-top: 20px; }
+        .card-sig-strip {
+            margin: 12px 20px;
+            height: 36px;
+            background: white;
+            border-radius: 4px;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 14px;
+        }
+        .card-cvv-val {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 18px;
+            color: #1e1e1e;
+            letter-spacing: 3px;
+            font-weight: 700;
+        }
+
+        /* ─── FORM ELEMENTS ─────────────────────────────────── */
+        .form-group { margin-bottom: 13px; }
         .form-label {
             display: block;
             font-size: 11px;
-            font-weight: 600;
-            color: var(--text-muted);
-            margin-bottom: 4px;
+            font-weight: 700;
+            color: #64748b;
             text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin-bottom: 5px;
         }
         .form-input {
             width: 100%;
-            height: 38px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            padding: 0 12px;
+            height: 44px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0 14px;
             font-size: 14px;
-            background: white;
-            transition: border-color 0.2s;
+            font-family: 'Inter', sans-serif;
+            color: #1e293b;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
         .form-input:focus {
             outline: none;
-            border-color: var(--primary);
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139,92,246,0.12);
         }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 60px;
-            gap: 10px;
-        }
-        .cta-button {
-            width: 100%;
-            height: 44px;
-            border: none;
-            border-radius: 10px;
-            background: var(--primary);
-            color: white;
-            font-size: 14px;
-            font-weight: 700;
+        .form-input::placeholder { color: #b8c0cc; }
+        /* Select parcelas — dropdown nativo, sem problema de z-index */
+        select.form-input {
+            appearance: none;
+            -webkit-appearance: none;
             cursor: pointer;
-            margin-top: 16px;
-            transition: background 0.2s;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-color: #f8fafc;
+            padding-right: 34px;
         }
-        .cta-button:hover {
-            background: var(--primary-dark);
-        }
-        
-        /* PIX Section */
-        .pix-qrcode {
-            background: white;
-            padding: 10px;
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        /* ─── BUTTONS ───────────────────────────────────────── */
+        .btn-pay {
+            width: 100%;
+            height: 50px;
+            border: none;
             border-radius: 12px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-        }
-        .pix-qrcode img {
-            display: block;
-            margin: 0 auto;
-        }
-        .pix-copy-btn {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 10px;
-            background: var(--primary);
+            background: linear-gradient(90deg, #6d28d9, #db2777);
             color: white;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 700;
+            font-family: 'Inter', sans-serif;
             cursor: pointer;
-            transition: background 0.2s;
-        }
-        .pix-copy-btn:hover {
-            background: var(--primary-dark);
-        }
-        .pix-info {
-            margin-top: 12px;
-            padding: 10px;
-            background: #ecfdf5;
-            border-radius: 8px;
-            font-size: 12px;
-            color: #065f46;
-            text-align: center;
-        }
-        
-        .security-footer {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 11px;
-            color: var(--text-muted);
             margin-top: 16px;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            transition: opacity 0.2s, transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 8px 24px rgba(109,40,217,0.35);
+            position: relative;
+            overflow: hidden;
         }
-        
-        .accepted-cards {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 16px;
-            padding-top: 16px;
-            border-top: 1px solid #e2e8f0;
+        .btn-pay::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0.08), transparent);
         }
-        .accepted-cards svg {
-            width: 36px;
-            height: 24px;
+        .btn-pay:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(109,40,217,0.45); }
+        .btn-pay:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+        .btn-back {
+            width: 100%;
+            height: 40px;
+            background: transparent;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: 'Inter', sans-serif;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s, border-color 0.2s;
         }
-        
-        @media (max-width: 720px) {
-            .checkout-container {
-                grid-template-columns: 1fr;
-                max-width: 400px;
-            }
-            .value-card {
-                min-height: 200px;
-            }
+        .btn-back:hover { background: #f8fafc; border-color: #8b5cf6; }
+
+        /* ─── SPINNER ───────────────────────────────────────── */
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ─── SECURITY FOOTER ───────────────────────────────── */
+        .security-row {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 11px; color: #94a3b8; margin-top: 14px;
+        }
+
+        /* ─── MOBILE ─────────────────────────────────────────── */
+        @media (max-width: 800px) {
+            .checkout-wrapper { grid-template-columns: 1fr; max-width: 480px; }
+            .info-card { padding: 28px 24px; }
+            .info-plan { font-size: 28px; }
+            .info-price-val { font-size: 40px; }
+            .payment-card { padding: 28px 24px; }
+            .top-bar { padding: 12px 20px; }
+        }
+
+        [x-cloak] { display: none !important; }
     </style>
 </head>
-<body
-    x-data="{
-        country: 'BR',
-        locale: '{{ $currentLocale }}',
-        i18n: {{ json_encode($i18n) }},
-        currency: 'BRL',
-        currencySymbol: 'R$',
-        planLabel: '{{ $plano }}',
-        periodLabel: '{{ $ciclo === 'monthly' ? 'por mês' : ($ciclo === 'yearly' ? 'por ano' : $ciclo) }}',
-        payBtnLabel: 'Pagar',
-        features: @json($features),
-        billingType: '{{ $billingType ?? 'CREDIT_CARD' }}',
-        cardNumber: '',
-        cardHolder: '',
-        cardExpiry: '',
-        cardBrand: 'default',
-        showCvv: false,
-        pixCopied: false,
-        timeLeft: 3600,
-        t(key) {
-            return (this.i18n[this.locale] && this.i18n[this.locale][key]) || 
-                   (this.i18n['pt'] && this.i18n['pt'][key]) || key;
-        },
-        updateCard() {
-            const num = this.cardNumber.replace(/\D/g, '');
-            if (num.startsWith('4')) this.cardBrand = 'visa';
-            else if (num.match(/^5[1-5]/)) this.cardBrand = 'mastercard';
-            else if (num.match(/^3[47]/)) this.cardBrand = 'amex';
-            else if (num.match(/^(4011|4312|4389|4514|4573|4576|5041|5066|5067|5090|6277|6362|6363|6504|6505|6507|6509|6516|6550)/)) this.cardBrand = 'elo';
-            else this.cardBrand = 'default';
-        },
-        toggleCvv() {
-            this.showCvv = !this.showCvv;
-        },
-        copyPixCode() {
-            navigator.clipboard.writeText('{{ $pixData['payload'] ?? '' }}');
-            this.pixCopied = true;
-            setTimeout(() => this.pixCopied = false, 2000);
-        },
-        changeCountry() {
-            const countryData = this.countries.find(c => c.code === this.country);
-            if (countryData) {
-                this.locale = countryData.lang;
-                this.currency = countryData.currency || 'USD';
-                this.currencySymbol = countryData.symbol || '$';
-                document.documentElement.lang = countryData.lang;
-            }
-        },
-        formatPrice(amount) {
-            try {
-                return new Intl.NumberFormat(this.locale, {style: 'currency', currency: this.currency}).format(amount);
-            } catch(e) {
-                return this.currencySymbol + ' ' + amount.toFixed(2);
-            }
-        },
-        formatTime() {
-            const m = Math.floor(this.timeLeft / 60);
-            const s = this.timeLeft % 60;
-            return m.toString().padStart(2, '0') + ':' + s.toString().padStart(2, '0');
-        },
-        init() {
-            if (this.billingType === 'PIX') {
-                setInterval(() => { if(this.timeLeft > 0) this.timeLeft--; }, 1000);
-            }
-            this.changeCountry();
-        },
-        countries: [
-            {code:'BR',name:'Brasil',flag:'🇧🇷',lang:'pt',currency:'BRL',symbol:'R$'},
-            {code:'JP',name:'Japão',flag:'🇯🇵',lang:'ja',currency:'JPY',symbol:'¥'},
-            {code:'US',name:'Estados Unidos',flag:'🇺🇸',lang:'en',currency:'USD',symbol:'$'},
-            {code:'PT',name:'Portugal',flag:'🇵🇹',lang:'pt',currency:'EUR',symbol:'€'}
-        ]
-    }"
->
-    <div class="checkout-container">
-        <!-- Card Valor -->
-        <div class="value-card">
-            <div class="value-card-logo" style="
-                background: transparent; 
-                width: 72px; 
-                height: 72px; 
-                display: flex; 
-                align-items: center; 
-                justify-content: center; 
-                padding: 0;
-                box-shadow: none;
-                margin: 0 auto 24px auto;
-            ">
-                <img src="{{ asset('img/basileia-logo-clean-b.png') }}" alt="Basileia" style="width: 100%; height: 100%; object-fit: contain;">
-            </div>
-            <div class="value-card-plan" x-text="planLabel"></div>
-            <div class="value-card-amount" x-text="formatPrice({{ $transaction->amount }})"></div>
-            <div class="value-card-period" x-text="periodLabel"></div>
-            <div class="value-card-features">
-                <template x-for="feature in features" :key="feature">
-                    <div class="value-card-feature">
-                        <i class="fas fa-check"></i> <span x-text="feature"></span>
+<body x-data="{
+    /* ── State ── */
+    step: 1,
+    loading: false,
+    isFlipped: false,
+    showDropdown: false,
+
+    /* ── Card data ── */
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardHolder: '',
+    installments: 1,
+
+    /* ── Config ── */
+    maxInstallments: {{ $transaction->max_installments ?? 12 }},
+    amount: {{ $transaction->amount ?? 0 }},
+
+    /* ── i18n / locale ── */
+    locale: 'pt-BR',
+    currency: 'BRL',
+    currencySymbol: 'R$',
+    currentLocale: 'pt-BR',
+
+    /* ── Countries ── */
+    currentCountry: { code: 'BR', flag: '🇧🇷', name: 'Brasil', lang: 'pt-BR', currency: 'BRL', symbol: 'R$' },
+    countries: [
+        { code: 'BR', flag: '🇧🇷', name: 'Brasil',          lang: 'pt-BR', currency: 'BRL', symbol: 'R$' },
+        { code: 'US', flag: '🇺🇸', name: 'USA',             lang: 'en-US', currency: 'USD', symbol: '$'  },
+        { code: 'PT', flag: '🇵🇹', name: 'Portugal',        lang: 'pt-PT', currency: 'EUR', symbol: '€'  },
+        { code: 'ES', flag: '🇪🇸', name: 'España',          lang: 'es-ES', currency: 'EUR', symbol: '€'  },
+        { code: 'FR', flag: '🇫🇷', name: 'France',          lang: 'fr-FR', currency: 'EUR', symbol: '€'  },
+        { code: 'DE', flag: '🇩🇪', name: 'Deutschland',     lang: 'de-DE', currency: 'EUR', symbol: '€'  },
+        { code: 'IT', flag: '🇮🇹', name: 'Italia',          lang: 'it-IT', currency: 'EUR', symbol: '€'  },
+        { code: 'GB', flag: '🇬🇧', name: 'United Kingdom',  lang: 'en-GB', currency: 'GBP', symbol: '£'  },
+        { code: 'JP', flag: '🇯🇵', name: '日本',             lang: 'ja-JP', currency: 'JPY', symbol: '¥'  },
+        { code: 'MX', flag: '🇲🇽', name: 'México',          lang: 'es-MX', currency: 'MXN', symbol: '$'  },
+        { code: 'AR', flag: '🇦🇷', name: 'Argentina',       lang: 'es-AR', currency: 'ARS', symbol: '$'  },
+        { code: 'CO', flag: '🇨🇴', name: 'Colombia',        lang: 'es-CO', currency: 'COP', symbol: '$'  },
+        { code: 'CL', flag: '🇨🇱', name: 'Chile',           lang: 'es-CL', currency: 'CLP', symbol: '$'  },
+        { code: 'CA', flag: '🇨🇦', name: 'Canada',          lang: 'en-CA', currency: 'CAD', symbol: '$'  },
+        { code: 'AU', flag: '🇦🇺', name: 'Australia',       lang: 'en-AU', currency: 'AUD', symbol: '$'  },
+        { code: 'CH', flag: '🇨🇭', name: 'Switzerland',     lang: 'de-CH', currency: 'CHF', symbol: 'Fr' },
+        { code: 'AO', flag: '🇦🇴', name: 'Angola',          lang: 'pt-AO', currency: 'AOA', symbol: 'Kz' },
+        { code: 'MZ', flag: '🇲🇿', name: 'Moçambique',      lang: 'pt-MZ', currency: 'MZN', symbol: 'MT' },
+    ],
+
+    /* ── Methods ── */
+    setCountry(c) {
+        this.currentCountry = c;
+        this.currencySymbol = c.symbol;
+        this.locale = c.lang;
+        this.showDropdown = false;
+    },
+    formatPrice(val) {
+        try {
+            return new Intl.NumberFormat(this.locale, {
+                style: 'currency', currency: this.currentCountry.currency,
+                minimumFractionDigits: 2, maximumFractionDigits: 2
+            }).format(val);
+        } catch(e) {
+            return this.currencySymbol + ' ' + Number(val).toFixed(2).replace('.', ',');
+        }
+    },
+    installmentLabel(n) {
+        let val = (this.amount / n).toFixed(2).replace('.', ',');
+        return n + 'x de ' + this.currencySymbol + ' ' + val + (n === 1 ? ' (à vista)' : ' sem juros');
+    },
+    formatCardNum(v) {
+        return v ? v.replace(/(.{4})/g, '$1 ').trim() : '**** **** **** ****';
+    },
+    updateCardNumber(e) {
+        let raw = e.target.value.replace(/\D/g, '').substring(0, 16);
+        this.cardNumber = raw;
+        e.target.value = raw.replace(/(.{4})/g, '$1 ').trim();
+    },
+    updateExpiry(e) {
+        let raw = e.target.value.replace(/\D/g, '').substring(0, 4);
+        if (raw.length > 2) raw = raw.substring(0, 2) + '/' + raw.substring(2);
+        this.cardExpiry = raw;
+        e.target.value = raw;
+    },
+    getCardBrand() {
+        let n = this.cardNumber;
+        if (n.startsWith('4')) return 'visa';
+        if (/^5[1-5]/.test(n)) return 'mastercard';
+        if (/^3[47]/.test(n)) return 'amex';
+        return 'generic';
+    },
+    proceed() {
+        if (!this.cardNumber || !this.cardExpiry || !this.cardCvv || !this.cardHolder) {
+            alert('Preencha todos os dados do cartão.');
+            return;
+        }
+        this.step = 2;
+        this.isFlipped = false;
+    },
+    init() {
+        this.$nextTick(() => { if (window.lucide) lucide.createIcons(); });
+    }
+}"
+@click.away="showDropdown = false">
+
+<!-- Mesh BG -->
+<div class="mesh-bg"><div class="mesh-ball-mid"></div></div>
+
+<!-- ═══════════════════════════════════════════ TOP BAR -->
+<header class="top-bar">
+    <div class="top-bar-brand">
+        <div class="top-bar-logo">
+            <img src="{{ asset('img/basileia-logo.png') }}"
+                 alt="Basileia"
+                 onerror="this.parentElement.innerHTML='<span style=\'color:#7c3aed;font-weight:900;font-size:18px\'>B</span>'">
+        </div>
+        <span class="top-bar-name">Basileia</span>
+    </div>
+
+    <div class="top-bar-right">
+        <div class="top-bar-secure">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+            Checkout Seguro
+        </div>
+
+        <!-- Country selector -->
+        <div class="country-selector">
+            <button type="button" class="country-btn" @click.stop="showDropdown = !showDropdown">
+                <span x-text="currentCountry.flag"></span>
+                <span x-text="currentCountry.code" style="font-weight:700"></span>
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"
+                     :style="showDropdown ? 'transform:rotate(180deg)' : ''"
+                     style="transition:transform 0.2s">
+                    <path d="M6 9l6 6 6-6"/>
+                </svg>
+            </button>
+            <div class="country-dropdown" x-show="showDropdown" x-cloak @click.stop>
+                <template x-for="c in countries" :key="c.code">
+                    <div class="country-option"
+                         :class="{'active': currentCountry.code === c.code}"
+                         @click="setCountry(c)">
+                        <span x-text="c.flag"></span>
+                        <span x-text="c.name"></span>
                     </div>
                 </template>
             </div>
         </div>
-        
-        <!-- Card Pagamento -->
+    </div>
+</header>
+
+<!-- ═══════════════════════════════════════════ PAGE BODY -->
+<div class="page-body">
+    <div class="checkout-wrapper">
+
+        <!-- ═══ LEFT: INFO CARD ═══ -->
+        <div class="info-card">
+            <div>
+                <div class="info-logo-wrap">
+                    <img src="{{ asset('img/basileia-logo.png') }}" alt="Basileia"
+                         onerror="this.style.display='none'">
+                </div>
+            </div>
+
+            <div>
+                <div class="info-badge">{{ strtoupper($ciclo ?? 'mensal') }}</div>
+                <h1 class="info-plan" style="margin-top:10px">{{ $plano ?? $transaction->description }}</h1>
+            </div>
+
+            <div class="info-price">
+                <span class="info-price-sym" x-text="currencySymbol"></span>
+                <span class="info-price-val">{{ number_format($transaction->amount, 2, ',', '.') }}</span>
+                <span class="info-price-per">{{ ($ciclo ?? 'mensal') === 'anual' ? '/ano' : '/mês' }}</span>
+            </div>
+
+            <div class="info-divider"></div>
+
+            <div class="info-features">
+                <div class="info-feature">
+                    <div class="info-feature-check">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="info-feature-text">
+                        <div class="info-feature-title">Acesso imediato ao painel</div>
+                        <div class="info-feature-desc">Credenciais enviadas no seu e-mail.</div>
+                    </div>
+                </div>
+                <div class="info-feature">
+                    <div class="info-feature-check">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="info-feature-text">
+                        <div class="info-feature-title">Assistente IA no WhatsApp</div>
+                        <div class="info-feature-desc">Atenda membros 24h com inteligência artificial.</div>
+                    </div>
+                </div>
+                <div class="info-feature">
+                    <div class="info-feature-check">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="info-feature-text">
+                        <div class="info-feature-title">Gestão completa de membros</div>
+                        <div class="info-feature-desc">Cadastros, trilha de crescimento e árvore genealógica.</div>
+                    </div>
+                </div>
+                <div class="info-feature">
+                    <div class="info-feature-check">
+                        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>
+                    </div>
+                    <div class="info-feature-text">
+                        <div class="info-feature-title">Renovação automática</div>
+                        <div class="info-feature-desc">Sem surpresas. Cancele quando quiser.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="info-footer">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                Basileia Church © {{ date('Y') }} · Conexão SSL 256-bit
+            </div>
+        </div>
+
+        <!-- ═══ RIGHT: PAYMENT CARD ═══ -->
         <div class="payment-card">
-            <div class="locale-row">
-                <div class="locale-switcher">
-                    <select x-model="country" @change="changeCountry()">
-                        <template x-for="c in countries" :key="c.code">
-                            <option :value="c.code" x-text="c.flag + ' ' + c.name"></option>
+
+            <!-- ── STEP 1: DADOS DO CARTÃO ── -->
+            <div x-show="step === 1" x-cloak>
+                <div class="payment-header">
+                    <h2 class="payment-title">Dados do Cartão</h2>
+                    <p class="payment-subtitle">Preencha os dados do seu cartão de crédito</p>
+                </div>
+
+                <!-- CARTÃO 3D -->
+                <div class="card-3d-scene" @click="isFlipped = !isFlipped" title="Clique para virar">
+                    <div class="card-3d-inner" :class="{ flipped: isFlipped }">
+
+                        <!-- FRENTE -->
+                        <div class="card-3d-face card-3d-front">
+                            <div class="card-top-row">
+                                <div class="card-chip"></div>
+                                <div class="card-brand-area">
+                                    <!-- VISA -->
+                                    <template x-if="getCardBrand() === 'visa'">
+                                        <svg viewBox="0 0 60 20" height="22" fill="white">
+                                            <text x="0" y="17" font-size="18" font-weight="900" font-family="Arial">VISA</text>
+                                        </svg>
+                                    </template>
+                                    <!-- MASTERCARD -->
+                                    <template x-if="getCardBrand() === 'mastercard'">
+                                        <svg viewBox="0 0 44 28" height="28">
+                                            <circle cx="16" cy="14" r="12" fill="#EB001B"/>
+                                            <circle cx="28" cy="14" r="12" fill="#F79E1B" opacity="0.85"/>
+                                        </svg>
+                                    </template>
+                                    <!-- AMEX -->
+                                    <template x-if="getCardBrand() === 'amex'">
+                                        <svg viewBox="0 0 50 22" height="22" fill="white">
+                                            <text x="0" y="17" font-size="14" font-weight="700" font-family="Arial">AMEX</text>
+                                        </svg>
+                                    </template>
+                                    <!-- GENERIC -->
+                                    <template x-if="getCardBrand() === 'generic'">
+                                        <svg viewBox="0 0 44 28" height="26">
+                                            <circle cx="16" cy="14" r="12" fill="rgba(255,255,255,0.3)"/>
+                                            <circle cx="28" cy="14" r="12" fill="rgba(255,255,255,0.15)"/>
+                                        </svg>
+                                    </template>
+                                </div>
+                            </div>
+                            <div class="card-number-display" x-text="formatCardNum(cardNumber)"></div>
+                            <div class="card-bottom-row">
+                                <div>
+                                    <div class="card-field-label">Titular</div>
+                                    <div class="card-field-value" x-text="cardHolder || 'NOME DO TITULAR'"></div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div class="card-field-label">Validade</div>
+                                    <div class="card-field-value" x-text="cardExpiry || 'MM/AA'"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- VERSO -->
+                        <div class="card-3d-face card-3d-back">
+                            <div class="card-mag-strip"></div>
+                            <div class="card-sig-strip">
+                                <span class="card-cvv-val" x-text="cardCvv || '•••'"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FORMULÁRIO -->
+                <div class="form-group">
+                    <label class="form-label">Número do Cartão</label>
+                    <input type="text" class="form-input"
+                           placeholder="0000 0000 0000 0000"
+                           maxlength="19"
+                           @input="updateCardNumber($event)"
+                           @focus="isFlipped = false">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Nome no Cartão</label>
+                    <input type="text" class="form-input"
+                           placeholder="Como está impresso no cartão"
+                           x-model="cardHolder"
+                           @focus="isFlipped = false"
+                           style="text-transform:uppercase">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Validade</label>
+                        <input type="text" class="form-input"
+                               placeholder="MM/AA" maxlength="5"
+                               @input="updateExpiry($event)"
+                               @focus="isFlipped = false">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CVV</label>
+                        <input type="text" class="form-input"
+                               placeholder="•••" maxlength="4"
+                               x-model="cardCvv"
+                               @focus="isFlipped = true"
+                               @blur="isFlipped = false">
+                    </div>
+                </div>
+
+                <!-- ✅ PARCELAS com select nativo (sem dropdown customizado) -->
+                <div class="form-group">
+                    <label class="form-label">Parcelas</label>
+                    <select class="form-input" x-model.number="installments">
+                        <template x-for="n in maxInstallments" :key="n">
+                            <option :value="n" x-text="installmentLabel(n)"></option>
                         </template>
                     </select>
                 </div>
+
+                <button type="button" class="btn-pay" @click="proceed()">
+                    <span>Continuar para revisão</span>
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+
+                <div class="security-row">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    Pagamento 100% seguro e criptografado
+                </div>
             </div>
-            
 
-            
-            <!-- Cartão 3D (Show only for Credit Card) -->
-            <template x-if="billingType === 'CREDIT_CARD'">
-                <div class="card-preview" :class="[cardBrand, showCvv ? 'flipped' : '']">
-                    <div class="card-front">
-                        <div class="card-chip"></div>
-                        <div class="card-brand-logo">
-                            <template x-if="cardBrand === 'visa'">
-                                <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#fff"/><text x="24" y="22" font-size="16" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
-                            </template>
-                            <template x-if="cardBrand === 'mastercard'">
-                                <svg viewBox="0 0 48 32" height="32"><circle cx="18" cy="16" r="10" fill="#EB001B"/><circle cx="30" cy="16" r="10" fill="#F79E1B"/><path d="M24 9a10 10 0 0 1 0 14 10 10 0 0 1 0-14z" fill="#FF5F00"/></svg>
-                            </template>
-                            <template x-if="cardBrand === 'amex'">
-                                <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#006FCF"/><text x="24" y="20" font-size="12" fill="#fff" text-anchor="middle" font-weight="bold">AMEX</text></svg>
-                            </template>
-                            <template x-if="cardBrand === 'elo'">
-                                <svg viewBox="0 0 48 32" height="32"><rect width="48" height="32" rx="4" fill="#FFCB05"/><text x="24" y="20" font-size="14" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
-                            </template>
-                            <template x-if="cardBrand === 'default'">
-                                <span class="brand-text">💳</span>
-                            </template>
-                        </div>
-                        <div class="card-number" x-text="cardNumber || '•••• •••• •••• ••••'"></div>
-                        <div class="card-details">
-                            <div class="card-holder-name" x-text="cardHolder || 'NOME DO TITULAR'"></div>
-                            <div x-text="cardExpiry || '••/••'"></div>
-                        </div>
-                    </div>
-                    <div class="card-back">
-                        <div class="cvv-strip">
-                            <div class="cvv-value" x-text="$refs.cvvInput?.value || '•••'"></div>
-                        </div>
-                    </div>
+            <!-- ── STEP 2: CONFIRMAÇÃO + SUBMIT ── -->
+            <div x-show="step === 2" x-cloak>
+                <div class="payment-header">
+                    <h2 class="payment-title">Confirmar Pagamento</h2>
+                    <p class="payment-subtitle">Revise as informações antes de finalizar</p>
                 </div>
-            </template>
 
-            <!-- PIX QR Code (Show only for PIX) -->
-            <template x-if="billingType === 'PIX'">
-                <div class="pix-qrcode" style="margin-bottom: 24px;">
-                    @if(!empty($pixData['encodedImage']))
-                        <img src="data:image/png;base64,{{ $pixData['encodedImage'] }}" alt="QR Code PIX" style="width: 200px; height: 200px; border-radius: 12px; border: 1px solid var(--border);">
-                    @else
-                        <div style="width: 200px; height: 200px; background: white; display: flex; align-items: center; justify-content: center; border-radius: 12px; border: 1px solid var(--border);">
-                            <i class="fas fa-qrcode fa-5x" style="color: var(--text-muted); opacity: 0.3;"></i>
-                        </div>
-                    @endif
+                <!-- Resumo do cartão -->
+                <div style="background:#f0f4ff; border:1px solid #c7d2fe; border-radius:12px; padding:14px 16px; margin-bottom:18px; display:flex; align-items:center; gap:10px;">
+                    <svg width="18" height="18" fill="none" stroke="#4f46e5" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>
+                    <span style="font-size:13px; color:#3730a3; font-weight:600;">
+                        **** **** **** <span x-text="cardNumber.slice(-4) || '????'"></span>
+                        &nbsp;·&nbsp;
+                        <span x-text="installmentLabel(installments)"></span>
+                    </span>
                 </div>
-            </template>
-            
-            <!-- Credit Card Form -->
-            <template x-if="billingType === 'CREDIT_CARD'">
-                <form method="POST" action="{{ route('checkout.process', $transaction->uuid) }}">
+
+                <form method="POST"
+                      action="{{ route('checkout.process', $transaction->uuid) }}"
+                      @submit="loading = true">
                     @csrf
                     <input type="hidden" name="payment_method" value="credit_card">
-                    
-                    <div class="form-group">
-                        <label class="form-label" x-text="t('email') || 'Email'">Email</label>
-                        <input type="email" name="email" class="form-input" placeholder="seu@email.com" required>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" x-text="t('card_number')">Número do Cartão</label>
-                        <input type="text" name="card_number" class="form-input" 
-                            placeholder="0000 0000 0000 0000" maxlength="19" required
-                            x-model="cardNumber"
-                            @input="cardNumber = $event.target.value.replace(/\s+/g, '').replace(/(\d{4})/g, '$1 ').trim(); updateCard()">
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label" x-text="t('expiry_date')">Validade</label>
-                            <input type="text" name="card_expiry" class="form-input" placeholder="MM/AA" maxlength="5" required
-                                x-model="cardExpiry"
-                                @input="cardExpiry = $event.target.value.replace(/\D/g, '').replace(/(\d{2})(\d)/, '$1/$2')">
-                        </div>
-                        <div class="form-group" style="grid-column: span 2;">
-                            <label class="form-label" x-text="t('cvv')">CVC</label>
-                            <input type="text" name="card_cvv" class="form-input" placeholder="123" maxlength="4" required
-                                x-ref="cvvInput"
-                                @focus="showCvv = true"
-                                @blur="showCvv = false">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" x-text="t('card_holder')">Nome do Titular</label>
-                        <input type="text" name="card_holder_name" class="form-input" placeholder="NOME COMPLETO" required
-                            x-model="cardHolder">
-                    </div>
-                    
-                    <button type="submit" class="cta-button">
-                        <span x-text="t('pay_now')"></span>
-                    </button>
-                    
-                    <div class="accepted-cards">
-                        <svg viewBox="0 0 40 28" title="Visa"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="10" font-weight="bold" fill="#1A1F71" text-anchor="middle">VISA</text></svg>
-                        <svg viewBox="0 0 40 28" title="Mastercard"><circle cx="15" cy="14" r="8" fill="#EB001B"/><circle cx="25" cy="14" r="8" fill="#F79E1B"/><path d="M20 8a8 8 0 0 1 0 12 8 8 0 0 1 0-12z" fill="#FF5F00"/></svg>
-                        <svg viewBox="0 0 40 28" title="Elo"><rect width="40" height="28" rx="3" fill="#FFCB05"/><text x="20" y="19" font-size="10" fill="#0047BB" text-anchor="middle" font-weight="bold">ELO</text></svg>
-                        <svg viewBox="0 0 40 28" title="Hipercard"><rect width="40" height="28" rx="3" fill="#fff"/><text x="20" y="19" font-size="8" fill="#ef4444" text-anchor="middle" font-weight="bold">HIPER</text></svg>
-                    </div>
-                </form>
-            </template>
+                    <input type="hidden" name="card_number"    :value="cardNumber.replace(/\s/g,'')">
+                    <input type="hidden" name="card_expiry"    :value="cardExpiry">
+                    <input type="hidden" name="card_cvv"       :value="cardCvv">
+                    <input type="hidden" name="card_name"      :value="cardHolder">
+                    {{-- ✅ PARCELAS CHEGAM AO SERVIDOR --}}
+                    <input type="hidden" name="installments"   :value="installments">
 
-            <!-- PIX Copy Logic -->
-            <template x-if="billingType === 'PIX'">
-                <div style="width: 100%;">
-                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px; text-align: center;">
-                        Escaneie o código QR ou copie o código PIX abaixo para pagar.
-                    </p>
-                    
-                    <button @click="copyPixCode()" class="cta-button">
-                        <span x-show="!pixCopied"><i class="fas fa-copy"></i> Copiar Código PIX</span>
-                        <span x-show="pixCopied"><i class="fas fa-check"></i> Código Copiado!</span>
+                    <div class="form-group">
+                        <label class="form-label">E-mail</label>
+                        <input type="email" name="email" class="form-input"
+                               placeholder="seu@email.com"
+                               value="{{ $customerData['email'] ?? '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nome / Organização</label>
+                        <input type="text" name="customer_name" class="form-input"
+                               placeholder="Nome da sua organização"
+                               value="{{ $customerData['name'] ?? '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">CPF / CNPJ</label>
+                        <input type="text" name="customer_document" class="form-input"
+                               placeholder="00.000.000/0001-00"
+                               value="{{ $customerData['document'] ?? '' }}" required>
+                    </div>
+
+                    <button type="submit" class="btn-pay" :disabled="loading">
+                        <template x-if="!loading">
+                            <span style="display:flex;align-items:center;gap:8px">
+                                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                                Finalizar Pagamento
+                            </span>
+                        </template>
+                        <template x-if="loading">
+                            <span style="display:flex;align-items:center;gap:8px">
+                                <div class="spinner"></div>
+                                Processando...
+                            </span>
+                        </template>
                     </button>
-                    
-                    <div style="margin-top: 20px; text-align: center;">
-                        <div style="font-size: 14px; font-weight: 700; color: #ef4444;">
-                            Expira em: <span x-text="formatTime()"></span>
-                        </div>
-                    </div>
-                    
-                    <div class="pix-info" style="margin-top: 20px; background: #f0fdf4; color: #065f46; border: 1px solid #bbf7d0;">
-                        <i class="fas fa-clock"></i> O pagamento é processado instantaneamente 24/7.
-                    </div>
+
+                    <button type="button" class="btn-back" x-show="!loading" @click="step = 1">
+                        ← Voltar e editar
+                    </button>
+                </form>
+
+                <div class="security-row">
+                    <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+                    Pagamento 100% seguro e criptografado
                 </div>
-            </template>
-            
-            <div class="security-footer">
-                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
-                Pagamento 100% Seguro
             </div>
-        </div>
-    </div>
+
+        </div>{{-- end .payment-card --}}
+    </div>{{-- end .checkout-wrapper --}}
+</div>{{-- end .page-body --}}
+
+<script>
+    document.addEventListener('alpine:init', () => {
+        if (window.lucide) lucide.createIcons();
+    });
+</script>
 </body>
 </html>
