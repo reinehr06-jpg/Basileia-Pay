@@ -1,21 +1,25 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Public\HomeController;
 
 /*
 |--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-| Este arquivo contém apenas a rota principal e carrega os módulos
-| de rotas separados. Cada domínio funcional tem seu próprio arquivo.
-|
-| Módulos:
-|   routes/dashboard.php  — Auth, 2FA, Dashboard admin
-|   routes/checkout.php   — Checkout público (PIX, Cartão, Boleto, Asaas)
-|   routes/demo.php       — Rotas de demonstração e debug
+| Web Routes — API-only mode
+| Frontend migrado para Next.js em checkout.basileia.global
 |--------------------------------------------------------------------------
 */
 
-// ── Home ────────────────────────────────────────────────────────────────
-Route::get('/', [HomeController::class, 'index'])->middleware('secure.token');
+// Redirect raiz para o checkout Next.js
+Route::get('/', function () {
+    return redirect(config('app.frontend_url', 'https://checkout.basileia.global'));
+});
+
+// Rota de saúde para monitoramento
+Route::get('/health', function () {
+    return response()->json([
+        'status'  => 'ok',
+        'mode'    => 'api-only',
+        'version' => config('app.version', '2.0'),
+        'time'    => now()->toIso8601String(),
+    ]);
+});

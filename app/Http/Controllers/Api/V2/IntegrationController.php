@@ -1,0 +1,1 @@
+<?php namespace App\Http\Controllers\Api\V2; use App\Http\Controllers\Controller; class IntegrationController extends Controller { public function index(){} public function store(){} public function update(){} public function toggle(){} public function destroy(){} }

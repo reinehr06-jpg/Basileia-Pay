@@ -12,7 +12,7 @@ class AiCheckoutExtractorService
 
     public function __construct()
     {
-        $this->apiKey = config('services.openai.key');
+        $this->apiKey = config('services.openai.key') ?? '';
     }
 
     // ─── Modo 1: Imagem (print/screenshot) ────────────────────────────────────
