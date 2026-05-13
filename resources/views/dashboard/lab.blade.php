@@ -74,7 +74,7 @@
                 Checkout #{{ $config->id }}
             </p>
             <div class="lab-card-actions">
-                <a href="{{ route('dashboard.checkout-configs.edit', $config->id) }}" class="lab-btn lab-btn-edit">
+                <a href="{{ route('dashboard.lab.builder', $config->id) }}" class="lab-btn lab-btn-edit">
                     ✏️ Editar
                 </a>
                 @if(!$config->is_active)

@@ -51,6 +51,11 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
     // Lab
     Route::get('/lab', [LabController::class, 'index'])->name('dashboard.lab');
     Route::post('/lab/checkout/new', [LabController::class, 'createAndEdit'])->name('dashboard.lab.checkout.create');
+    Route::get('/lab/builder/{id}', [LabController::class, 'builder'])->name('dashboard.lab.builder');
+
+    // Lab Builder API (JSON)
+    Route::get('/lab/api/{id}', [LabController::class, 'apiShow'])->name('dashboard.lab.api.show');
+    Route::put('/lab/api/{id}', [LabController::class, 'apiUpdate'])->name('dashboard.lab.api.update');
 
     // Tokenizer Tool
     Route::get('/tokenizer', [DashboardController::class, 'tokenizer'])->name('dashboard.tokenizer');

@@ -13,12 +13,14 @@ class CheckoutConfig extends Model
         'slug',
         'company_id',
         'config',
+        'canvas_elements',
         'is_active',
         'description',
     ];
 
     protected $casts = [
         'config' => 'array',
+        'canvas_elements' => 'array',
         'is_active' => 'boolean',
     ];
 
