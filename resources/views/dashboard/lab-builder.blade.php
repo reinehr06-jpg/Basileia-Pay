@@ -18,7 +18,33 @@ body{font-family:'Inter',sans-serif;background:#0f0f1a;color:#e2e8f0;overflow:hi
 .tb{background:#2d2d5a;border:none;border-radius:6px;color:#e2e8f0;font-size:13px;padding:6px 14px;cursor:pointer}
 .tb:disabled{background:#1e1e3a;color:#475569;cursor:not-allowed}
 .tb.save{background:#7c3aed;color:#fff;font-weight:600;padding:8px 20px;border-radius:8px}
+.tb.clone{background:#1e1e3a;border:1px solid #2d2d5a;color:#a78bfa;font-weight:600;padding:8px 16px;border-radius:8px}
+.tb.clone:hover{background:#2d2d5a}
 .tb.back{background:#1e1e3a;color:#94a3b8;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+
+/* CLONE MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-overlay.open{display:flex}
+.modal{background:#0f0f1a;border:1px solid #2d2d5a;border-radius:16px;padding:32px;width:520px;max-width:90vw;display:flex;flex-direction:column;gap:20px}
+.modal h2{color:#e2e8f0;font-size:18px;font-weight:700;margin:0}
+.modal .desc{color:#64748b;font-size:13px;margin:0}
+.modal .tabs{display:flex;gap:8px}
+.modal .tab{background:#1e1e3a;border:none;border-radius:8px;color:#e2e8f0;font-size:14px;padding:10px 20px;cursor:pointer}
+.modal .tab.active{background:#7c3aed}
+.modal .mfin{background:#1e1e3a;border:1px solid #2d2d5a;border-radius:8px;padding:10px 14px;color:#e2e8f0;font-size:14px;width:100%}
+.modal .upload-zone{background:#1e1e3a;border:2px dashed #2d2d5a;border-radius:8px;padding:24px;text-align:center;color:#64748b;cursor:pointer;font-size:14px}
+.modal .upload-zone:hover{border-color:#7c3aed}
+.modal .error{background:#450a0a;border:1px solid #7f1d1d;border-radius:8px;padding:10px 14px;color:#f87171;font-size:13px}
+.modal .preview{background:#1e1e3a;border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px}
+.modal .preview .ok{color:#10b981;font-size:13px;font-weight:600;margin:0}
+.modal .preview .tags{display:flex;flex-wrap:wrap;gap:6px}
+.modal .preview .tag{background:#2d2d5a;border-radius:20px;padding:3px 10px;font-size:12px;color:#a78bfa}
+.modal .preview .meta{color:#64748b;font-size:12px;margin:0}
+.modal .actions{display:flex;gap:12px;justify-content:flex-end}
+.modal .mbtn{border:none;border-radius:8px;font-size:14px;padding:10px 20px;cursor:pointer}
+.modal .mbtn.primary{background:#7c3aed;color:#fff;font-weight:600}
+.modal .mbtn.primary:disabled{background:#4c1d95;opacity:.6;cursor:not-allowed}
+.modal .mbtn.secondary{background:#1e1e3a;color:#e2e8f0}
 .zoom-val{color:#e2e8f0;font-size:13px;min-width:40px;text-align:center}
 
 /* LAYOUT */
@@ -74,6 +100,7 @@ body{font-family:'Inter',sans-serif;background:#0f0f1a;color:#e2e8f0;overflow:hi
   <button class="tb" onclick="zoomBy(-10)">−</button>
   <span class="zoom-val" id="zoomVal">80%</span>
   <button class="tb" onclick="zoomBy(10)">+</button>
+  <button class="tb clone" onclick="openCloneModal()">🤖 Clonar com IA</button>
   <button class="tb save" onclick="saveCanvas()">💾 Salvar</button>
 </div>
 
@@ -100,6 +127,30 @@ body{font-family:'Inter',sans-serif;background:#0f0f1a;color:#e2e8f0;overflow:hi
   <!-- RIGHT -->
   <div class="right" id="rightPanel">
     <p class="empty">Selecione um elemento</p>
+  </div>
+</div>
+
+<!-- CLONE MODAL -->
+<div class="modal-overlay" id="cloneModal">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h2>🤖 Clonar com IA</h2>
+      <button onclick="closeCloneModal()" style="background:none;border:none;color:#64748b;font-size:20px;cursor:pointer">✕</button>
+    </div>
+    <p class="desc">Cole uma URL ou envie uma imagem — a IA analisa e replica o layout no canvas.</p>
+    <div class="tabs">
+      <button class="tab active" id="tabUrl" onclick="setCloneTab('url')">🔗 URL</button>
+      <button class="tab" id="tabImg" onclick="setCloneTab('image')">🖼 Imagem</button>
+    </div>
+    <div id="cloneInputArea">
+      <input class="mfin" type="url" id="cloneUrl" placeholder="https://checkout.exemplo.com/pagamento">
+    </div>
+    <div id="cloneError" style="display:none" class="error"></div>
+    <div id="clonePreview" style="display:none" class="preview"></div>
+    <div class="actions">
+      <button class="mbtn secondary" onclick="closeCloneModal()">Cancelar</button>
+      <button class="mbtn primary" id="cloneActionBtn" onclick="handleClone()">🤖 Analisar com IA</button>
+    </div>
   </div>
 </div>
 
@@ -338,6 +389,137 @@ async function loadCanvas(){
     history=[JSON.parse(JSON.stringify(elements))];histIdx=0;
     renderCanvas();
   }catch(err){console.error('Load error',err);renderCanvas()}
+}
+
+// ─── CLONE IA ───
+let cloneTab = 'url';
+let cloneResult = null;
+
+function openCloneModal(){
+  cloneResult=null;
+  document.getElementById('cloneModal').classList.add('open');
+  document.getElementById('cloneError').style.display='none';
+  document.getElementById('clonePreview').style.display='none';
+  document.getElementById('cloneActionBtn').textContent='🤖 Analisar com IA';
+  document.getElementById('cloneActionBtn').disabled=false;
+  document.getElementById('cloneActionBtn').onclick=handleClone;
+  setCloneTab('url');
+}
+
+function closeCloneModal(){
+  document.getElementById('cloneModal').classList.remove('open');
+}
+
+document.getElementById('cloneModal').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeCloneModal();
+});
+
+function setCloneTab(tab){
+  cloneTab=tab;
+  document.getElementById('tabUrl').className='tab'+(tab==='url'?' active':'');
+  document.getElementById('tabImg').className='tab'+(tab==='image'?' active':'');
+  if(tab==='url'){
+    document.getElementById('cloneInputArea').innerHTML='<input class="mfin" type="url" id="cloneUrl" placeholder="https://checkout.exemplo.com/pagamento">';
+  } else {
+    document.getElementById('cloneInputArea').innerHTML='<div class="upload-zone" onclick="document.getElementById(\'cloneFile\').click()">Clique para selecionar imagem (PNG, JPG, WEBP)<input type="file" id="cloneFile" accept="image/*" style="display:none"></div>';
+  }
+  document.getElementById('cloneError').style.display='none';
+  document.getElementById('clonePreview').style.display='none';
+  cloneResult=null;
+  document.getElementById('cloneActionBtn').textContent='🤖 Analisar com IA';
+  document.getElementById('cloneActionBtn').onclick=handleClone;
+}
+
+async function handleClone(){
+  const errDiv=document.getElementById('cloneError');
+  const preDiv=document.getElementById('clonePreview');
+  const btn=document.getElementById('cloneActionBtn');
+  errDiv.style.display='none';
+  preDiv.style.display='none';
+  btn.textContent='⏳ Analisando...';
+  btn.disabled=true;
+
+  try{
+    let res;
+    if(cloneTab==='url'){
+      const url=document.getElementById('cloneUrl')?.value?.trim();
+      if(!url)throw new Error('Cole uma URL válida');
+      res=await fetch('/dashboard/lab/clone',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({url})});
+    } else {
+      const file=document.getElementById('cloneFile')?.files?.[0];
+      if(!file)throw new Error('Selecione uma imagem');
+      const fd=new FormData();
+      fd.append('image',file);
+      res=await fetch('/dashboard/lab/clone',{method:'POST',headers:{'X-CSRF-TOKEN':CSRF},body:fd});
+    }
+
+    const data=await res.json();
+    if(!res.ok)throw new Error(data.error||'Erro na IA');
+    if(!data.elements||!Array.isArray(data.elements))throw new Error('Resposta sem elementos');
+
+    cloneResult=data;
+
+    // Contagem de tipos
+    const counts={};
+    data.elements.forEach(el=>{counts[el.type]=(counts[el.type]||0)+1});
+    let tags='';
+    Object.entries(counts).forEach(([t,c])=>{tags+=`<span class="tag">${t}: ${c}</span>`});
+
+    preDiv.innerHTML=`<p class="ok">✅ IA detectou ${data.elements.length} elementos</p><div class="tags">${tags}</div><p class="meta">Canvas: ${data.canvasWidth||600}×${data.canvasHeight||900}px · Fundo: ${data.backgroundColor||'#fff'}</p>`;
+    preDiv.style.display='flex';
+    btn.textContent='✅ Aplicar no Canvas';
+    btn.disabled=false;
+    btn.onclick=applyClone;
+
+  }catch(e){
+    errDiv.textContent='❌ '+e.message;
+    errDiv.style.display='block';
+
+    // Oferece fallback
+    btn.textContent='⚡ Usar template padrão';
+    btn.disabled=false;
+    btn.onclick=handleCloneFallback;
+  }
+}
+
+async function handleCloneFallback(){
+  const btn=document.getElementById('cloneActionBtn');
+  btn.textContent='⏳ Gerando...';
+  btn.disabled=true;
+  try{
+    const res=await fetch('/dashboard/lab/clone/fallback',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF},body:JSON.stringify({})});
+    const data=await res.json();
+    cloneResult=data;
+    applyClone();
+  }catch(e){
+    document.getElementById('cloneError').textContent='❌ '+e.message;
+    document.getElementById('cloneError').style.display='block';
+    btn.textContent='🤖 Analisar com IA';
+    btn.disabled=false;
+    btn.onclick=handleClone;
+  }
+}
+
+function applyClone(){
+  if(!cloneResult)return;
+  elements=cloneResult.elements.map(el=>({
+    id:el.id||uid(),
+    type:el.type||'rect',
+    x:el.x||0,y:el.y||0,
+    width:el.width||200,height:el.height||100,
+    rotation:el.rotation||0,
+    props:el.props||{backgroundColor:'#e2e8f0'},
+    locked:false,visible:true,name:el.name||el.type
+  }));
+  const c=document.getElementById('canvas');
+  c.style.width=(cloneResult.canvasWidth||600)+'px';
+  c.style.height=(cloneResult.canvasHeight||900)+'px';
+  c.style.backgroundColor=cloneResult.backgroundColor||'#ffffff';
+  selectedIds=[];
+  pushHistory();
+  renderCanvas();
+  closeCloneModal();
+  showToast('✅ Layout clonado com '+elements.length+' elementos!');
 }
 
 loadCanvas();

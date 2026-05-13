@@ -10,6 +10,7 @@ use App\Http\Controllers\Dashboard\EventController;
 use App\Http\Controllers\Dashboard\GatewayController;
 use App\Http\Controllers\Dashboard\IntegrationController;
 use App\Http\Controllers\Dashboard\LabController;
+use App\Http\Controllers\Dashboard\CheckoutCloneController;
 use App\Http\Controllers\Dashboard\PasswordController;
 use App\Http\Controllers\Dashboard\ProfileController;
 use App\Http\Controllers\Dashboard\ReceiptController;
@@ -56,6 +57,10 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
     // Lab Builder API (JSON)
     Route::get('/lab/api/{id}', [LabController::class, 'apiShow'])->name('dashboard.lab.api.show');
     Route::put('/lab/api/{id}', [LabController::class, 'apiUpdate'])->name('dashboard.lab.api.update');
+
+    // Lab Clone IA
+    Route::post('/lab/clone', [CheckoutCloneController::class, 'clone'])->name('dashboard.lab.clone');
+    Route::post('/lab/clone/fallback', [CheckoutCloneController::class, 'fallback'])->name('dashboard.lab.clone.fallback');
 
     // Tokenizer Tool
     Route::get('/tokenizer', [DashboardController::class, 'tokenizer'])->name('dashboard.tokenizer');
