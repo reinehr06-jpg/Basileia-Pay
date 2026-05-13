@@ -2,10 +2,17 @@ FROM php:8.4-cli
 
 RUN apt-get update && apt-get install -y \
     libpq-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libwebp-dev \
+    libzip-dev \
+    libicu-dev \
     unzip \
     git \
     curl \
-    && docker-php-ext-install pdo pdo_pgsql pgsql opcache \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install pdo pdo_pgsql pgsql opcache gd bcmath zip intl \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
