@@ -33,8 +33,8 @@ update_env() {
     fi
 }
 
-# Respect the APP_KEY from environment, or use a valid fallback if missing from both env and .env
-if [ -z "$APP_KEY" ] && ! grep -q "^APP_KEY=" .env; then
+# Respect the APP_KEY from environment, or use a valid fallback if missing from both env and .env (or empty in .env)
+if [ -z "$APP_KEY" ] && ! grep -q "^APP_KEY=." .env; then
     export APP_KEY="base64:YmFzaWxlaWEtY2hlY2tvdXQtc2VjcmV0LWtleS0yMDI="
 fi
 
