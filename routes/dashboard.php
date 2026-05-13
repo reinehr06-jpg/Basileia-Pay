@@ -52,6 +52,9 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
     // Lab
     Route::get('/lab', [LabController::class, 'index'])->name('dashboard.lab');
     Route::post('/lab/checkout/new', [LabController::class, 'createAndEdit'])->name('dashboard.lab.checkout.create');
+    Route::post('/lab/checkout/template', [LabController::class, 'createFromTemplate'])->name('dashboard.lab.checkout.template');
+    Route::post('/lab/checkout/{id}/duplicate', [LabController::class, 'duplicate'])->name('dashboard.lab.checkout.duplicate');
+    Route::delete('/lab/checkout/{id}', [LabController::class, 'destroy'])->name('dashboard.lab.checkout.destroy');
     Route::get('/lab/builder/{id}', [LabController::class, 'builder'])->name('dashboard.lab.builder');
 
     // Lab Builder API (JSON)

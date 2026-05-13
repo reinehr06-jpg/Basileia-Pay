@@ -24,7 +24,7 @@ class LabController extends Controller
     }
 
     /**
-     * Cria um novo checkout e redireciona para o builder.
+     * Cria um novo checkout em branco e redireciona para o builder.
      */
     public function createAndEdit()
     {
@@ -37,6 +37,59 @@ class LabController extends Controller
         $config->save();
 
         return redirect()->route('dashboard.lab.builder', $config->id);
+    }
+
+    /**
+     * Cria um checkout a partir de um template.
+     */
+    public function createFromTemplate(Request $request)
+    {
+        $request->validate([
+            'template_name' => 'required|string',
+            'config' => 'required|array',
+            'canvas_elements' => 'required|array',
+        ]);
+
+        $config = new CheckoutConfig;
+        $config->name = $request->input('template_name') . ' — ' . date('d/m H:i');
+        $config->slug = 'checkout-' . Str::random(8);
+        $config->company_id = Auth::user()->company_id;
+        $config->config = $request->input('config');
+        $config->canvas_elements = $request->input('canvas_elements');
+        $config->is_active = false;
+        $config->save();
+
+        return redirect()->route('dashboard.lab.builder', $config->id);
+    }
+
+    /**
+     * Duplica um checkout existente.
+     */
+    public function duplicate($id)
+    {
+        $original = CheckoutConfig::where('company_id', Auth::user()->company_id)
+            ->findOrFail($id);
+
+        $copy = $original->replicate();
+        $copy->name = $original->name . ' (cópia)';
+        $copy->slug = 'checkout-' . Str::random(8);
+        $copy->is_active = false;
+        $copy->save();
+
+        return redirect()->route('dashboard.lab')->with('success', 'Checkout duplicado com sucesso!');
+    }
+
+    /**
+     * Exclui um checkout.
+     */
+    public function destroy($id)
+    {
+        $config = CheckoutConfig::where('company_id', Auth::user()->company_id)
+            ->findOrFail($id);
+
+        $config->delete();
+
+        return redirect()->route('dashboard.lab')->with('success', 'Checkout removido com sucesso!');
     }
 
     /**
