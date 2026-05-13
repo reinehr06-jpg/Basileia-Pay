@@ -4,22 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Services\AsaasPaymentService;
+use App\Services\CheckoutService;
+use App\Helpers\PaymentStatusMapper;
 use App\Services\WebhookNotifierService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * @deprecated Legacy checkout controller.
+ * Use CardCheckoutController, PixCheckoutController, or BoletoCheckoutController instead.
+ * This controller is kept for backward compatibility only.
+ */
 class BasileiaCheckoutController extends Controller
 {
     public function __construct(
         private AsaasPaymentService $asaasService,
         private WebhookNotifierService $webhookNotifier,
-    ) {}
+    ) {
+    }
 
     public function show(string $uuid, Request $request)
     {
-        $transaction = Transaction::where('uuid', $uuid)->first() 
-                    ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+        $transaction = Transaction::where('uuid', $uuid)->first()
+            ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
 
         return $this->renderCheckout($transaction->asaas_payment_id ?? $transaction->gateway_subscription_id, $transaction, $request);
     }
@@ -38,7 +46,7 @@ class BasileiaCheckoutController extends Controller
         ]);
 
         $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
-        
+
         if (!$asaasPayment) {
             Log::warning('BasileiaCheckout: Payment not found in gateway, using local fallback', [
                 'asaas_payment_id' => $asaasPaymentId,
@@ -48,7 +56,7 @@ class BasileiaCheckoutController extends Controller
             // Fallback to local data to avoid crashing the user experience
             $methodMap = ['credit_card' => 'CREDIT_CARD', 'pix' => 'PIX', 'boleto' => 'BOLETO'];
             $billingType = $methodMap[$transaction->payment_method ?? 'credit_card'] ?? 'CREDIT_CARD';
-            
+
             $asaasPayment = [
                 'billingType' => $billingType,
                 'installmentCount' => 1,
@@ -65,9 +73,9 @@ class BasileiaCheckoutController extends Controller
 
         $customer = $asaasPayment['customer'] ?? [];
         $billingType = $asaasPayment['billingType'] ?? 'CREDIT_CARD';
-        
+
         $customerData = [
-            'name' => $customer['name'] ?? ($transaction->customer_name ?? $request->get('cliente', '')),
+            'name' => $customer['name'] ?? ($transaction->customer_name ?? ''),
             'email' => $customer['email'] ?? ($transaction->customer_email ?? ''),
             'phone' => $customer['phone'] ?? ($transaction->customer_phone ?? ''),
             'document' => $customer['cpfCnpj'] ?? ($transaction->customer_document ?? ''),
@@ -85,19 +93,19 @@ class BasileiaCheckoutController extends Controller
         $ciclo = $request->get('ciclo', 'mensal');
 
         if (!$transaction) {
-            $companyId = \App\Models\Company::first()?->id;
-            
+            $companyId = CheckoutService::resolveCompanyId();
+
             $transaction = Transaction::create([
                 'uuid' => Str::uuid(),
                 'company_id' => $companyId,
                 'asaas_payment_id' => $asaasPaymentId,
                 'source' => 'basileia_vendas',
                 'product_type' => 'saas',
-                'external_id' => $request->get('venda_id', ''),
-                'callback_url' => config('basileia.callback_url', $request->get('callback_url', '')),
+                'external_id' => '',
+                'callback_url' => config('basileia.callback_url', ''),
                 'amount' => $asaasPayment['value'] ?? 0,
                 'description' => $asaasPayment['description'] ?? 'Pagamento Basileia',
-                'payment_method' => $this->mapPaymentMethod($billingType),
+                'payment_method' => PaymentStatusMapper::mapPaymentMethod($billingType),
                 'status' => 'pending',
                 'customer_name' => $customerData['name'],
                 'customer_email' => $customerData['email'],
@@ -107,8 +115,8 @@ class BasileiaCheckoutController extends Controller
                 'metadata' => [
                     'plano' => $plano,
                     'ciclo' => $ciclo,
-                    'venda_id' => $request->get('venda_id', ''),
-                    'hash' => $request->get('hash', ''),
+                    'venda_id' => '',
+                    'hash' => '',
                 ],
             ]);
         }
@@ -135,7 +143,7 @@ class BasileiaCheckoutController extends Controller
 
         $htmlPath = public_path('checkout-app/checkout.html');
         if (!file_exists($htmlPath)) {
-            return view('checkout.basileia', [
+            return view('checkout.index', [
                 'transaction' => $transaction,
                 'asaasPayment' => $asaasPayment,
                 'customerData' => $customerData,
@@ -148,7 +156,7 @@ class BasileiaCheckoutController extends Controller
         }
 
         $html = file_get_contents($htmlPath);
-        
+
         $checkoutData = [
             'uuid' => $transaction->uuid,
             'amount' => $asaasPayment['value'] ?? 0,
@@ -167,12 +175,12 @@ class BasileiaCheckoutController extends Controller
 
     public function process(string $uuid, Request $request)
     {
-        $transaction = Transaction::where('uuid', $uuid)->first() 
-                    ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+        $transaction = Transaction::where('uuid', $uuid)->first()
+            ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
 
         try {
             $paymentMethod = $request->input('paymentMethod', 'credit_card');
-            $gateway = \App\Services\Gateways\GatewayFactory::create();
+            $gateway = \App\Services\Gateway\GatewayFactory::create();
 
             if ($paymentMethod === 'pix') {
                 $request->validate([
@@ -246,15 +254,18 @@ class BasileiaCheckoutController extends Controller
                     $result = $gateway->charge($input, $customerId);
                 }
 
-                $status = $this->mapStatus($result['status'] ?? '');
-                $paidAt = in_array($result['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
+                $status = PaymentStatusMapper::mapStatus($result['status'] ?? '');
+                $paidAt = PaymentStatusMapper::isPaid($result['status'] ?? '') ? now() : null;
+
+                $sensitiveFields = ['creditCardToken', 'creditCard', 'number', 'ccv', 'expiryMonth', 'expiryYear', 'holderName', 'creditCardHolderInfo'];
+                $safeResponse = collect($result['raw'] ?? [])->except($sensitiveFields)->toArray();
 
                 $transaction->update([
                     'asaas_payment_id' => $result['gatewayId'],
                     'payment_method' => 'credit_card',
                     'status' => $status,
                     'paid_at' => $paidAt,
-                    'gateway_response' => json_encode($result['raw']),
+                    'gateway_response' => $safeResponse,
                 ]);
 
                 Log::info('BasileiaCheckout: Pagamento processado via GatewayFactory', [
@@ -297,9 +308,9 @@ class BasileiaCheckoutController extends Controller
         if ($transaction->status === 'pending' && $transaction->asaas_payment_id) {
             $asaasPayment = $this->asaasService->getPayment($transaction->asaas_payment_id);
             if ($asaasPayment) {
-                $status = $this->mapStatus($asaasPayment['status'] ?? 'PENDING');
+                $status = PaymentStatusMapper::mapStatus($asaasPayment['status'] ?? 'PENDING');
                 if ($status !== 'pending') {
-                    $paidAt = in_array($asaasPayment['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
+                    $paidAt = PaymentStatusMapper::isPaid($asaasPayment['status'] ?? '') ? now() : null;
                     $transaction->update([
                         'status' => $status,
                         'paid_at' => $paidAt,
@@ -314,33 +325,11 @@ class BasileiaCheckoutController extends Controller
 
     public function success(string $uuid)
     {
-        $transaction = Transaction::where('uuid', $uuid)->first() 
-                    ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
-        
-        return view('checkout.asaas-success', [
+        $transaction = Transaction::where('uuid', $uuid)->first()
+            ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
+
+        return view('checkout.card.front.sucesso', [
             'transaction' => $transaction,
         ]);
-    }
-
-    private function mapPaymentMethod(string $billingType): string
-    {
-        return match ($billingType) {
-            'CREDIT_CARD' => 'credit_card',
-            'PIX' => 'pix',
-            'BOLETO' => 'boleto',
-            default => 'credit_card',
-        };
-    }
-
-    private function mapStatus(string $asaasStatus): string
-    {
-        return match ($asaasStatus) {
-            'CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH' => 'approved',
-            'PENDING', 'AWAITING_RISK_ANALYSIS' => 'pending',
-            'OVERDUE' => 'overdue',
-            'REFUNDED', 'REFUND_REQUESTED', 'CHARGEBACK_REQUESTED' => 'refunded',
-            'CANCELED', 'DELETED' => 'cancelled',
-            default => 'pending',
-        };
     }
 }

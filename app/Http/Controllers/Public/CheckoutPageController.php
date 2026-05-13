@@ -18,7 +18,8 @@ class CheckoutPageController extends Controller
     public function __construct(
         private PaymentService $paymentService,
         private CardValidator $cardValidator
-    ) {}
+    ) {
+    }
 
     public function show(string $uuid, Request $request)
     {
@@ -48,7 +49,7 @@ class CheckoutPageController extends Controller
         }
 
         $requestedMethod = $request->get('method');
-        
+
         if ($requestedMethod && in_array(strtolower($requestedMethod), self::ALLOWED_PAYMENT_METHODS)) {
             $paymentMethod = strtolower($requestedMethod);
         } else {
@@ -88,9 +89,11 @@ class CheckoutPageController extends Controller
         }
 
         $idempotencyKey = self::IDEMPOTENCY_KEY_PREFIX . $transaction->id;
-        if (RateLimiter::attempt($idempotencyKey, 1, function() use ($transaction) {
-            return $transaction->payments()->count() > 0;
-        }, 300)) {
+        if (
+            RateLimiter::attempt($idempotencyKey, 1, function () use ($transaction) {
+                return $transaction->payments()->count() > 0;
+            }, 300)
+        ) {
             Log::warning('Duplicate payment attempt blocked', [
                 'transaction_id' => $transaction->id,
                 'uuid' => $uuid,
@@ -102,7 +105,7 @@ class CheckoutPageController extends Controller
         }
 
         $paymentMethod = $request->input('payment_method');
-        
+
         if (!in_array($paymentMethod, self::ALLOWED_PAYMENT_METHODS)) {
             return back()->withErrors([
                 'payment' => 'Método de pagamento inválido.',
@@ -128,7 +131,7 @@ class CheckoutPageController extends Controller
 
         if (in_array($paymentMethod, ['credit_card', 'debit_card'])) {
             $sanitizedCardNumber = $this->cardValidator->sanitize($request->input('card_number'));
-            
+
             $cardValidation = $this->cardValidator->validate(
                 $sanitizedCardNumber,
                 $request->input('card_cvv')
@@ -145,10 +148,12 @@ class CheckoutPageController extends Controller
                 ]);
             }
 
-            if (!$this->cardValidator->validateExpiry(
-                $request->input('card_expiry_month'),
-                $request->input('card_expiry_year')
-            )) {
+            if (
+                !$this->cardValidator->validateExpiry(
+                    $request->input('card_expiry_month'),
+                    $request->input('card_expiry_year')
+                )
+            ) {
                 return back()->withErrors([
                     'payment' => 'Cartão expirado. Utilize um cartão válido.',
                 ]);
@@ -212,7 +217,7 @@ class CheckoutPageController extends Controller
             return $this->errorResponse('Transação não encontrada.');
         }
 
-        return view('checkout.success', compact('transaction'));
+        return view('checkout.card.front.sucesso', compact('transaction'));
     }
 
     private function errorResponse(string $message)

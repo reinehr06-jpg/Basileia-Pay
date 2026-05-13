@@ -1,50 +1,31 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Gateway;
 
-use Exception;
+use App\Models\Integration;
+use RuntimeException;
 
 class GatewayFactory
 {
-    private const GATEWAYS = [
-        'asaas' => AsaasGateway::class,
-        'stripe' => StripeGateway::class,
-        'pagseguro' => PagSeguroGateway::class,
-        'paypal' => PayPalGateway::class,
-        'adyen' => AdyenGateway::class,
-        'braintree' => BraintreeGateway::class,
-        'square' => SquareGateway::class,
-        'authorizenet' => AuthorizeNetGateway::class,
-        'verifone' => VerifoneGateway::class,
-        'checkoutcom' => CheckoutComGateway::class,
-        'klarna' => KlarnaGateway::class,
-        'worldpay' => WorldpayGateway::class,
-        'mercadopago' => MercadoPagoGateway::class,
-        'mollie' => MollieGateway::class,
-        'razorpay' => RazorpayGateway::class,
-        'airwallex' => AirwallexGateway::class,
-        'payoneer' => PayoneerGateway::class,
-        'skrill' => SkrillGateway::class,
-        'rapyd' => RapydGateway::class,
-        'flutterwave' => FlutterwaveGateway::class,
-        'bluesnap' => BlueSnapGateway::class,
-        'custom' => CustomGateway::class,
-    ];
-
-    public function make(string $type): GatewayInterface
+    public static function create(): AsaasGateway
     {
-        $type = strtolower($type);
-
-        if (!isset(self::GATEWAYS[$type])) {
-            throw new Exception("Gateway type '{$type}' not supported.");
-        }
-
-        $class = self::GATEWAYS[$type];
-        return new $class();
+        return AsaasGateway::fromRequest();
     }
 
-    public static function getAvailableGateways(): array
+    public static function createFromIntegration(Integration $integration): AsaasGateway
     {
-        return array_keys(self::GATEWAYS);
+        return AsaasGateway::fromIntegration($integration);
+    }
+
+    public static function make(string $gatewayType = 'asaas'): AsaasGateway
+    {
+        return match (strtolower($gatewayType)) {
+            'asaas' => AsaasGateway::fromRequest(),
+            default => throw new RuntimeException(
+                "GatewayFactory: [{$gatewayType}] não existe em produção. Use 'asaas'."
+            ),
+        };
     }
 }

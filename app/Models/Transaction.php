@@ -12,6 +12,12 @@ class Transaction extends Model
 {
     use HasUuid;
 
+    // Transaction source identifiers
+    const SOURCE_CHECKOUT = 'checkout';
+    const SOURCE_BASILEIA_VENDAS = 'basileia_vendas';
+    const SOURCE_DEFAULT_VENDOR = 'default_vendor';
+    const SOURCE_LEGACY = 'legacy';
+
     protected $fillable = [
         'uuid',
         'company_id',
@@ -157,5 +163,13 @@ class Transaction extends Model
     public function canBeRefunded(): bool
     {
         return $this->status === 'approved';
+    }
+
+    /**
+     * Get the max installments attribute with a safe default.
+     */
+    public function getMaxInstallmentsAttribute(): int
+    {
+        return (int) ($this->attributes['max_installments'] ?? 12);
     }
 }

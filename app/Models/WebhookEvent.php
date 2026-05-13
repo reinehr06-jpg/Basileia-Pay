@@ -9,7 +9,10 @@ class WebhookEvent extends Model
 {
     protected $fillable = [
         'company_id',
+        'integration_id',
+        'transaction_id',
         'event_type',
+        'idempotency_key',
         'payload',
         'processed',
         'processed_at',

@@ -1,6 +1,6 @@
 <?php
 
-$appKey = 'base64:8IlayQ1Ie/XZ8QMeJcK10vSZkwuCt3QjaIkm4W9Orz4=';
+$appKey = env('APP_KEY');
 $cipher = 'AES-256-CBC';
 
 if ($appKey) {
@@ -33,7 +33,7 @@ return [
 
     'faker_locale' => 'en_US',
 
-    'key' => 'base64:8IlayQ1Ie/XZ8QMeJcK10vSZkwuCt3QjaIkm4W9Orz4=',
+    'key' => env('APP_KEY'),
 
     'cipher' => $cipher,
 

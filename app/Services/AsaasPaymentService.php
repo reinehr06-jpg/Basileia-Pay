@@ -1,142 +1,89 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use App\Services\Gateway\AsaasGateway;
 
 class AsaasPaymentService
 {
-    private function getApiKey(): ?string
+    private AsaasGateway $gateway;
+
+    public function __construct()
     {
-        return config('services.asaas.api_key', '');
+        // Gateway será resolvido por transação ou via forRequest() quando necessário.
     }
 
-    private function getEnvironment(): string
+    public function gateway($resource = null): AsaasGateway
     {
-        return config('services.asaas.environment', env('APP_ENV', 'sandbox'));
-    }
-
-    private function getBaseUrl(): string
-    {
-        $env = $this->getEnvironment();
-        return $env === 'sandbox'
-            ? config('services.asaas.base_url_sandbox', 'https://sandbox.asaas.com/api/v3')
-            : config('services.asaas.base_url_production', 'https://api.asaas.com/v3');
-    }
-
-    private function request(string $method, string $endpoint, array $data = []): array
-    {
-        $url = "{$this->getBaseUrl()}{$endpoint}";
-        $apiKey = $this->getApiKey();
+        if ($resource) {
+            return $this->forTransaction($resource);
+        }
 
         try {
-            if (empty($apiKey)) {
-                Log::warning('AsaasPaymentService: ASAAS_API_KEY not configured');
-                throw new \RuntimeException('Gateway not configured (ASAAS_API_KEY is empty)');
+            return AsaasGateway::fromRequest();
+        } catch (\Throwable $e) {
+            // Se falhar o fromRequest (ex: checkout público), tentamos resolver pelo contexto da request
+            $company = request()->attributes->get('company');
+            if ($company) {
+                $gateway = $company->defaultGateway();
+                if ($gateway) {
+                    return AsaasGateway::fromGatewayModel($gateway);
+                }
             }
 
-            $response = Http::withHeaders([
-                'access_token' => $apiKey,
-                'Content-Type' => 'application/json',
-            ])->timeout(30)->{$method}($url, $data);
-
-            if (! $response->successful()) {
-                $body = $response->json();
-                $message = $body['errors'][0]['description'] ?? 'Request failed';
-                Log::error('AsaasPaymentService: Request failed', [
-                    'url' => $url,
-                    'environment' => $this->getEnvironment(),
-                    'method' => $method,
-                    'status' => $response->status(),
-                    'errors' => $body['errors'] ?? [],
-                ]);
-                throw new \RuntimeException("Asaas API Error: {$message}");
-            }
-
-            return $response->json();
-        } catch (\Exception $e) {
-            Log::error('AsaasPaymentService: Exception', [
-                'url' => $url,
-                'error' => $e->getMessage(),
-            ]);
-            throw $e;
+            throw new \RuntimeException('AsaasPaymentService: Não foi possível resolver o gateway. Contexto ausente.');
         }
     }
 
-    /**
-     * Get payment or subscription details.
-     */
-    public function getPayment(string $paymentId): ?array
+    public function forTransaction($transaction): AsaasGateway
     {
-        try {
-            // Asaas v3: subscriptions have a different endpoint
-            $endpoint = str_starts_with($paymentId, 'sub_')
-                ? "/subscriptions/{$paymentId}"
-                : "/payments/{$paymentId}";
-
-            return $this->request('GET', $endpoint);
-        } catch (\Exception $e) {
-            Log::warning('AsaasPaymentService: Record not found', [
-                'id' => $paymentId,
-                'environment' => $this->getEnvironment(),
-            ]);
-
-            return null;
+        if ($transaction->gateway) {
+            return AsaasGateway::fromGatewayModel($transaction->gateway);
         }
+
+        $gateway = $transaction->company?->defaultGateway();
+
+        if (!$gateway) {
+            throw new \RuntimeException('Gateway não configurado para esta empresa.');
+        }
+
+        return AsaasGateway::fromGatewayModel($gateway);
     }
 
-    /**
-     * Get PIX QR Code for a payment.
-     */
-    public function getPixQrCode(string $paymentId): ?array
+    public function getPayment(string $paymentId, $transaction = null): ?array
     {
-        try {
-            // Subscriptions don't have QR codes directly; the individual initial payment does.
-            // But if it's a payment ID, we can get the QR code.
-            if (str_starts_with($paymentId, 'sub_')) {
-                return null;
-            }
-
-            return $this->request('GET', "/payments/{$paymentId}/pixQrCode");
-        } catch (\Exception $e) {
-            return [];
-        }
+        return $this->gateway($transaction)->getPayment($paymentId);
     }
 
-    /**
-     * Process a credit card payment using an existing payment ID or subscription ID.
-     */
-    public function processCardPayment(string $id, array $cardData, ?string $remoteIp = null): array
+    public function getSubscription(string $subscriptionId, $transaction = null): ?array
     {
-        $expiry = explode('/', $cardData['card_expiry']);
-        $month = trim($expiry[0] ?? '');
-        $year = trim($expiry[1] ?? '');
+        return $this->gateway($transaction)->getSubscription($subscriptionId);
+    }
 
-        // Standard Asaas card payload
-        $payload = [
-            'creditCard' => [
-                'holderName' => $cardData['card_name'],
-                'number' => preg_replace('/\D/', '', $cardData['card_number']),
-                'expiryMonth' => $month,
-                'expiryYear' => $year,
-                'ccv' => $cardData['card_cvv'],
-            ],
-            'creditCardHolderInfo' => [
-                'name' => $cardData['card_name'],
-                'email' => $cardData['card_email'] ?? 'cupom@basileia.global',
-                'cpfCnpj' => preg_replace('/\D/', '', $cardData['card_document']),
-                'postalCode' => preg_replace('/\D/', '', $cardData['card_cep'] ?? '00000000'),
-                'addressNumber' => $cardData['card_address_number'] ?? '1',
-                'phone' => preg_replace('/\D/', '', $cardData['card_phone'] ?? '0000000000'),
-            ],
-            'remoteIp' => $remoteIp ?? request()->ip(),
-        ];
+    public function getPixQrCode(string $paymentId, $transaction = null): ?array
+    {
+        return $this->gateway($transaction)->getPixQrCode($paymentId);
+    }
 
-        $endpoint = str_starts_with($id, 'sub_')
-            ? "/subscriptions/{$id}"
-            : "/payments/{$id}/payWithCreditCard";
+    public function cancelPayment(string $paymentId, $transaction = null): array
+    {
+        return $this->gateway($transaction)->cancelPayment($paymentId);
+    }
 
-        return $this->request('POST', $endpoint, $payload);
+    public function refundPayment(string $paymentId, ?float $amount = null, $transaction = null): array
+    {
+        return $this->gateway($transaction)->refundPayment($paymentId, $amount);
+    }
+
+    public function processCardPayment(string $id, array $cardData, ?string $remoteIp = null, $transaction = null): array
+    {
+        return $this->gateway($transaction)->payWithCard($id, $cardData, $remoteIp ?? request()->ip());
+    }
+
+    public function processCardTokenPayment(string $id, string $cardToken, $transaction = null): array
+    {
+        return $this->gateway($transaction)->processCardTokenPayment($id, $cardToken);
     }
 }

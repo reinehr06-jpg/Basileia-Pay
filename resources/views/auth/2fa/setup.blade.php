@@ -87,8 +87,8 @@
             </div>
         @endif
 
-        <div class="qr-container">
-            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data={{ urlencode($qrCodeUrl) }}" alt="QR Code 2FA">
+        <div class="qr-container" style="background: white; padding: 20px; border-radius: 12px; display: inline-block; margin-bottom: 24px;">
+            {!! QrCode::size(200)->generate($qrCodeUrl) !!}
         </div>
         
         <div class="alert">

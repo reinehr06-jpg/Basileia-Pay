@@ -1,105 +1,103 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
 use App\Models\Event;
+use App\Models\Transaction;
 use App\Services\CustomerService;
 use App\Services\PaymentService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class EventCheckoutController extends Controller
 {
-    public function show(string $slug)
+    public function show(string $slug): mixed
     {
         $event = Event::where('slug', $slug)->firstOrFail();
 
-        if (!$event->isDisponivel()) {
-            return view('checkout.event-esgotado', ['event' => $event]);
+        if (! $event->isDisponivel()) {
+            return view('checkout.evento.esgotado', compact('event'));
         }
 
-        return view('checkout.evento', ['event' => $event]);
+        return view('checkout.evento.index', compact('event'));
     }
 
-    public function process(Request $request, string $slug, CustomerService $customerService, PaymentService $paymentService)
+    public function process(Request $request, string $slug, CustomerService $customerService, PaymentService $paymentService): mixed
     {
         $event = Event::where('slug', $slug)->firstOrFail();
 
-        if (!$event->isDisponivel()) {
+        if (! $event->isDisponivel()) {
             return back()->withErrors(['error' => 'Este evento não está mais disponível.'])->withInput();
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email',
-            'document' => 'required|string|max:20',
-            'phone' => 'nullable|string|max:20',
-            'billing_type' => 'required|in:PIX,BOLETO,CREDIT_CARD',
+            'name'         => 'required|string|max:255',
+            'email'        => 'required|email',
+            'document'     => 'required|string|max:20',
+            'phone'        => 'nullable|string|max:20',
+            'billingtype'  => 'required|in:PIX,BOLETO,CREDITCARD',
         ]);
 
-        $company = $event->company;
-        $gateway = \App\Models\Gateway::where('company_id', $company->id)
-            ->where('type', config('services.default_gateway', 'asaas'))
-            ->firstOrFail();
+        // [BUG-04] company_id vem do evento, não de Company::first()
+        $companyId = $event->company_id;
 
         $customer = $customerService->findOrCreate([
-            'company_id' => $company->id,
-            'name' => $request->name,
-            'email' => $request->email,
-            'document' => preg_replace('/\D/', '', $request->document),
-            'phone' => $request->phone,
-        ]);
+            'company_id' => $companyId,
+            'name'       => $request->name,
+            'email'      => $request->email,
+            'document'   => preg_replace('/\D/', '', $request->document),
+            'phone'      => $request->phone,
+        ], $event->company);
 
-        $transaction = \App\Models\Transaction::create([
-            'company_id' => $company->id,
-            'gateway_id' => $gateway->id,
-            'customer_id' => $customer->id,
-            'description' => "Evento: {$event->titulo}",
-            'amount' => $event->valor,
-            'net_amount' => $event->valor,
-            'currency' => 'BRL',
-            'payment_method' => strtolower($request->billing_type),
-            'status' => 'pending',
-            'customer_name' => $request->name,
-            'customer_email' => $request->email,
+        $transaction = Transaction::create([
+            'uuid'              => (string) Str::uuid(),
+            'company_id'        => $companyId, // ← do evento, nunca hardcoded
+            'event_id'          => $event->id,
+            'amount'            => $event->valor,
+            'description'       => 'Ingresso: ' . $event->titulo,
+            'status'            => 'pending',
+            'payment_method'    => strtolower($request->billingtype),
+            'customer_name'     => $request->name,
+            'customer_email'    => $request->email,
             'customer_document' => preg_replace('/\D/', '', $request->document),
         ]);
 
-        $payment = $paymentService->processPayment($transaction, [
-            'payment_method' => strtolower($request->billing_type),
-            'billing_type' => $request->billing_type,
-        ]);
-
-        $event->incrementarVaga();
-
-        if ($request->billing_type === 'PIX' && isset($payment['pixQrCode'])) {
-            return view('checkout.event-pagamento', [
-                'event' => $event,
-                'payment' => $payment,
-                'transaction' => $transaction,
-                'billing_type' => $request->billing_type,
+        try {
+            $payment = $paymentService->processPayment([
+                'transaction_uuid' => $transaction->uuid,
+                'billingtype'      => $request->billingtype,
+                'amount'           => $event->valor,
+                'customer'         => [
+                    'name'     => $request->name,
+                    'email'    => $request->email,
+                    'document' => preg_replace('/\D/', '', $request->document),
+                ],
             ]);
-        }
 
-        if ($request->billing_type === 'BOLETO' && isset($payment['bankSlipUrl'])) {
-            return view('checkout.event-pagamento', [
-                'event' => $event,
-                'payment' => $payment,
-                'transaction' => $transaction,
-                'billing_type' => $request->billing_type,
-            ]);
-        }
+            $event->incrementarVaga();
 
-        if (isset($payment['invoiceUrl'])) {
-            return redirect($payment['invoiceUrl']);
-        }
+            if ($request->billingtype === 'PIX' && isset($payment['pixQrCode'])) {
+                return view('checkout.evento.pagamento', compact('event', 'payment', 'transaction') + ['billingtype' => $request->billingtype]);
+            }
 
-        return redirect("/pay/{$transaction->uuid}/success");
+            if ($request->billingtype === 'BOLETO' && isset($payment['bankSlipUrl'])) {
+                return view('checkout.evento.pagamento', compact('event', 'payment', 'transaction') + ['billingtype' => $request->billingtype]);
+            }
+
+            return redirect(route('evento.success', ['slug' => $slug]));
+        } catch (\Throwable $e) {
+            Log::error('EventCheckoutController: erro', ['error' => $e->getMessage(), 'slug' => $slug]);
+            return back()->withErrors(['payment' => 'Erro ao processar pagamento.'])->withInput();
+        }
     }
 
-    public function success(string $slug)
+    public function success(string $slug): mixed
     {
         $event = Event::where('slug', $slug)->firstOrFail();
-        return view('checkout.event-success', ['event' => $event]);
+        return view('checkout.card.front.sucesso', compact('event'));
     }
 }

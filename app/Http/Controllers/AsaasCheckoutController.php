@@ -4,22 +4,30 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaction;
 use App\Services\AsaasPaymentService;
+use App\Services\CheckoutService;
+use App\Helpers\PaymentStatusMapper;
 use App\Services\WebhookNotifierService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * @deprecated Legacy Asaas-specific checkout controller.
+ * Use CardCheckoutController, PixCheckoutController, or BoletoCheckoutController instead.
+ * This controller is kept for backward compatibility only.
+ */
 class AsaasCheckoutController extends Controller
 {
     public function __construct(
         private AsaasPaymentService $asaasService,
         private WebhookNotifierService $webhookNotifier,
-    ) {}
+    ) {
+    }
 
     public function show(string $asaasPaymentId, Request $request)
     {
         $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
-        
+
         if (!$asaasPayment) {
             Log::warning('AsaasCheckout: Payment not found', [
                 'asaas_payment_id' => $asaasPaymentId,
@@ -30,34 +38,34 @@ class AsaasCheckoutController extends Controller
         $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
 
         $customerData = [
-            'name' => $request->get('nome', ''),
-            'email' => $request->get('email', ''),
-            'phone' => $request->get('telefone', ''),
-            'document' => $request->get('documento', ''),
+            'name' => $asaasPayment['customer']['name'] ?? '',
+            'email' => $asaasPayment['customer']['email'] ?? '',
+            'phone' => $asaasPayment['customer']['phone'] ?? '',
+            'document' => $asaasPayment['customer']['cpfCnpj'] ?? '',
             'address' => [
-                'cep' => $request->get('cep', ''),
-                'endereco' => $request->get('endereco', ''),
-                'numero' => $request->get('numero', ''),
-                'complemento' => $request->get('complemento', ''),
-                'bairro' => $request->get('bairro', ''),
-                'cidade' => $request->get('cidade', ''),
-                'estado' => $request->get('estado', ''),
+                'cep' => $asaasPayment['customer']['postalCode'] ?? '',
+                'endereco' => $asaasPayment['customer']['address'] ?? '',
+                'numero' => $asaasPayment['customer']['addressNumber'] ?? '',
+                'complemento' => $asaasPayment['customer']['complement'] ?? '',
+                'bairro' => $asaasPayment['customer']['province'] ?? '',
+                'cidade' => $asaasPayment['customer']['city'] ?? '',
+                'estado' => $asaasPayment['customer']['state'] ?? '',
             ],
         ];
 
         if (!$transaction) {
-            $companyId = $request->get('company_id', \App\Models\Company::first()?->id ?? 1);
+            $companyId = CheckoutService::resolveCompanyId();
 
             $transaction = Transaction::create([
                 'uuid' => Str::uuid(),
                 'company_id' => $companyId,
                 'asaas_payment_id' => $asaasPaymentId,
-                'source' => $request->get('source', 'basileia_vendas'),
-                'external_id' => $request->get('venda_id', ''),
-                'callback_url' => $request->get('callback_url', ''),
-                'amount' => $asaasPayment['value'] ?? $request->get('valor', 0),
+                'source' => 'basileia_vendas',
+                'external_id' => '',
+                'callback_url' => config('basileia.callback_url', ''),
+                'amount' => $asaasPayment['value'] ?? 0,
                 'description' => $asaasPayment['description'] ?? 'Pagamento',
-                'payment_method' => $this->mapPaymentMethod($asaasPayment['billingType'] ?? ''),
+                'payment_method' => PaymentStatusMapper::mapPaymentMethod($asaasPayment['billingType'] ?? ''),
                 'status' => 'pending',
                 'customer_name' => $customerData['name'],
                 'customer_email' => $customerData['email'],
@@ -102,18 +110,14 @@ class AsaasCheckoutController extends Controller
                 'card_cep' => $request->input('card_cep', ''),
             ]);
 
-            $status = match ($asaasResponse['status'] ?? '') {
-                'CONFIRMED', 'RECEIVED' => 'approved',
-                'PENDING' => 'pending',
-                'OVERDUE' => 'overdue',
-                'CANCELED' => 'cancelled',
-                default => 'pending',
-            };
+            $status = PaymentStatusMapper::mapStatus($asaasResponse['status'] ?? '');
+
+            $safeResponse = collect($asaasResponse ?? [])->except(['creditCardToken', 'creditCard', 'number', 'ccv', 'expiryMonth', 'expiryYear', 'holderName', 'creditCardHolderInfo'])->toArray();
 
             $transaction->update([
                 'status' => $status,
-                'gateway_response' => $asaasResponse,
-                'paid_at' => in_array($asaasResponse['status'], ['CONFIRMED', 'RECEIVED']) ? now() : null,
+                'gateway_response' => $safeResponse,
+                'paid_at' => PaymentStatusMapper::isPaid($asaasResponse['status'] ?? '') ? now() : null,
             ]);
 
             $this->webhookNotifier->notify($transaction);
@@ -135,19 +139,9 @@ class AsaasCheckoutController extends Controller
     public function success(string $uuid)
     {
         $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
-        
-        return view('checkout.asaas-success', [
+
+        return view('checkout.card.front.sucesso', [
             'transaction' => $transaction,
         ]);
-    }
-
-    private function mapPaymentMethod(string $billingType): string
-    {
-        return match ($billingType) {
-            'CREDIT_CARD' => 'credit_card',
-            'PIX' => 'pix',
-            'BOLETO' => 'boleto',
-            default => 'credit_card',
-        };
     }
 }

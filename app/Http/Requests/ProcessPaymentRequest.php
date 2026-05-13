@@ -8,6 +8,16 @@ class ProcessPaymentRequest extends FormRequest
 {
     public function authorize(): bool
     {
+        // Se houver UUID na rota, garantir que a transação existe e está pendente
+        // O lockForUpdate será aplicado na camada de serviço dentro de DB::transaction()
+        if ($uuid = $this->route('uuid')) {
+            $transaction = \App\Models\Transaction::where('uuid', $uuid)
+                ->first();
+
+            if (!$transaction || $transaction->status !== 'pending') {
+                return false;
+            }
+        }
         return true;
     }
 

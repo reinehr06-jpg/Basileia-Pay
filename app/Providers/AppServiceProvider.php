@@ -1,28 +1,25 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
-use Illuminate\Support\Facades\URL;
+use App\Models\Payment;
+use App\Models\Transaction;
+use App\Observers\PaymentObserver;
+use App\Observers\TransactionObserver;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
         //
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
-        // Force HTTPS in production
-        if (config('app.env') === 'production' || !app()->isLocal()) {
-            URL::forceScheme('https');
-        }
+        Transaction::observe(TransactionObserver::class);
+        Payment::observe(PaymentObserver::class);
     }
 }

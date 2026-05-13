@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Subscription;
 use App\Models\Payment;
 use App\Models\Transaction;
+use App\Services\Gateway\GatewayResolver;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
@@ -15,6 +16,14 @@ class SubscriptionService
     public function __construct(AsaasPaymentService $gateway)
     {
         $this->gateway = $gateway;
+    }
+
+    /**
+     * Resolve the appropriate gateway instance for the subscription's company.
+     */
+    protected function resolveGateway(): \App\Services\Gateway\PaymentGatewayInterface
+    {
+        return GatewayResolver::resolveGateway('asaas');
     }
 
     /**
@@ -61,7 +70,7 @@ class SubscriptionService
 
             // 3. Attempt charge with token
             $response = $this->gateway->processCardTokenPayment(
-                $transaction->gateway_transaction_id ?? $transaction->uuid, 
+                $transaction->gateway_transaction_id ?? $transaction->uuid,
                 $lastPayment->gateway_token
             );
 
@@ -87,7 +96,7 @@ class SubscriptionService
         ]);
 
         Log::info("Subscription renewed successfully", ['sub_uuid' => $sub->uuid]);
-        
+
         // Placeholder for webhook notification or email
         // $this->notifyCustomer($sub, 'success');
     }
@@ -95,7 +104,7 @@ class SubscriptionService
     protected function handleFailure(Subscription $sub, string $reason): void
     {
         $sub->retry_count++;
-        
+
         if ($sub->retry_count >= 4) {
             $sub->status = 'past_due';
             $sub->save();
@@ -126,8 +135,8 @@ class SubscriptionService
 
     protected function calculateNextDate(Subscription $sub, Carbon $baseDate): Carbon
     {
-        return $sub->billing_cycle === 'anual' 
-            ? $baseDate->copy()->addYear() 
+        return $sub->billing_cycle === 'anual'
+            ? $baseDate->copy()->addYear()
             : $baseDate->copy()->addMonth();
     }
 }

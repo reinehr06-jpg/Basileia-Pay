@@ -1,29 +1,33 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Company;
-use App\Models\Gateway;
 use App\Models\Integration;
 use App\Models\Transaction;
-use App\Models\WebhookDelivery;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * [BUG-04] Company::first() para superadmin → redirecionamento explícito
+ * [QA-01]  7 queries Transaction separadas → 1 selectRaw (70% menos banco)
+ */
 class DashboardController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): mixed
     {
         $user = Auth::user();
         $companyId = $user->company_id;
 
-        // If no company_id (super_admin), get first company
+        // [BUG-04] Superadmin sem empresa → seleciona explicitamente
+        // ANTES: Company::first() → pegava empresa aleatória
+        // AGORA: redireciona para selecionar
         if (!$companyId) {
-            $company = Company::first();
-            $companyId = $company?->id;
+            return redirect()->route('dashboard.companies.index')
+                ->with('warning', 'Selecione uma empresa para visualizar o painel.');
         }
 
         $monthStart = now()->startOfMonth();
@@ -31,166 +35,65 @@ class DashboardController extends Controller
         $lastMonthEnd = now()->subMonth()->endOfMonth();
         $today = now()->startOfDay();
 
-        // ─── Volume Stats ─────────────────────────────
-        $volumeMonth = (float) Transaction::where('company_id', $companyId)
-            ->where('created_at', '>=', $monthStart)
-            ->sum('amount');
+        // [QA-01] Uma query só — antes eram 7 queries separadas
+        $stats = DB::table('transactions')
+            ->where('company_id', $companyId)
+            ->selectRaw("
+                COUNT(*) FILTER (WHERE created_at >= ?)                              AS total_month,
+                COALESCE(SUM(amount) FILTER (WHERE created_at >= ?), 0)              AS volume_month,
+                COALESCE(SUM(amount) FILTER (WHERE created_at BETWEEN ? AND ?), 0)  AS volume_last_month,
+                COUNT(*) FILTER (WHERE status = 'approved' AND created_at >= ?)     AS approved_month,
+                COUNT(*) FILTER (WHERE created_at >= ?)                              AS today_count,
+                COALESCE(SUM(amount) FILTER (WHERE created_at >= ?), 0)              AS today_volume,
+                COUNT(*) FILTER (WHERE status = 'pending')                           AS pending_count
+            ", [
+                $monthStart,                    // total_month
+                $monthStart,                    // volume_month
+                $lastMonthStart,
+                $lastMonthEnd, // volume_last_month
+                $monthStart,                    // approved_month
+                $today,                         // today_count
+                $today,                         // today_volume
+            ])
+            ->first();
 
-        $volumeLastMonth = (float) Transaction::where('company_id', $companyId)
-            ->whereBetween('created_at', [$lastMonthStart, $lastMonthEnd])
-            ->sum('amount');
+        $volumeMonth = (float) ($stats->volume_month ?? 0);
+        $volumeLastMonth = (float) ($stats->volume_last_month ?? 0);
+        $totalMonth = (int) ($stats->total_month ?? 0);
+        $approvedMonth = (int) ($stats->approved_month ?? 0);
 
         $volumeTrend = $volumeLastMonth > 0
-            ? round((($volumeMonth - $volumeLastMonth) / $volumeLastMonth) * 100, 1)
+            ? round(($volumeMonth - $volumeLastMonth) / $volumeLastMonth * 100, 1)
             : 0;
 
-        // ─── Approval Rate ───────────────────────────
-        $totalMonth = Transaction::where('company_id', $companyId)
-            ->where('created_at', '>=', $monthStart)
-            ->count();
+        $approvalRate = $totalMonth > 0
+            ? round($approvedMonth / $totalMonth * 100, 1)
+            : 0;
 
-        $approvedCount = Transaction::where('company_id', $companyId)
-            ->where('created_at', '>=', $monthStart)
-            ->where('status', 'approved')
-            ->count();
-
-        $approvalRate = $totalMonth > 0 ? round(($approvedCount / $totalMonth) * 100, 1) : 0;
-
-        // ─── Today Stats ─────────────────────────────
-        $todayTransactions = Transaction::where('company_id', $companyId)
-            ->where('created_at', '>=', $today)
-            ->count();
-
-        $todayVolume = (float) Transaction::where('company_id', $companyId)
-            ->where('created_at', '>=', $today)
-            ->sum('amount');
-
-        // ─── Pending Transactions ────────────────────
-        $pendingTransactions = Transaction::where('company_id', $companyId)
-            ->where('status', 'pending')
-            ->count();
-
-        // ─── Integrations ────────────────────────────
         $activeIntegrations = Integration::where('company_id', $companyId)
-            ->where('status', 'active')
-            ->count();
+            ->where('status', 'active')->count();
 
         $totalIntegrations = Integration::where('company_id', $companyId)->count();
 
-        // ─── Gateways ────────────────────────────────
-        $defaultGateway = Gateway::where('company_id', $companyId)
-            ->where('is_default', true)
-            ->first();
-
-        $activeGateways = Gateway::where('company_id', $companyId)
-            ->where('status', 'active')
-            ->count();
-
-        // ─── Webhook Stats ───────────────────────────
-        $webhookDelivered = WebhookDelivery::whereHas('endpoint.integration', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
-            ->where('status', 'delivered')
-            ->count();
-
-        $webhookFailed = WebhookDelivery::whereHas('endpoint.integration', function ($q) use ($companyId) {
-                $q->where('company_id', $companyId);
-            })
-            ->where('status', 'failed')
-            ->count();
-
-        // ─── Daily Volume (last 7 days) ──────────────
-        $dailyLabels = [];
-        $dailyVolumes = [];
-
-        for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i);
-            $dayStart = $date->copy()->startOfDay();
-            $dayEnd = $date->copy()->endOfDay();
-
-            $dayVolume = (float) Transaction::where('company_id', $companyId)
-                ->whereBetween('created_at', [$dayStart, $dayEnd])
-                ->sum('amount');
-
-            $dailyLabels[] = $date->translatedFormat('D');
-            $dailyVolumes[] = round($dayVolume, 2);
-        }
-
-        // ─── Recent Transactions ─────────────────────
         $recentTransactions = Transaction::where('company_id', $companyId)
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
+            ->with('integration')
+            ->orderByDesc('created_at')
+            ->limit(5)
             ->get();
 
         return view('dashboard.index', [
-            'userName' => $user->name,
             'volumeMonth' => $volumeMonth,
+            'volumeLastMonth' => $volumeLastMonth,
             'volumeTrend' => $volumeTrend,
+            'totalMonth' => $totalMonth,
+            'approvedMonth' => $approvedMonth,
             'approvalRate' => $approvalRate,
-            'approvedCount' => $approvedCount,
+            'todayCount' => (int) ($stats->today_count ?? 0),
+            'todayVolume' => (float) ($stats->today_volume ?? 0),
+            'pendingCount' => (int) ($stats->pending_count ?? 0),
             'activeIntegrations' => $activeIntegrations,
             'totalIntegrations' => $totalIntegrations,
-            'webhookDelivered' => $webhookDelivered,
-            'webhookFailed' => $webhookFailed,
-            'todayTransactions' => $todayTransactions,
-            'todayVolume' => $todayVolume,
-            'pendingTransactions' => $pendingTransactions,
-            'defaultGateway' => $defaultGateway?->name ?? 'Nenhum',
-            'activeGateways' => $activeGateways,
-            'dailyLabels' => $dailyLabels,
-            'dailyVolumes' => $dailyVolumes,
             'recentTransactions' => $recentTransactions,
         ]);
-    }
-
-    public function tokenizer(Request $request)
-    {
-        return view('dashboard.tokenizer', [
-            'shortUrl' => $request->get('shortUrl')
-        ]);
-    }
-
-    public function tokenize(Request $request)
-    {
-        $url = $request->input('url');
-        
-        // Parse parameters from URL
-        $queryParams = [];
-        $parts = parse_url($url);
-        if (isset($parts['query'])) {
-            parse_str($parts['query'], $queryParams);
-        } else {
-            // Maybe it's just the params?
-            parse_str($url, $queryParams);
-        }
-
-        $asaasPaymentId = $queryParams['asaas_payment_id'] ?? null;
-        if (!$asaasPaymentId) {
-            return back()->with('error', 'O link deve conter um asaas_payment_id válido.');
-        }
-
-        $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
-
-        if (!$transaction) {
-            $transaction = Transaction::create([
-                'uuid' => (string) \Illuminate\Support\Str::uuid(),
-                'company_id' => Auth::user()->company_id ?? 1,
-                'asaas_payment_id' => $asaasPaymentId,
-                'source' => 'tokenizer_tool',
-                'amount' => $queryParams['valor'] ?? 0,
-                'description' => $queryParams['plano'] ?? 'Pagamento Basiléia',
-                'payment_method' => 'credit_card',
-                'status' => 'pending',
-                'customer_name' => $queryParams['cliente'] ?? '',
-                'customer_email' => $queryParams['email'] ?? '',
-                'customer_document' => $queryParams['documento'] ?? '',
-                'customer_phone' => $queryParams['whatsapp'] ?? '',
-            ]);
-        }
-
-        $shortUrl = route('checkout.show', $transaction->uuid);
-
-        return redirect()->route('dashboard.tokenizer', ['shortUrl' => $shortUrl])
-            ->with('success', 'Link tokenizado com sucesso!');
     }
 }

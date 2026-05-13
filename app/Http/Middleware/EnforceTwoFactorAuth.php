@@ -23,22 +23,17 @@ class EnforceTwoFactorAuth
         }
 
         // Exclude internal routes, checkout, and 2FA setup itself
-        $excludedRoutes = [
+        $excludedRoutePatterns = [
             'login',
             'logout',
-            'profile.2fa.setup',
-            'profile.2fa.verify',
-            'checkout.pay',
-            'checkout.process',
-            'checkout.success',
-            'checkout.receipt',
-            'checkout.asaas.success',
+            'profile.2fa.*',
+            'checkout.*',
+            'evento.*',
+            'api.*',
+            'pay.*',
         ];
 
-        if (in_array($request->route()?->name, $excludedRoutes) ||
-            $request->is('pay/*') ||
-            $request->is('checkout/*') ||
-            preg_match('/^[a-f0-9-]{36}$/', $request->path())) {
+        if ($request->route() && \Illuminate\Support\Str::is($excludedRoutePatterns, $request->route()->getName())) {
             return $next($request);
         }
 

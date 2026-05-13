@@ -4,13 +4,13 @@ namespace App\Services\Gateway;
 
 interface GatewayInterface
 {
-    public function createCustomer(array $data): array;
+    public function createCustomer(array $data): string;
 
     public function createPayment(array $data): array;
 
     public function createSubscription(array $data): array;
 
-    public function getPayment(string $paymentId): array;
+    public function getPayment(string $paymentId): ?array;
 
     public function cancelPayment(string $paymentId): array;
 

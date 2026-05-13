@@ -35,33 +35,44 @@ class SubscriptionController extends Controller
     {
         // 1. Diagnostic Log: Understand exactly what the Vendor is sending
         \Illuminate\Support\Facades\Log::info("Checkout: Subscription Request Ingested", [
-            'payload' => $request->all(),
-            'headers' => $request->headers->all(),
+            'payload_keys' => array_keys($request->all()),
+            'integration_id' => $integration->id ?? null,
         ]);
 
         // 2. Smart Request Mapping: Support synonyms from Vendor
         $data = $request->all();
-        
+
         // Map Amount/Value
-        if (!isset($data['amount']) && isset($data['value'])) $data['amount'] = $data['value'];
-        if (!isset($data['amount']) && isset($data['valor'])) $data['amount'] = $data['valor'];
-        
+        if (!isset($data['amount']) && isset($data['value']))
+            $data['amount'] = $data['value'];
+        if (!isset($data['amount']) && isset($data['valor']))
+            $data['amount'] = $data['valor'];
+
         // Map Plan Name
-        if (!isset($data['plan_name']) && isset($data['description'])) $data['plan_name'] = $data['description'];
-        if (!isset($data['plan_name']) && isset($data['plano'])) $data['plan_name'] = $data['plano'];
-        if (!isset($data['plan_name'])) $data['plan_name'] = 'Assinatura Basileia'; // Default
+        if (!isset($data['plan_name']) && isset($data['description']))
+            $data['plan_name'] = $data['description'];
+        if (!isset($data['plan_name']) && isset($data['plano']))
+            $data['plan_name'] = $data['plano'];
+        if (!isset($data['plan_name']))
+            $data['plan_name'] = 'Assinatura Basileia'; // Default
 
         // Map Customer (Documento / CPF / CNPJ)
         if (isset($data['customer']) && is_array($data['customer'])) {
-            if (!isset($data['customer']['document']) && isset($data['customer']['documento'])) $data['customer']['document'] = $data['customer']['documento'];
-            if (!isset($data['customer']['document']) && isset($data['customer']['cpf_cnpj'])) $data['customer']['document'] = $data['customer']['cpf_cnpj'];
-            if (!isset($data['customer']['document']) && isset($data['customer']['cpf'])) $data['customer']['document'] = $data['customer']['cpf'];
+            if (!isset($data['customer']['document']) && isset($data['customer']['documento']))
+                $data['customer']['document'] = $data['customer']['documento'];
+            if (!isset($data['customer']['document']) && isset($data['customer']['cpf_cnpj']))
+                $data['customer']['document'] = $data['customer']['cpf_cnpj'];
+            if (!isset($data['customer']['document']) && isset($data['customer']['cpf']))
+                $data['customer']['document'] = $data['customer']['cpf'];
         }
 
         // Map Billing Cycle (Frequencia / Ciclo)
-        if (!isset($data['billing_cycle']) && isset($data['frequencia'])) $data['billing_cycle'] = $data['frequencia'];
-        if (!isset($data['billing_cycle']) && isset($data['ciclo'])) $data['billing_cycle'] = $data['ciclo'];
-        if (!isset($data['billing_cycle'])) $data['billing_cycle'] = 'monthly'; // Default
+        if (!isset($data['billing_cycle']) && isset($data['frequencia']))
+            $data['billing_cycle'] = $data['frequencia'];
+        if (!isset($data['billing_cycle']) && isset($data['ciclo']))
+            $data['billing_cycle'] = $data['ciclo'];
+        if (!isset($data['billing_cycle']))
+            $data['billing_cycle'] = 'monthly'; // Default
 
         // 3. Robust Validation
         $validator = \Illuminate\Support\Facades\Validator::make($data, [
@@ -121,8 +132,10 @@ class SubscriptionController extends Controller
 
             // 6. Map Asaas Cycle (yearly -> ANNUAL)
             $cycle = strtoupper($data['billing_cycle']);
-            if ($cycle === 'YEARLY' || $cycle === 'ANUAL') $cycle = 'ANNUAL';
-            if ($cycle === 'MONTHLY' || $cycle === 'MENSAL') $cycle = 'MONTHLY';
+            if ($cycle === 'YEARLY' || $cycle === 'ANUAL')
+                $cycle = 'ANNUAL';
+            if ($cycle === 'MONTHLY' || $cycle === 'MENSAL')
+                $cycle = 'MONTHLY';
 
             // 7. Create Subscription in Asaas
             $asaasSubscription = $asaas->createSubscription([

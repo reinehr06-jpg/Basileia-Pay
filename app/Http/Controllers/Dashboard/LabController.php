@@ -9,16 +9,22 @@ use Illuminate\Support\Str;
 
 class LabController extends Controller
 {
+    /**
+     * @deprecated Use CheckoutConfigController@index
+     */
     public function index()
     {
-        $configs = CheckoutConfig::where('company_id', Auth::user()->company_id)
-            ->orderBy('is_active', 'desc')
-            ->orderBy('updated_at', 'desc')
-            ->get();
-
-        return view('dashboard.lab', compact('configs'));
+        return response()->json(
+            CheckoutConfig::where('company_id', Auth::user()->company_id)
+                ->orderByDesc('is_active')
+                ->orderByDesc('updated_at')
+                ->get()
+        );
     }
 
+    /**
+     * @deprecated Use CheckoutConfigController@store
+     */
     public function createAndEdit()
     {
         $config = new CheckoutConfig;
@@ -28,6 +34,9 @@ class LabController extends Controller
         $config->config = CheckoutConfig::defaultConfig();
         $config->save();
 
-        return redirect()->route('dashboard.checkout-configs.edit', $config->id);
+        return response()->json([
+            'id' => $config->id,
+            'redirect' => '/lab/' . $config->id
+        ]);
     }
 }

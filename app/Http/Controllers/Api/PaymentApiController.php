@@ -5,23 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Integration;
 use App\Models\Transaction;
-use App\Services\Gateway\AsaasGateway;
+use App\Services\Gateway\GatewayResolver;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
 class PaymentApiController extends Controller
 {
-    private AsaasGateway $asaas;
-
-    public function __construct(AsaasGateway $asaas)
-    {
-        $this->asaas = $asaas;
-    }
-
-    /**
-     * Receive a payment from an external system (Vendas).
-     * POST /api/v1/payments/receive
-     */
     public function receive(Request $request)
     {
         $apiKey = $request->header('Authorization');
@@ -43,8 +32,10 @@ class PaymentApiController extends Controller
         ]);
 
         try {
+            $asaas = GatewayResolver::resolveGateway('asaas');
+
             // Fetch payment details from Asaas to sync local data
-            $asaasData = $this->asaas->getPayment($request->input('asaas_id'));
+            $asaasData = $asaas->getPayment($request->input('asaas_id'));
 
             if (isset($asaasData['error']) && $asaasData['error'] === 'Gateway not configured') {
                 return response()->json(['error' => 'Gateway not configured. Please configure ASAAS_API_KEY.'], 503);

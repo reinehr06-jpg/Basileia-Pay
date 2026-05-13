@@ -15,7 +15,7 @@ return [
 
     'domain' => null,
 
-    'secure' => false,
+    'secure' => env('SESSION_SECURE_COOKIE', true),
 
     'http_only' => true,
 

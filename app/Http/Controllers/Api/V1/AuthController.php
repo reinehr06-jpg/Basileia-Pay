@@ -25,6 +25,18 @@ class AuthController extends Controller
             ]);
         }
 
+        if (isset($user->status) && $user->status !== 'active') {
+             throw ValidationException::withMessages([
+                'email' => ['Esta conta está inativa.'],
+            ]);
+        }
+
+        if (isset($user->locked_until) && $user->locked_until && now()->lessThan($user->locked_until)) {
+            throw ValidationException::withMessages([
+                'email' => ['Conta temporariamente bloqueada.'],
+            ]);
+        }
+
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([

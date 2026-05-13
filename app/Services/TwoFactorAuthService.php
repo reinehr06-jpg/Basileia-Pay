@@ -38,7 +38,6 @@ class TwoFactorAuthService
 
         Log::debug('2FA verify attempt', [
             'user_id' => $user->id,
-            'secret_length' => strlen($secret),
             'code_length' => strlen($code),
             'current_time' => $currentTime,
         ]);
@@ -47,21 +46,14 @@ class TwoFactorAuthService
             $timeSlot = floor(($currentTime + ($i * self::PERIOD)) / self::PERIOD);
             $expectedCode = $this->generateTOTP($secret, $timeSlot);
 
-            Log::debug('2FA trying code', [
-                'offset' => $i,
-                'time_slot' => $timeSlot,
-                'expected' => $expectedCode,
-                'provided' => $code,
-                'match' => ($expectedCode === $code),
-            ]);
-
             if (hash_equals($expectedCode, $code)) {
                 $user->update(['last_auth_at' => now()]);
+                Log::info('2FA verification succeeded', ['user_id' => $user->id]);
                 return true;
             }
         }
 
-        Log::warning('2FA verification failed', ['user_id' => $user->id, 'code_provided' => $code]);
+        Log::warning('2FA verification failed', ['user_id' => $user->id]);
         return false;
     }
 
@@ -128,10 +120,10 @@ class TwoFactorAuthService
     {
         $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
         $secret = '';
-        
+
         $randomBytes = random_bytes($length);
         $bytes = unpack('C*', $randomBytes);
-        
+
         foreach ($bytes as $byte) {
             $secret .= $chars[$byte % 32];
         }
@@ -142,50 +134,50 @@ class TwoFactorAuthService
     private function generateTOTP(string $secret, int $timeSlot): string
     {
         $secretKey = $this->base32Decode($secret);
-        
+
         $timeBinary = pack('N', $timeSlot);
         $timeBinary = str_pad($timeBinary, 8, "\0", STR_PAD_LEFT);
-        
+
         $hash = hash_hmac('sha1', $timeBinary, $secretKey, true);
-        
+
         $offset = ord(substr($hash, -1)) & 0x0F;
-        
+
         $binary = substr($hash, $offset, 4);
         $unpacked = unpack('N', $binary);
         $truncated = $unpacked[1] & 0x7FFFFFFF;
-        
+
         $code = str_pad($truncated % pow(10, self::CODE_LENGTH), self::CODE_LENGTH, '0', STR_PAD_LEFT);
-        
+
         return $code;
     }
 
     private function base32Decode(string $input): string
     {
         $alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-        
+
         $input = strtoupper(preg_replace('/[^A-Z2-7]/', '', $input));
-        
+
         $output = '';
         $buffer = 0;
         $bitsLeft = 0;
-        
+
         for ($i = 0; $i < strlen($input); $i++) {
             $char = $input[$i];
             $value = strpos($alphabet, $char);
-            
+
             if ($value === false) {
                 continue;
             }
-            
+
             $buffer = ($buffer << 5) | $value;
             $bitsLeft += 5;
-            
+
             while ($bitsLeft >= 8) {
                 $bitsLeft -= 8;
                 $output .= chr(($buffer >> $bitsLeft) & 0xFF);
             }
         }
-        
+
         return $output;
     }
 

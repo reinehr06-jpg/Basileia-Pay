@@ -9,6 +9,11 @@ use App\Models\Subscription;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
+/**
+ * @deprecated Legacy checkout controller.
+ * Use CardCheckoutController, PixCheckoutController, or BoletoCheckoutController instead.
+ * This controller is kept for backward compatibility only.
+ */
 class CheckoutController extends Controller
 {
     protected $asaas;
@@ -67,10 +72,17 @@ class CheckoutController extends Controller
 
         $htmlPath = public_path('checkout-app/checkout.html');
         if (!file_exists($htmlPath)) {
+            $customerData = [
+                'name' => $resource->customer_name ?? $resource->customer?->name ?? '',
+                'email' => $resource->customer_email ?? $resource->customer?->email ?? '',
+                'document' => $resource->customer_document ?? $resource->customer?->document ?? '',
+            ];
+
             return view('checkout.index', [
-                'transaction' => $resource, 
-                'asaasData' => $asaasData, 
+                'transaction' => $resource,
+                'asaasData' => $asaasData,
                 'pixData' => $pixData,
+                'customerData' => $customerData,
                 'isSubscription' => $isSubscription,
                 'billingType' => $paymentMethod,
                 'plano' => $isSubscription ? $resource->plan_name : ($resource->description ?: 'Plano Premium'),
@@ -87,7 +99,7 @@ class CheckoutController extends Controller
         }
 
         $html = file_get_contents($htmlPath);
-        
+
         $checkoutData = [
             'uuid' => $resource->uuid,
             'amount' => $asaasData['value'] ?? ($resource->amount ?? 0),
@@ -109,8 +121,8 @@ class CheckoutController extends Controller
      */
     public function process(Request $request, string $uuid)
     {
-        $resource = Transaction::where('uuid', $uuid)->first() 
-                   ?? Subscription::where('uuid', $uuid)->firstOrFail();
+        $resource = Transaction::where('uuid', $uuid)->first()
+            ?? Subscription::where('uuid', $uuid)->firstOrFail();
 
         $request->validate([
             'holder_name' => 'required|string',
@@ -123,14 +135,14 @@ class CheckoutController extends Controller
         try {
             $isSubscription = $resource instanceof Subscription;
             $gatewayId = $isSubscription ? $resource->gateway_subscription_id : $resource->asaas_payment_id;
-            
+
             $asaasResponse = $this->asaas->processCardPayment($gatewayId, [
                 'card_number' => $request->input('card_number'),
                 'card_name' => $request->input('holder_name'),
                 'card_expiry' => $request->input('expiry_month') . '/' . $request->input('expiry_year'),
                 'card_cvv' => $request->input('cvv'),
                 'card_document' => $resource->customer_document ?? $resource->customer?->document ?? '',
-                'card_email' => $resource->customer_email ?? $resource->customer?->email ?? 'contato@basileia.global',
+                'card_email' => $resource->customer_email ?? $resource->customer?->email ?? '',
                 'card_cep' => $resource->customer_zip_code ?? ($resource->customer?->address['postalCode'] ?? '00000000'),
                 'card_address_number' => $resource->customer_number ?? ($resource->customer?->address['number'] ?? '1'),
             ], $request->ip());
@@ -158,17 +170,17 @@ class CheckoutController extends Controller
      */
     public function success(string $uuid)
     {
-        $resource = Transaction::where('uuid', $uuid)->first() 
-                   ?? Subscription::where('uuid', $uuid)->firstOrFail();
-        
-        return view('checkout.success', ['transaction' => $resource]);
+        $resource = Transaction::where('uuid', $uuid)->first()
+            ?? Subscription::where('uuid', $uuid)->firstOrFail();
+
+        return view('checkout.card.front.sucesso', ['transaction' => $resource]);
     }
 
     public function receipt(string $uuid)
     {
-        $resource = Transaction::where('uuid', $uuid)->first() 
-                   ?? Subscription::where('uuid', $uuid)->firstOrFail();
-        
+        $resource = Transaction::where('uuid', $uuid)->first()
+            ?? Subscription::where('uuid', $uuid)->firstOrFail();
+
         if ($resource->status !== 'approved') {
             abort(403, 'Comprovante não disponível.');
         }
@@ -183,6 +195,8 @@ class CheckoutController extends Controller
         ];
 
         return view('checkout.receipt_template', ['transaction' => $resource, 'company' => $company, 'receipt' => $receipt]);
+    }
+
     /**
      * Show a demo/fallback version of the checkout.
      */
@@ -194,7 +208,7 @@ class CheckoutController extends Controller
         }
 
         $html = file_get_contents($htmlPath);
-        
+
         $checkoutData = [
             'uuid' => 'demo',
             'amount' => 5.12,

@@ -21,7 +21,8 @@ class GenerateFinancialReportJob implements ShouldQueue
         public int $companyId,
         public string $startDate,
         public string $endDate
-    ) {}
+    ) {
+    }
 
     public function handle(): void
     {
@@ -30,8 +31,8 @@ class GenerateFinancialReportJob implements ShouldQueue
             ->get();
 
         $payments = Payment::whereHas('transaction', function ($q) {
-                $q->where('company_id', $this->companyId);
-            })
+            $q->where('company_id', $this->companyId);
+        })
             ->whereBetween('created_at', [$this->startDate, $this->endDate])
             ->get();
 
@@ -61,7 +62,7 @@ class GenerateFinancialReportJob implements ShouldQueue
 
         \Illuminate\Support\Facades\Cache::put(
             "financial_report:{$this->companyId}:{$this->startDate}:{$this->endDate}",
-            $report,
+            encrypt($report),
             now()->addHours(24)
         );
     }

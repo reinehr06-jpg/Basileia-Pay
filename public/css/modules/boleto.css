@@ -1,0 +1,135 @@
+/* ==========================================
+   CHECKOUT BOLETO — Módulo Isolado
+   ========================================== */
+
+.boleto-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.boleto-icon-box {
+    background: rgba(139, 92, 246, 0.1);
+    padding: 24px;
+    border-radius: 50%;
+    color: #7c3aed;
+    margin-bottom: 10px;
+}
+
+.boleto-instructions {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.boleto-copy-area {
+    width: 100%;
+    position: relative;
+}
+
+.boleto-payload-input {
+    width: 100%;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 14px 48px 14px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    outline: none;
+    text-align: center;
+}
+
+.btn-copy {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #e2e8f0;
+    border-radius: 8px;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-copy:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+.btn-copy.copied {
+    background: #10b981;
+    color: white;
+}
+
+.btn-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    color: #334155;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-top: 10px;
+}
+
+.btn-download:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.boleto-expiry {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-top: 10px;
+}
+
+/* Spinner */
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.spinner.small {
+    width: 14px;
+    height: 14px;
+    border-width: 2px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Security Footer */
+.security-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 14px;
+}

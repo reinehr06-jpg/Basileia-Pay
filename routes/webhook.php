@@ -6,7 +6,6 @@ use App\Http\Controllers\Api\V1\CheckoutWebhookController;
 
 // Webhooks from external gateways
 Route::prefix('/webhooks/gateway')->group(function () {
-    Route::post('/asaas', [WebhookController::class, 'asaas'])->name('webhooks.asaas');
     Route::post('/stripe', [WebhookController::class, 'stripe'])->name('webhooks.stripe');
     Route::post('/pagseguro', [WebhookController::class, 'pagseguro'])->name('webhooks.pagseguro');
 });

@@ -1,0 +1,95 @@
+/* ==========================================
+   CHECKOUT PIX — Módulo Isolado
+   ========================================== */
+
+.pix-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+    padding: 10px 0;
+}
+
+.pix-qrcode-box {
+    background: white;
+    padding: 16px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    display: inline-block;
+}
+
+.pix-qrcode-box img {
+    width: 200px;
+    height: 200px;
+    display: block;
+}
+
+.pix-instructions {
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.pix-copy-area {
+    width: 100%;
+    position: relative;
+}
+
+.pix-payload-input {
+    width: 100%;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 14px 48px 14px 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    outline: none;
+}
+
+.pix-waiting {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 10px;
+    color: #059669;
+    font-weight: 600;
+    font-size: 13px;
+    background: #d1fae5;
+    padding: 8px 16px;
+    border-radius: 20px;
+}
+
+.btn-copy {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: #e2e8f0;
+    border-radius: 8px;
+    color: #475569;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.btn-copy:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+}
+
+.btn-copy.copied {
+    background: #10b981;
+    color: white;
+}

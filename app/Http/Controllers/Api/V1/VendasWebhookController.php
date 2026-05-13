@@ -50,7 +50,7 @@ class VendasWebhookController extends Controller
             if ($secret && $signature) {
                 $rawBody = $request->getContent();
                 $expectedSignature = hash_hmac('sha256', $rawBody, $secret);
-                
+
                 // FIXED: Use standardized JSON format for fallback check
                 $jsonPayload = json_encode($request->all(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
                 $expectedJsonSignature = hash_hmac('sha256', $jsonPayload, $secret);
@@ -65,18 +65,13 @@ class VendasWebhookController extends Controller
 
                     return response()->json([
                         'error' => 'Invalid signature',
-                        'debug' => [
-                            'received' => $signature,
-                            'expected_json' => $expectedJsonSignature,
-                            'payload_checked' => $jsonPayload
-                        ]
                     ], 401);
                 }
             }
 
             // Process the payload
             $payload = $request->all();
-            
+
             // Generate a secure, tokenized transaction record for this notification
             $transaction = \App\Models\Transaction::create([
                 'uuid' => (string) \Illuminate\Support\Str::uuid(),
@@ -113,7 +108,7 @@ class VendasWebhookController extends Controller
 
             return response()->json([
                 'status' => 'error',
-                'message' => 'Internal Server Error: ' . $e->getMessage()
+                'message' => 'Internal Server Error'
             ], 500);
         }
     }

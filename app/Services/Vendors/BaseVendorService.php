@@ -10,5 +10,5 @@ interface BaseVendorService
     public function getPixQrCode(string $paymentId): ?array;
     public function getBoletoBillet(string $paymentId): ?array;
     public function cancelPayment(string $paymentId): ?array;
-    public function refundPayment(string $paymentId, float $amount = null): ?array;
+    public function refundPayment(string $paymentId, ?float $amount = null): ?array;
 }

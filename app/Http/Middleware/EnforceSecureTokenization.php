@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Transaction;
+use App\Services\CheckoutService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -10,6 +11,19 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnforceSecureTokenization
 {
+    /**
+     * Validate required fields for secure tokenization redirect.
+     */
+    private function validateTokenizationRequest(Request $request): bool
+    {
+        return $request->has('asaas_payment_id')
+            && $request->filled('email')
+            && $request->filled('cliente')
+            && $request->filled('valor')
+            && is_numeric($request->get('valor'))
+            && (float) $request->get('valor') > 0;
+    }
+
     public function handle(Request $request, Closure $next): Response
     {
         try {
@@ -25,27 +39,29 @@ class EnforceSecureTokenization
 
             // Only apply to web routes with asaas_payment_id
             if ($request->has('asaas_payment_id') && !$request->routeIs('checkout.*')) {
+                // Validate required fields to prevent abuse
+                if (!$this->validateTokenizationRequest($request)) {
+                    \Illuminate\Support\Facades\Log::warning('EnforceSecureTokenization: Invalid tokenization request', [
+                        'ip' => $request->ip(),
+                        'params' => $request->only(['asaas_payment_id', 'email', 'cliente', 'valor']),
+                    ]);
+                    return $next($request);
+                }
+
                 $asaasPaymentId = $request->get('asaas_payment_id');
                 $transaction = Transaction::where('asaas_payment_id', $asaasPaymentId)->first();
 
                 if (!$transaction) {
-                    $transaction = Transaction::create([
-                        'uuid' => (string) Str::uuid(),
-                        'company_id' => \App\Models\Company::first()?->id ?? 1,
+                    // Use CheckoutService to leverage centralized company resolution
+                    $transaction = CheckoutService::createTransactionFromRedirect([
                         'asaas_payment_id' => $asaasPaymentId,
-                        'source' => 'global_interceptor',
-                        'amount' => $request->get('valor', 0),
-                        'description' => $request->get('plano', 'Pagamento Basiléia'),
-                        'payment_method' => 'credit_card',
-                        'status' => 'pending',
-                        'customer_name' => $request->get('cliente', ''),
-                        'customer_email' => $request->get('email', ''),
-                        'customer_document' => $request->get('documento', ''),
-                        'customer_phone' => $request->get('whatsapp', ''),
+                        'url_params' => $request->all(),
                     ]);
                 }
 
-                return redirect()->away(route('checkout.show', $transaction->uuid), 301);
+                if ($transaction) {
+                    return redirect()->away(route('checkout.show', $transaction->uuid), 301);
+                }
             }
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('EnforceSecureTokenization Error', [

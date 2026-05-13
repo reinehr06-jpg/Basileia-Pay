@@ -18,7 +18,7 @@ class RateLimitCheckout
     public function handle(Request $request, Closure $next): Response
     {
         $ip = $request->ip();
-        
+
         if ($this->isPaymentEndpoint($request)) {
             $key = 'checkout:payment:' . $ip;
             $maxAttempts = $this->maxPaymentAttempts;
@@ -36,7 +36,7 @@ class RateLimitCheckout
             RateLimiter::hit($key, $decaySeconds);
         } else {
             $key = 'checkout:view:' . $ip;
-            
+
             if (RateLimiter::tooManyAttempts($key, $this->maxAttempts)) {
                 $seconds = RateLimiter::availableIn($key);
                 return $this->rateLimitResponse($request, $seconds, 'Muitas requisições. Tente novamente em alguns segundos.');
@@ -60,9 +60,11 @@ class RateLimitCheckout
 
     private function isPaymentEndpoint(Request $request): bool
     {
-        return $request->is('pay/*/process') || 
-               $request->is('api/v1/payments/process') ||
-               $request->routeIs('checkout.process');
+        return $request->is('pay/*/process') ||
+            $request->is('api/v1/payments/process') ||
+            $request->routeIs('checkout.process') ||
+            $request->routeIs('checkout.pix.process') ||
+            $request->routeIs('checkout.boleto.process');
     }
 
     private function rateLimitResponse(Request $request, int $seconds, string $message): Response

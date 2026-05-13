@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Vendors;
 use App\Http\Controllers\Controller;
 use App\Models\Transaction;
 use App\Services\AsaasPaymentService;
+use App\Services\CheckoutService;
+use App\Services\Gateway\GatewayResolver;
+use App\Helpers\PaymentStatusMapper;
 use App\Services\WebhookNotifierService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -15,7 +18,8 @@ class DefaultVendorController extends Controller
     public function __construct(
         private AsaasPaymentService $asaasService,
         private WebhookNotifierService $webhookNotifier,
-    ) {}
+    ) {
+    }
 
     public function handle(Request $request, string $asaasPaymentId)
     {
@@ -25,26 +29,10 @@ class DefaultVendorController extends Controller
                 'params' => $request->all(),
             ]);
 
-            $apiKey = config('services.asaas.api_key');
-            
-            if (empty($apiKey)) {
-                $defaultGateway = \App\Models\Gateway::where('status', 'active')
-                    ->where('is_default', true)
-                    ->first() ?? \App\Models\Gateway::where('status', 'active')->first();
-                    
-                if ($defaultGateway) {
-                    $apiKey = $defaultGateway->getConfig('api_key');
-                    config(['services.asaas.api_key' => $apiKey]);
-                }
-            }
 
-            if (empty($apiKey)) {
-                Log::warning('DefaultVendor: ASAAS_API_KEY not configured');
-                throw new \RuntimeException('Gateway not configured (API Key is missing)');
-            }
 
             $asaasPayment = $this->asaasService->getPayment($asaasPaymentId);
-            
+
             if (!$asaasPayment) {
                 Log::warning('DefaultVendor: Payment not found', [
                     'asaas_payment_id' => $asaasPaymentId,
@@ -59,14 +47,14 @@ class DefaultVendorController extends Controller
 
             $customer = $asaasPayment['customer'] ?? [];
             $billingType = $asaasPayment['billingType'] ?? strtoupper($request->get('metodo', $request->get('forma_pagamento', 'CREDIT_CARD')));
-            
+
             $isCustomerArray = is_array($customer);
-            
+
             $customerData = [
-                'name' => ($isCustomerArray ? ($customer['name'] ?? null) : null) ?? $request->get('cliente', ''),
-                'email' => ($isCustomerArray ? ($customer['email'] ?? null) : null) ?? $request->get('email', ''),
-                'phone' => ($isCustomerArray ? ($customer['phone'] ?? null) : null) ?? $request->get('whatsapp', ''),
-                'document' => ($isCustomerArray ? ($customer['cpfCnpj'] ?? null) : null) ?? $request->get('documento', ''),
+                'name' => ($isCustomerArray ? ($customer['name'] ?? null) : null) ?? '',
+                'email' => ($isCustomerArray ? ($customer['email'] ?? null) : null) ?? '',
+                'phone' => ($isCustomerArray ? ($customer['phone'] ?? null) : null) ?? '',
+                'document' => ($isCustomerArray ? ($customer['cpfCnpj'] ?? null) : null) ?? '',
                 'address' => [
                     'street' => $isCustomerArray ? ($customer['address'] ?? '') : '',
                     'number' => $isCustomerArray ? ($customer['addressNumber'] ?? '') : '',
@@ -83,18 +71,18 @@ class DefaultVendorController extends Controller
             $ciclo = $request->get('ciclo', 'mensal');
 
             if (!$transaction) {
-                $companyId = $request->get('company_id', \App\Models\Company::first()?->id ?? 1);
+                $companyId = CheckoutService::resolveCompanyId();
 
                 $transaction = Transaction::create([
                     'uuid' => (string) Str::uuid(),
                     'company_id' => $companyId,
                     'asaas_payment_id' => $asaasPaymentId,
                     'source' => 'default_vendor',
-                    'external_id' => $request->get('venda_id', ''),
-                    'callback_url' => config('basileia.callback_url', $request->get('callback_url', '')),
-                    'amount' => $asaasPayment['value'] ?? $request->get('valor', 0),
+                    'external_id' => '',
+                    'callback_url' => config('basileia.callback_url', ''),
+                    'amount' => $asaasPayment['value'] ?? 0,
                     'description' => $asaasPayment['description'] ?? 'Pagamento',
-                    'payment_method' => $this->mapPaymentMethod($billingType),
+                    'payment_method' => PaymentStatusMapper::mapPaymentMethod($billingType),
                     'status' => 'pending',
                     'customer_name' => $customerData['name'],
                     'customer_email' => $customerData['email'],
@@ -104,8 +92,8 @@ class DefaultVendorController extends Controller
                     'metadata' => [
                         'plano' => $plano,
                         'ciclo' => $ciclo,
-                        'venda_id' => $request->get('venda_id', ''),
-                        'hash' => $request->get('hash', ''),
+                        'venda_id' => '',
+                        'hash' => '',
                     ],
                 ]);
 
@@ -115,7 +103,7 @@ class DefaultVendorController extends Controller
                 ]);
             }
 
-            return view('checkout.premium', [
+            return view('checkout.card.front.pagamento', [
                 'step' => $request->get('success') ? 3 : 1,
                 'transaction' => $transaction,
                 'paymentMethod' => strtolower($asaasPayment['billingType'] ?? 'pix'),
@@ -131,7 +119,9 @@ class DefaultVendorController extends Controller
                 'file' => $e->getFile(),
                 'line' => $e->getLine()
             ]);
-            return "Erro Fatal: " . $e->getMessage() . " em " . $e->getFile() . ":" . $e->getLine();
+            return view('checkout.error', [
+                'message' => 'Erro ao processar pagamento. Por favor, tente novamente ou entre em contato com o suporte.'
+            ]);
         }
     }
 
@@ -157,13 +147,15 @@ class DefaultVendorController extends Controller
                 'card_phone' => $transaction->customer_phone,
             ]);
 
-            $status = $this->mapStatus($asaasResponse['status'] ?? '');
-            $paidAt = in_array($asaasResponse['status'] ?? '', ['CONFIRMED', 'RECEIVED']) ? now() : null;
+            $status = PaymentStatusMapper::mapStatus($asaasResponse['status'] ?? '');
+            $paidAt = PaymentStatusMapper::isPaid($asaasResponse['status'] ?? '') ? now() : null;
+
+            $safeResponse = collect($asaasResponse ?? [])->except(['creditCardToken', 'creditCard', 'number', 'ccv', 'expiryMonth', 'expiryYear', 'holderName', 'creditCardHolderInfo'])->toArray();
 
             $transaction->update([
                 'status' => $status,
                 'paid_at' => $paidAt,
-                'gateway_response' => json_encode($asaasResponse),
+                'gateway_response' => $safeResponse,
             ]);
 
             $this->webhookNotifier->notify($transaction);
@@ -179,27 +171,5 @@ class DefaultVendorController extends Controller
     {
         $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
         return redirect()->to(route('basileia.checkout.show', $transaction->asaas_payment_id) . '?success=1');
-    }
-
-    private function mapPaymentMethod(string $billingType): string
-    {
-        return match ($billingType) {
-            'CREDIT_CARD' => 'credit_card',
-            'PIX' => 'pix',
-            'BOLETO' => 'boleto',
-            default => 'credit_card',
-        };
-    }
-
-    private function mapStatus(string $asaasStatus): string
-    {
-        return match ($asaasStatus) {
-            'CONFIRMED', 'RECEIVED', 'RECEIVED_IN_CASH' => 'approved',
-            'PENDING', 'AWAITING_RISK_ANALYSIS' => 'pending',
-            'OVERDUE' => 'overdue',
-            'REFUNDED', 'REFUND_REQUESTED', 'CHARGEBACK_REQUESTED' => 'refunded',
-            'CANCELED', 'DELETED' => 'cancelled',
-            default => 'pending',
-        };
     }
 }

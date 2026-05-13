@@ -22,4 +22,7 @@ return [
         'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
         'environment' => env('APP_ENV', 'sandbox'),
     ],
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+    ],
 ];
