@@ -9,12 +9,16 @@ use App\Http\Controllers\Checkout\Boleto\BoletoController;
 use App\Http\Controllers\Checkout\Card\CardController;
 use App\Http\Controllers\Checkout\EventCheckoutController;
 use App\Http\Controllers\Checkout\Pix\PixController;
+use App\Http\Controllers\Public\CheckoutBuilderPublicController;
 
 /*
 |--------------------------------------------------------------------------
 | Checkout Routes (Modularized)
 |--------------------------------------------------------------------------
 */
+
+// ── Builder Public Checkout (slug-based) ─────────────────────────────────
+Route::get('/ck/{slug}', [CheckoutBuilderPublicController::class, 'show'])->name('checkout.builder.show');
 
 // ── Asaas Direct Checkout (Legacy) ───────────────────────────────────────
 Route::get('/checkout/asaas/{asaasPaymentId}', [AsaasCheckoutController::class, 'show'])->name('checkout.asaas.show');

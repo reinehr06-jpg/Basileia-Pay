@@ -80,4 +80,21 @@ class LabController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * API — publica ou despublica o checkout.
+     */
+    public function apiPublish($id)
+    {
+        $config = CheckoutConfig::where('company_id', Auth::user()->company_id)
+            ->findOrFail($id);
+
+        $config->is_active = !$config->is_active;
+        $config->save();
+
+        return response()->json([
+            'is_active' => $config->is_active,
+            'message'   => $config->is_active ? 'Checkout publicado!' : 'Checkout despublicado',
+        ]);
+    }
 }

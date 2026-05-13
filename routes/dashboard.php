@@ -57,6 +57,7 @@ Route::prefix('/dashboard')->middleware(['auth', 'password.expiry'])->group(func
     // Lab Builder API (JSON)
     Route::get('/lab/api/{id}', [LabController::class, 'apiShow'])->name('dashboard.lab.api.show');
     Route::put('/lab/api/{id}', [LabController::class, 'apiUpdate'])->name('dashboard.lab.api.update');
+    Route::post('/lab/api/{id}/publish', [LabController::class, 'apiPublish'])->name('dashboard.lab.api.publish');
 
     // Lab Clone IA
     Route::post('/lab/clone', [CheckoutCloneController::class, 'clone'])->name('dashboard.lab.clone');

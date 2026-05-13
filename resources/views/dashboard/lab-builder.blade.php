@@ -82,6 +82,22 @@ body{font-family:'Inter',sans-serif;background:#0f0f1a;color:#e2e8f0;overflow:hi
 .row2{display:flex;gap:8px}
 .row2 .fin{flex:1}
 
+/* VIEW MODE TOGGLE */
+.vm-toggle{display:flex;background:#1e1e3a;border-radius:8px;padding:3px;gap:2px}
+.vm-toggle button{background:transparent;border:none;border-radius:6px;color:#64748b;font-size:12px;font-weight:600;padding:5px 12px;cursor:pointer}
+.vm-toggle button.active{background:#7c3aed;color:#fff}
+.tb.publish{border:none;border-radius:8px;color:#fff;font-weight:600;padding:8px 20px;font-size:13px;cursor:pointer}
+
+/* PREVIEW PANEL */
+.preview-area{flex:1;background:#111827;overflow:auto;display:flex;justify-content:center;padding:24px;min-height:0}
+.preview-area .preview-frame{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.15);overflow:hidden;font-family:'Inter',sans-serif;position:relative}
+.preview-area .pv-input{width:100%;padding:11px 14px;border-radius:8px;border:1px solid #e2e8f0;background:#f8fafc;font-size:14px;color:#1e293b;outline:none;box-sizing:border-box}
+.preview-area .pv-btn{width:100%;padding:13px;border-radius:10px;border:none;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+.preview-bar{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #1e1e3a;align-items:center}
+.preview-bar span{color:#64748b;font-size:12px}
+.preview-bar button{background:transparent;border:1px solid #2d2d5a;border-radius:6px;color:#64748b;font-size:12px;padding:4px 10px;cursor:pointer}
+.preview-bar button.active{background:#2d2d5a;color:#e2e8f0}
+
 /* TOAST */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#10b981;color:#fff;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:600;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999}
 .toast.show{opacity:1}
@@ -101,7 +117,12 @@ body{font-family:'Inter',sans-serif;background:#0f0f1a;color:#e2e8f0;overflow:hi
   <span class="zoom-val" id="zoomVal">80%</span>
   <button class="tb" onclick="zoomBy(10)">+</button>
   <button class="tb clone" onclick="openCloneModal()">🤖 Clonar com IA</button>
+  <div class="vm-toggle">
+    <button class="active" id="vmBuilder" onclick="setViewMode('builder')">🔧 Builder</button>
+    <button id="vmPreview" onclick="setViewMode('preview')">👁 Preview</button>
+  </div>
   <button class="tb save" onclick="saveCanvas()">💾 Salvar</button>
+  <button class="tb publish" id="publishBtn" style="background:{{ $config->is_active ? '#dc2626' : '#10b981' }}" onclick="togglePublish()">{{ $config->is_active ? '🔴 Despublicar' : '🟢 Publicar' }}</button>
 </div>
 
 <!-- MAIN -->
@@ -127,6 +148,18 @@ body{font-family:'Inter',sans-serif;background:#0f0f1a;color:#e2e8f0;overflow:hi
   <!-- RIGHT -->
   <div class="right" id="rightPanel">
     <p class="empty">Selecione um elemento</p>
+  </div>
+
+  <!-- PREVIEW -->
+  <div id="previewPanel" style="display:none;flex-direction:column;flex:1;min-height:0">
+    <div class="preview-bar">
+      <span>Preview:</span>
+      <button class="active" id="pvDesktop" onclick="setPreviewDevice('desktop')">🖥 Desktop</button>
+      <button id="pvMobile" onclick="setPreviewDevice('mobile')">📱 Mobile</button>
+      <div style="flex:1"></div>
+      <span id="pvSlug" style="color:#94a3b8;font-size:11px">{{ $config->slug }}</span>
+    </div>
+    <div class="preview-area" id="previewContent"></div>
   </div>
 </div>
 
@@ -389,6 +422,106 @@ async function loadCanvas(){
     history=[JSON.parse(JSON.stringify(elements))];histIdx=0;
     renderCanvas();
   }catch(err){console.error('Load error',err);renderCanvas()}
+}
+
+// ─── VIEW MODE ───
+let viewMode='builder';
+let previewDevice='desktop';
+let isActive={{ $config->is_active ? 'true' : 'false' }};
+const SLUG='{{ $config->slug }}';
+
+function setViewMode(mode){
+  viewMode=mode;
+  document.getElementById('vmBuilder').className=mode==='builder'?'active':'';
+  document.getElementById('vmPreview').className=mode==='preview'?'active':'';
+  const left=document.querySelector('.left');
+  const canvasArea=document.querySelector('.canvas-area');
+  const right=document.getElementById('rightPanel');
+  const preview=document.getElementById('previewPanel');
+  if(mode==='builder'){
+    left.style.display='flex';canvasArea.style.display='flex';right.style.display='flex';
+    preview.style.display='none';
+  } else {
+    left.style.display='none';canvasArea.style.display='none';right.style.display='none';
+    preview.style.display='flex';
+    renderPreview();
+  }
+}
+
+function setPreviewDevice(d){
+  previewDevice=d;
+  document.getElementById('pvDesktop').className=d==='desktop'?'active':'';
+  document.getElementById('pvMobile').className=d==='mobile'?'active':'';
+  renderPreview();
+}
+
+function renderPreview(){
+  const area=document.getElementById('previewContent');
+  const w=previewDevice==='mobile'?390:600;
+  const hasPix=elements.some(e=>e.type==='pix');
+  const hasCard=elements.some(e=>e.type==='card-form');
+  const btnEl=elements.find(e=>e.type==='button');
+  const btnColor=btnEl?.props?.backgroundColor||'#7c3aed';
+  const btnText=btnEl?.props?.text||'Pagar agora';
+
+  let html=`<div class="preview-frame" style="width:${w}px;min-height:600px;padding:0;position:relative">`;
+
+  // Render all non-functional elements
+  elements.filter(e=>!['pix','card-form'].includes(e.type)).forEach(el=>{
+    const p=el.props||{};
+    const s=`position:absolute;left:${el.x}px;top:${el.y}px;width:${el.width}px;height:${el.height}px;transform:rotate(${el.rotation||0}deg);opacity:${p.opacity??1};box-sizing:border-box;`;
+    switch(el.type){
+      case 'text':html+=`<div style="${s}display:flex;align-items:center;color:${p.color};font-size:${p.fontSize}px;font-weight:${p.fontWeight||400};padding:0 4px">${esc(p.text||'')}</div>`;break;
+      case 'rect':html+=`<div style="${s}background:${p.backgroundColor};border-radius:${p.borderRadius||0}px;${p.borderWidth?'border:'+p.borderWidth+'px solid '+(p.borderColor||'#e2e8f0'):''};box-shadow:${p.shadow?'0 4px 24px rgba(0,0,0,.08)':'none'}"></div>`;break;
+      case 'circle':html+=`<div style="${s}background:${p.backgroundColor};border-radius:50%"></div>`;break;
+      case 'button':html+=`<div style="${s}display:flex;align-items:center;justify-content:center;background:${p.backgroundColor};color:${p.color};font-size:${p.fontSize}px;font-weight:${p.fontWeight||600};border-radius:${p.borderRadius||0}px;cursor:pointer">${esc(p.text||'')}</div>`;break;
+      case 'input':html+=`<div style="${s}display:flex;align-items:center;background:${p.backgroundColor||'#fff'};border:${p.borderWidth||1}px solid ${p.borderColor||'#e2e8f0'};border-radius:${p.borderRadius||0}px;padding:0 12px;color:${p.color||'#94a3b8'};font-size:${p.fontSize||14}px">${esc(p.placeholder||'')}</div>`;break;
+      case 'image':html+=p.src?`<img src="${esc(p.src)}" style="${s}object-fit:cover;border-radius:${p.borderRadius||0}px">`:`<div style="${s}background:${p.backgroundColor||'#f1f5f9'};border-radius:${p.borderRadius||0}px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:12px">Imagem</div>`;break;
+    }
+  });
+
+  // Pix block (functional preview)
+  const pixEl=elements.find(e=>e.type==='pix');
+  if(pixEl){
+    const pp=pixEl.props||{};
+    html+=`<div style="position:absolute;left:${pixEl.x}px;top:${pixEl.y}px;width:${pixEl.width}px;background:${pp.backgroundColor||'#fff'};border-radius:${pp.borderRadius||16}px;border:${pp.borderWidth||1}px solid ${pp.borderColor||'#e2e8f0'};padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;box-sizing:border-box">
+      <p style="margin:0;font-size:13px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Pague com Pix</p>
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=00020126360014BR.GOV.BCB.PIX" width="160" height="160" style="border-radius:8px">
+      <p style="margin:0;font-size:12px;color:#94a3b8;text-align:center">Escaneie o QR code com o app do seu banco</p>
+      <button style="width:100%;padding:12px;border-radius:8px;border:none;background:${btnColor};color:#fff;font-size:14px;font-weight:600;cursor:pointer">📋 Copiar código Pix</button>
+      <p style="margin:0;font-size:11px;color:#94a3b8">⚡ Aprovação imediata</p>
+    </div>`;
+  }
+
+  // Card block (functional preview)
+  const cardEl=elements.find(e=>e.type==='card-form');
+  if(cardEl){
+    const cp=cardEl.props||{};
+    html+=`<div style="position:absolute;left:${cardEl.x}px;top:${cardEl.y}px;width:${cardEl.width}px;background:${cp.backgroundColor||'#fff'};border-radius:${cp.borderRadius||16}px;border:${cp.borderWidth||1}px solid ${cp.borderColor||'#e2e8f0'};padding:24px;display:flex;flex-direction:column;gap:12px;box-sizing:border-box">
+      <p style="margin:0;font-size:13px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Dados do cartão</p>
+      <input class="pv-input" placeholder="Número do cartão" maxlength="19">
+      <input class="pv-input" placeholder="Nome no cartão">
+      <div style="display:flex;gap:12px"><input class="pv-input" placeholder="MM/AA" maxlength="5" style="flex:1"><input class="pv-input" placeholder="CVV" type="password" maxlength="4" style="flex:1"></div>
+      <button class="pv-btn" style="background:${btnColor};margin-top:4px">${esc(btnText)}</button>
+      <p style="margin:0;font-size:11px;color:#94a3b8;text-align:center">🔒 Dados protegidos com SSL</p>
+    </div>`;
+  }
+
+  html+='</div>';
+  area.innerHTML=html;
+}
+
+// ─── PUBLISH ───
+async function togglePublish(){
+  try{
+    const r=await fetch('/dashboard/lab/api/'+CONFIG_ID+'/publish',{method:'POST',headers:{'X-CSRF-TOKEN':CSRF}});
+    const data=await r.json();
+    isActive=data.is_active;
+    const btn=document.getElementById('publishBtn');
+    btn.textContent=isActive?'🔴 Despublicar':'🟢 Publicar';
+    btn.style.background=isActive?'#dc2626':'#10b981';
+    showToast(isActive?'✅ Checkout publicado!':'⚠️ Checkout despublicado');
+  }catch(e){showToast('❌ Erro ao publicar')}
 }
 
 // ─── CLONE IA ───
