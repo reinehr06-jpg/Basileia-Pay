@@ -38,7 +38,7 @@ class PublicCheckoutController extends Controller
                 'amount'     => $session->amount,
                 'currency'   => $session->currency,
                 'status'     => $session->status,
-                'experience' => $experience ? $experience->config : null
+                'experience' => $session->resolved_config_json ?? ($experience ? $experience->config : null)
             ]
         ]);
     }
@@ -50,12 +50,12 @@ class PublicCheckoutController extends Controller
     {
         $requestId = $request->header('X-Request-Id', (string) Str::uuid());
 
-        $session = CheckoutSession::with('connectedSystem.defaultGateway')
+        $session = CheckoutSession::with('order', 'connectedSystem.defaultGateway')
             ->where('uuid', $sessionToken)
             ->first();
 
-        if (!$session || $session->status !== 'open') {
-            return response()->json(['error' => 'Sessão inválida ou expirada'], 400);
+        if (!$session || !in_array($session->status, ['open', 'processing'])) {
+            return response()->json(['error' => 'Sessão inválida ou já processada'], 400);
         }
 
         $validator = Validator::make($request->all(), [
@@ -69,7 +69,7 @@ class PublicCheckoutController extends Controller
         }
 
         $method = $request->input('method');
-        $gatewayAccount = $session->connectedSystem->defaultGateway;
+        $gatewayAccount = $session->gatewayAccount ?? $session->connectedSystem->defaultGateway;
 
         if (!$gatewayAccount) {
             return response()->json(['error' => 'Gateway não configurado para este sistema.'], 500);
@@ -77,26 +77,17 @@ class PublicCheckoutController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Criar ou buscar Order vinculada à sessão
-            $order = Order::firstOrCreate(
-                ['checkout_session_id' => $session->id],
-                [
-                    'uuid'                => (string) Str::uuid(),
-                    'connected_system_id' => $session->connected_system_id,
-                    'external_order_id'   => $session->external_order_id,
-                    'customer'            => $session->customer,
-                    'items'               => $session->items,
-                    'amount'              => $session->amount,
-                    'currency'            => $session->currency,
-                    'status'              => 'pending_payment',
-                ]
-            );
+            // A Ordem já deve existir (P0.5 corrigido)
+            $order = $session->order;
+
+            if (!$order) {
+                throw new \Exception("Ordem não encontrada para esta sessão.");
+            }
 
             // 2. Chamar o Gateway (Mock/Simulação para a V1 P0)
-            // Aqui entraria a Factory real que chama a API do Asaas/Itaú.
             $gatewayResponse = [
                 'transaction_id' => 'tx_' . Str::random(10),
-                'status'         => 'pending', // PIX nasce pending
+                'status'         => 'pending',
                 'pix_qrcode'     => '00020126580014br.gov.bcb.pix0136' . Str::uuid(),
                 'pix_url'        => 'https://gateway.com/pix/' . Str::random(10)
             ];
@@ -105,6 +96,7 @@ class PublicCheckoutController extends Controller
             $payment = Payment::create([
                 'uuid'                   => (string) Str::uuid(),
                 'order_id'               => $order->id,
+                'checkout_session_id'    => $session->id,
                 'gateway_account_id'     => $gatewayAccount->id,
                 'gateway_transaction_id' => $gatewayResponse['transaction_id'],
                 'method'                 => $method,
@@ -116,8 +108,10 @@ class PublicCheckoutController extends Controller
                 'gateway_response'       => $gatewayResponse
             ]);
 
-            // Atualizar status da sessão
-            $session->update(['status' => 'completed']);
+            // 4. Ajustar Status da Sessão (Fixes P0.6)
+            // A sessão NÃO vira 'completed' se for PIX ou Boleto pendente.
+            // Ela vira 'processing' aguardando o webhook.
+            $session->update(['status' => 'processing']);
 
             DB::commit();
 

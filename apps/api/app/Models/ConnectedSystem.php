@@ -17,7 +17,6 @@ class ConnectedSystem extends Model
         'company_id',
         'name',
         'slug',
-        'api_key',
         'settings',
         'active'
     ];
@@ -30,6 +29,11 @@ class ConnectedSystem extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(SystemApiKey::class);
     }
 
     public function gatewayAccounts(): HasMany

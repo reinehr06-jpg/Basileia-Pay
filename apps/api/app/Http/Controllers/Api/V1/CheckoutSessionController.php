@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CheckoutSession;
 use App\Models\ConnectedSystem;
+use App\Models\Order;
 use App\Services\Routing\ResolutionEngine;
 use App\Services\Audit\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class CheckoutSessionController extends Controller
 {
@@ -84,33 +86,50 @@ class CheckoutSessionController extends Controller
         // 4. Resolver Configurações (Gateway, Experience, Version)
         $resolution = $engine->resolve($system, $data);
 
-        // 5. Criar a Sessão
-        $session = CheckoutSession::create([
-            'uuid'                           => (string) Str::uuid(),
-            'connected_system_id'            => $system->id,
-            'gateway_account_id'             => $resolution['gateway_account_id'],
-            'checkout_experience_id'         => $resolution['checkout_experience_id'],
-            'checkout_experience_version_id' => $resolution['checkout_experience_version_id'],
-            'external_order_id'              => $data['external_order_id'] ?? null,
-            'idempotency_key'                => $idempotencyKey,
-            'customer'                       => $data['customer'],
-            'items'                          => $data['items'],
-            'amount'                         => $data['amount'],
-            'currency'                       => $data['currency'] ?? 'BRL',
-            'success_url'                    => $data['success_url'] ?? null,
-            'cancel_url'                     => $data['cancel_url'] ?? null,
-            'metadata'                       => $data['metadata'] ?? null,
-            'resolved_config_json'           => $resolution['resolved_config'],
-            'status'                         => 'open',
-            'expires_at'                     => now()->addHours(24),
-        ]);
+        // 5. Criar a Ordem e Sessão de forma atômica
+        return DB::transaction(function () use ($system, $resolution, $data, $idempotencyKey, $requestId, $audit) {
+            
+            // Criar a Ordem (Venda)
+            $order = Order::create([
+                'uuid'                => (string) Str::uuid(),
+                'connected_system_id' => $system->id,
+                'external_order_id'   => $data['external_order_id'] ?? null,
+                'customer'            => $data['customer'],
+                'items'               => $data['items'],
+                'amount'              => $data['amount'],
+                'currency'            => $data['currency'] ?? 'BRL',
+                'status'              => 'pending_payment',
+            ]);
 
-        $audit->log('checkout_session.created', $session, [
-            'amount' => $session->amount,
-            'external_order_id' => $session->external_order_id
-        ]);
+            // Criar a Sessão
+            $session = CheckoutSession::create([
+                'uuid'                           => (string) Str::uuid(),
+                'connected_system_id'            => $system->id,
+                'order_id'                       => $order->id, // Vinculo direto
+                'gateway_account_id'             => $resolution['gateway_account_id'],
+                'checkout_experience_id'         => $resolution['checkout_experience_id'],
+                'checkout_experience_version_id' => $resolution['checkout_experience_version_id'],
+                'external_order_id'              => $data['external_order_id'] ?? null,
+                'idempotency_key'                => $idempotencyKey,
+                'customer'                       => $data['customer'],
+                'items'                          => $data['items'],
+                'amount'                         => $data['amount'],
+                'currency'                       => $data['currency'] ?? 'BRL',
+                'success_url'                    => $data['success_url'] ?? null,
+                'cancel_url'                     => $data['cancel_url'] ?? null,
+                'metadata'                       => $data['metadata'] ?? null,
+                'resolved_config_json'           => $resolution['resolved_config'],
+                'status'                         => 'open',
+                'expires_at'                     => now()->addHours(24),
+            ]);
 
-        return $this->successResponse($session, $requestId, 201);
+            $audit->log('checkout_session.created', $session, [
+                'amount' => $session->amount,
+                'external_order_id' => $session->external_order_id
+            ]);
+
+            return $this->successResponse($session, $requestId, 201);
+        });
     }
 
     /**

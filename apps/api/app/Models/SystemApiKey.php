@@ -5,32 +5,31 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class GatewayAccount extends Model
+class SystemApiKey extends Model
 {
     use HasFactory;
 
     protected $fillable = [
         'connected_system_id',
-        'gateway_type',
         'name',
-        'is_active',
-        'is_default'
+        'key_prefix',
+        'key_hash',
+        'scopes',
+        'last_used_at',
+        'expires_at',
+        'revoked_at',
     ];
 
     protected $casts = [
-        'is_active'   => 'boolean',
-        'is_default'  => 'boolean'
+        'scopes' => 'array',
+        'last_used_at' => 'datetime',
+        'expires_at' => 'datetime',
+        'revoked_at' => 'datetime',
     ];
 
     public function connectedSystem(): BelongsTo
     {
         return $this->belongsTo(ConnectedSystem::class);
-    }
-
-    public function credentials(): HasMany
-    {
-        return $this->hasMany(GatewayCredential::class);
     }
 }
