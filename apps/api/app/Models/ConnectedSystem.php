@@ -51,4 +51,9 @@ class ConnectedSystem extends Model
     {
         return $this->hasMany(CheckoutSession::class);
     }
+
+    public function webhooks(): HasMany
+    {
+        return $this->hasMany(WebhookEndpoint::class);
+    }
 }

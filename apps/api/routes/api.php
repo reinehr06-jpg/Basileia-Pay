@@ -39,6 +39,9 @@ Route::prefix('v1')->group(function () {
     Route::get('public/checkout-sessions/{sessionToken}', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'show']);
     Route::post('public/checkout-sessions/{sessionToken}/pay', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'pay']);
     
+    // Webhooks de Gateways
+    Route::post('webhooks/gateways/{provider}/{accountUuid?}', [\App\Http\Controllers\Api\V1\GatewayWebhookController::class, 'handle']);
+    
     // Auth (Legacy)
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');

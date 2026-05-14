@@ -2,54 +2,41 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WebhookDelivery extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'endpoint_id',
-        'event_type',
-        'payload',
-        'response_code',
-        'response_body',
-        'attempts',
-        'max_attempts',
+        'uuid',
+        'connected_system_id',
+        'webhook_endpoint_id',
+        'event',
+        'payload_masked',
         'status',
+        'attempts',
+        'last_response_code',
+        'last_response_body_masked',
         'next_retry_at',
         'delivered_at',
     ];
 
     protected $casts = [
-        'payload' => 'array',
-        'attempts' => 'integer',
-        'max_attempts' => 'integer',
-        'next_retry_at' => 'datetime',
-        'delivered_at' => 'datetime',
+        'payload_masked' => 'array',
+        'next_retry_at'  => 'datetime',
+        'delivered_at'   => 'datetime',
     ];
 
     public function endpoint(): BelongsTo
     {
-        return $this->belongsTo(WebhookEndpoint::class, 'endpoint_id');
+        return $this->belongsTo(WebhookEndpoint::class, 'webhook_endpoint_id');
     }
 
-    public function scopePending($query)
+    public function connectedSystem(): BelongsTo
     {
-        return $query->where('status', 'pending');
-    }
-
-    public function scopeFailed($query)
-    {
-        return $query->where('status', 'failed');
-    }
-
-    public function scopeDelivered($query)
-    {
-        return $query->where('status', 'delivered');
-    }
-
-    public function canRetry(): bool
-    {
-        return $this->attempts < $this->max_attempts && $this->status !== 'delivered';
+        return $this->belongsTo(ConnectedSystem::class);
     }
 }
