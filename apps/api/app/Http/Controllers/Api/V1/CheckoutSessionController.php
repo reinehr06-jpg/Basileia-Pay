@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\CheckoutSession;
 use App\Models\ConnectedSystem;
+use App\Services\Routing\ResolutionEngine;
+use App\Services\Audit\AuditService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
@@ -14,7 +16,7 @@ class CheckoutSessionController extends Controller
     /**
      * Cria uma nova sessão de checkout para um sistema conectado.
      */
-    public function store(Request $request)
+    public function store(Request $request, ResolutionEngine $engine, AuditService $audit)
     {
         $requestId = $request->header('X-Request-Id', (string) Str::uuid());
 
@@ -32,7 +34,7 @@ class CheckoutSessionController extends Controller
                 'error' => [
                     'code' => 'UNAUTHORIZED',
                     'message' => 'Sistema não autorizado ou chave inválida.',
-                    'fields' => {}
+                    'fields' => (object)[]
                 ]
             ], 401);
         }
@@ -79,22 +81,33 @@ class CheckoutSessionController extends Controller
             }
         }
 
-        // 4. Criar a Sessão
+        // 4. Resolver Configurações (Gateway, Experience, Version)
+        $resolution = $engine->resolve($system, $data);
+
+        // 5. Criar a Sessão
         $session = CheckoutSession::create([
-            'uuid'                   => (string) Str::uuid(),
-            'connected_system_id'    => $system->id,
-            'checkout_experience_id' => $data['experience_id'] ?? $system->experiences()->where('active', true)->first()?->id,
-            'external_order_id'      => $data['external_order_id'] ?? null,
-            'idempotency_key'        => $idempotencyKey,
-            'customer'               => $data['customer'],
-            'items'                  => $data['items'],
-            'amount'                 => $data['amount'],
-            'currency'               => $data['currency'] ?? 'BRL',
-            'success_url'            => $data['success_url'] ?? null,
-            'cancel_url'             => $data['cancel_url'] ?? null,
-            'metadata'               => $data['metadata'] ?? null,
-            'status'                 => 'open',
-            'expires_at'             => now()->addHours(24),
+            'uuid'                           => (string) Str::uuid(),
+            'connected_system_id'            => $system->id,
+            'gateway_account_id'             => $resolution['gateway_account_id'],
+            'checkout_experience_id'         => $resolution['checkout_experience_id'],
+            'checkout_experience_version_id' => $resolution['checkout_experience_version_id'],
+            'external_order_id'              => $data['external_order_id'] ?? null,
+            'idempotency_key'                => $idempotencyKey,
+            'customer'                       => $data['customer'],
+            'items'                          => $data['items'],
+            'amount'                         => $data['amount'],
+            'currency'                       => $data['currency'] ?? 'BRL',
+            'success_url'                    => $data['success_url'] ?? null,
+            'cancel_url'                     => $data['cancel_url'] ?? null,
+            'metadata'                       => $data['metadata'] ?? null,
+            'resolved_config_json'           => $resolution['resolved_config'],
+            'status'                         => 'open',
+            'expires_at'                     => now()->addHours(24),
+        ]);
+
+        $audit->log('checkout_session.created', $session, [
+            'amount' => $session->amount,
+            'external_order_id' => $session->external_order_id
         ]);
 
         return $this->successResponse($session, $requestId, 201);
@@ -116,7 +129,7 @@ class CheckoutSessionController extends Controller
                 'error' => [
                     'code' => 'NOT_FOUND',
                     'message' => 'Sessão não encontrada.',
-                    'fields' => {}
+                    'fields' => (object)[]
                 ]
             ], 404);
         }
@@ -126,7 +139,7 @@ class CheckoutSessionController extends Controller
 
     private function successResponse(CheckoutSession $session, string $requestId, int $status)
     {
-        $checkoutBaseUrl = config('basileia.checkout_url', 'https://checkout.basileia.global');
+        $checkoutBaseUrl = config('basileia.checkout_url', 'http://localhost:3001');
 
         return response()->json([
             'data' => [

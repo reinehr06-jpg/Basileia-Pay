@@ -2,27 +2,31 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class AuditLog extends Model
 {
+    use HasFactory;
+
+    public $timestamps = false; // Só created_at via DB
+
     protected $fillable = [
         'company_id',
         'user_id',
+        'connected_system_id',
         'action',
-        'model_type',
-        'model_id',
-        'old_values',
-        'new_values',
-        'ip_address',
+        'entity_type',
+        'entity_id',
+        'ip',
         'user_agent',
+        'metadata_masked',
     ];
 
     protected $casts = [
-        'old_values' => 'array',
-        'new_values' => 'array',
-        'model_id' => 'integer',
+        'metadata_masked' => 'array',
+        'created_at' => 'datetime',
     ];
 
     public function company(): BelongsTo
@@ -35,19 +39,8 @@ class AuditLog extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function scopeByAction($query, string $action)
+    public function connectedSystem(): BelongsTo
     {
-        return $query->where('action', $action);
-    }
-
-    public function scopeByModel($query, string $modelType, int $modelId)
-    {
-        return $query->where('model_type', $modelType)
-                     ->where('model_id', $modelId);
-    }
-
-    public function scopeRecent($query, int $days = 30)
-    {
-        return $query->where('created_at', '>=', now()->subDays($days));
+        return $this->belongsTo(ConnectedSystem::class);
     }
 }
