@@ -13,29 +13,37 @@ class Order extends Model
 
     protected $fillable = [
         'uuid',
-        'connected_system_id',
+        'company_id',
+        'system_id',
         'checkout_session_id',
         'external_order_id',
-        'customer',
-        'items',
+        'customer_name',
+        'customer_email',
+        'customer_document',
+        'customer_phone',
         'amount',
         'currency',
-        'status'
+        'status',
+        'metadata',
     ];
 
     protected $casts = [
-        'customer' => 'array',
-        'items' => 'array'
+        'metadata' => 'array',
     ];
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
 
     public function connectedSystem(): BelongsTo
     {
         return $this->belongsTo(ConnectedSystem::class);
     }
 
-    public function checkoutSession(): BelongsTo
+    public function session(): BelongsTo
     {
-        return $this->belongsTo(CheckoutSession::class);
+        return $this->belongsTo(CheckoutSession::class, 'checkout_session_id');
     }
 
     public function payments(): HasMany

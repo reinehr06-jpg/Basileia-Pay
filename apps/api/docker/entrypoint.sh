@@ -1,47 +1,46 @@
-echo "=== Basileia Checkout Starting ==="
+#!/bin/sh
+set -e
 
+echo "=== Basileia Pay API Starting ==="
+
+# 1. Configurar variáveis de banco
 REAL_DB_HOST=${DB_HOST:-postgres}
 if [ "$DB_HOST" = "localhost" ] || [ "$DB_HOST" = "127.0.0.1" ]; then
     REAL_DB_HOST="postgres"
 fi
 
-echo "DB_HOST=$REAL_DB_HOST"
+# 2. Gerar .env de produção (se não existir ou for dinâmico)
+# NOTA: Em produção real, as variáveis devem ser passadas via Container Environment.
+# Este script apenas garante que valores básicos existam para o container subir.
+if [ ! -f .env ]; then
+    touch .env
+fi
 
-cat > .env << ENVEOF
-APP_NAME=Basileia
-APP_ENV=production
-APP_KEY=
-APP_DEBUG=true
-APP_URL=http://localhost:8000
-DB_CONNECTION=pgsql
-DB_HOST=$REAL_DB_HOST
-DB_PORT=${DB_PORT:-5432}
-DB_DATABASE=${DB_DATABASE:-checkout}
-DB_USERNAME=${DB_USERNAME:-postgres}
-DB_PASSWORD=${DB_PASSWORD:-secret}
-SESSION_DRIVER=file
-CACHE_STORE=file
-QUEUE_CONNECTION=sync
-DEFAULT_GATEWAY=asaas
-ENVEOF
+# 3. Garantir APP_KEY
+if ! grep -q "APP_KEY=" .env || [ -z "$(grep APP_KEY= .env | cut -d'=' -f2)" ]; then
+    echo "Generating new APP_KEY..."
+    php artisan key:generate --force
+fi
 
-php artisan key:generate --force 2>&1
-
+# 4. Ajustar permissões
 mkdir -p storage/framework/sessions storage/framework/cache/data storage/framework/views storage/logs
-chmod -R 755 storage bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
 
+# 5. Executar Migrações
 echo "Running migrations..."
-php artisan migrate --force --no-interaction 2>&1 || echo "Migration warning"
+php artisan migrate --force --no-interaction
 
-echo "Fixing gateway slug..."
-php artisan gateway:fix-slug 2>&1 || echo "Gateway fix warning"
+# 6. Criar Admin Inicial (Somente se as variáveis estiverem presentes)
+if [ ! -z "$ADMIN_EMAIL" ] && [ ! -z "$ADMIN_PASSWORD" ]; then
+    echo "Ensuring initial admin user..."
+    php artisan tinker --execute="
+        \App\Models\User::firstOrCreate(
+            ['email' => '$ADMIN_EMAIL'],
+            ['name' => 'Basileia Admin', 'password' => bcrypt('$ADMIN_PASSWORD'), 'role' => 'super_admin', 'status' => 'active', 'email_verified_at' => now()]
+        );
+    "
+fi
 
-php artisan tinker --execute="
-    \App\Models\User::firstOrCreate(
-        ['email' => 'admin@checkout.com'],
-        ['name' => 'Admin', 'password' => bcrypt('Admin@123'), 'role' => 'super_admin', 'status' => 'active', 'email_verified_at' => now()]
-    );
-" 2>&1 || true
-
-echo "Starting Laravel on port 8000..."
+echo "Basileia Pay is ready. Starting PHP-FPM/Octane..."
 exec "$@"

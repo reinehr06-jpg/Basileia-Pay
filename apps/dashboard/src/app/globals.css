@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
 @theme {
+  /* Tokens de Marca (Fixos) */
   --color-brand-primary: #7B16D9;
   --color-brand-deep: #4B168A;
   --color-brand-soft: #F3E8FF;
   --color-brand-accent: #A855F7;
-  
-  --color-ink: #17151F;
-  --color-slate-custom: #4B5563;
-  --color-muted: #8B8A95;
-  --color-line: #E7E5EF;
-  --color-surface: #FFFFFF;
-  --color-background: #F7F7FA;
+
+  /* Mapeamento dos Tokens Dinâmicos para Classes do Tailwind */
+  --color-background: var(--bg-app);
+  --color-surface: var(--bg-surface);
+  --color-surface-raised: var(--bg-surface-raised);
+  --color-ink: var(--text-main);
+  --color-muted: var(--text-muted);
+  --color-line: var(--border-main);
   
   --color-status-success: #16A34A;
   --color-status-warning: #F59E0B;
@@ -20,17 +22,36 @@
 }
 
 :root {
-  background-color: var(--color-background);
-  color: var(--color-ink);
+  /* Light Mode (Padrão) */
+  --bg-app: #F7F7FA;
+  --bg-surface: #FFFFFF;
+  --bg-surface-raised: #FFFFFF;
+  --text-main: #17151F;
+  --text-muted: #8B8A95;
+  --border-main: #E7E5EF;
+  
+  background-color: var(--bg-app);
+  color: var(--text-main);
+}
+
+.dark, [data-theme='dark'] {
+  /* Dark Mode */
+  --bg-app: #0F0E13;
+  --bg-surface: #17151F;
+  --bg-surface-raised: #1C1B24;
+  --text-main: #F7F7FA;
+  --text-muted: #A1A0AA;
+  --border-main: #2A2834;
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Base utility for hiding scrollbars but keeping functionality */
+/* Base utility for hiding scrollbars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }

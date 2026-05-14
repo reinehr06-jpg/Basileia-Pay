@@ -13,10 +13,9 @@ import {
   GitBranch, 
   ShieldCheck, 
   History, 
-  Code2, 
-  Lock, 
   Settings,
-  HelpCircle
+  HelpCircle,
+  ChevronRight
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -31,8 +30,6 @@ const menuItems = [
   { name: "Roteamento", href: "/dashboard/routing", icon: GitBranch },
   { name: "Trust Layer", href: "/dashboard/trust", icon: ShieldCheck },
   { name: "Auditoria", href: "/dashboard/audit", icon: History },
-  { name: "Desenvolvedores", href: "/dashboard/developers", icon: Code2 },
-  { name: "Segurança", href: "/dashboard/security", icon: Lock },
   { name: "Configurações", href: "/dashboard/settings", icon: Settings },
 ];
 
@@ -40,14 +37,14 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-64 bg-surface border-r border-line flex flex-col z-20">
+    <aside className="fixed inset-y-0 left-0 w-64 bg-surface border-r border-line flex flex-col z-20 transition-colors">
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-line">
         <div className="flex items-center gap-2 text-brand-primary">
           <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg">
             B
           </div>
-          <span className="font-bold text-xl tracking-tight">Basileia</span>
+          <span className="font-bold text-xl tracking-tight text-ink">Basileia Pay</span>
         </div>
       </div>
 
@@ -62,13 +59,13 @@ export function Sidebar() {
                 key={item.name}
                 href={item.href}
                 className={clsx(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all group",
                   isActive 
                     ? "bg-brand-soft text-brand-primary" 
-                    : "text-slate-custom hover:bg-background hover:text-ink"
+                    : "text-muted hover:bg-background hover:text-ink"
                 )}
               >
-                <Icon className={clsx("w-5 h-5", isActive ? "text-brand-primary" : "text-muted")} />
+                <Icon className={clsx("w-5 h-5", isActive ? "text-brand-primary" : "text-muted group-hover:text-ink")} />
                 {item.name}
               </Link>
             );
@@ -78,18 +75,19 @@ export function Sidebar() {
 
       {/* Footer */}
       <div className="p-4 border-t border-line">
-        <button className="flex items-center gap-2 text-sm text-slate-custom hover:text-ink w-full px-2 py-2 transition-colors">
+        <button className="flex items-center gap-2 text-sm text-muted hover:text-ink w-full px-2 py-2 transition-colors">
           <HelpCircle className="w-4 h-4 text-muted" />
           Central de Ajuda
         </button>
-        <div className="mt-4 px-2 py-3 bg-background rounded-lg flex items-center gap-3 cursor-pointer hover:bg-line/50 transition-colors">
+        <div className="mt-4 px-2 py-3 bg-background border border-line rounded-lg flex items-center gap-3 cursor-pointer hover:border-brand-primary/30 transition-all group">
           <div className="w-8 h-8 rounded bg-brand-deep text-white flex items-center justify-center text-xs font-bold">
             AC
           </div>
-          <div className="flex flex-col overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <span className="text-sm font-semibold truncate text-ink">Acme Corp</span>
-            <span className="text-xs text-muted">Produção</span>
+            <span className="text-[10px] text-muted uppercase tracking-wider font-bold">Produção</span>
           </div>
+          <ChevronRight className="w-4 h-4 text-muted group-hover:text-brand-primary transition-colors" />
         </div>
       </div>
     </aside>

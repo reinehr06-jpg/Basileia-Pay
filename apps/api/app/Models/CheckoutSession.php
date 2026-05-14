@@ -12,26 +12,33 @@ class CheckoutSession extends Model
 
     protected $fillable = [
         'uuid',
+        'session_token',
+        'company_id',
         'connected_system_id',
+        'order_id',
         'checkout_experience_id',
-        'external_order_id',
-        'idempotency_key',
-        'customer',
-        'items',
+        'checkout_experience_version_id',
+        'gateway_account_id',
+        'status',
         'amount',
         'currency',
         'success_url',
         'cancel_url',
-        'metadata',
         'expires_at',
-        'status'
+        'resolved_config_json',
+        'metadata',
+        'external_order_id',
+        'idempotency_key',
+        'customer',
+        'items',
     ];
 
     protected $casts = [
-        'customer'   => 'array',
-        'items'      => 'array',
-        'metadata'   => 'array',
-        'expires_at' => 'datetime'
+        'customer'             => 'array',
+        'items'                => 'array',
+        'metadata'             => 'array',
+        'resolved_config_json' => 'array',
+        'expires_at'           => 'datetime'
     ];
 
     public function connectedSystem(): BelongsTo
@@ -39,8 +46,23 @@ class CheckoutSession extends Model
         return $this->belongsTo(ConnectedSystem::class);
     }
 
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
     public function experience(): BelongsTo
     {
         return $this->belongsTo(CheckoutExperience::class, 'checkout_experience_id');
+    }
+
+    public function experienceVersion(): BelongsTo
+    {
+        return $this->belongsTo(CheckoutExperienceVersion::class, 'checkout_experience_version_id');
+    }
+
+    public function gatewayAccount(): BelongsTo
+    {
+        return $this->belongsTo(GatewayAccount::class);
     }
 }
