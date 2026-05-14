@@ -207,17 +207,18 @@ class CheckoutPageController extends Controller
         }
     }
 
-    public function success(string $uuid)
+    public function success(string $uuidOrToken)
     {
-        $transaction = Transaction::where('uuid', $uuid)
-            ->with(['customer', 'payments'])
-            ->first();
+        $resolvedUuid = \App\Services\CheckoutService::resolveSuccessToken($uuidOrToken);
+        $uuid = $resolvedUuid ?? $uuidOrToken;
+
+        $transaction = Transaction::where('uuid', $uuid)->first();
 
         if (!$transaction) {
             return $this->errorResponse('Transação não encontrada.');
         }
 
-        return view('checkout.card.front.sucesso', compact('transaction'));
+        return view('checkout.card.front.sucesso', \App\Services\CheckoutService::buildSuccessData($transaction));
     }
 
     private function errorResponse(string $message)

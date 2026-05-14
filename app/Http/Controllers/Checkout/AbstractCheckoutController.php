@@ -115,10 +115,19 @@ abstract class AbstractCheckoutController extends Controller
     // Sucesso
     // ─────────────────────────────────────────────────────────────
 
-    public function success(string $uuid): mixed
+    public function success(string $uuidOrToken, Request $request): mixed
     {
-        $resource = CheckoutService::findResource($uuid);
-        return view($this->getSuccessViewName(), ['transaction' => $resource]);
+        // Fluxo 1: Token efêmero (seguro — uso único, 30min)
+        $resolvedUuid = CheckoutService::resolveSuccessToken($uuidOrToken);
+
+        if ($resolvedUuid) {
+            $resource = CheckoutService::findResource($resolvedUuid);
+            return view($this->getSuccessViewName(), CheckoutService::buildSuccessData($resource));
+        }
+
+        // Fluxo 2: Legacy UUID (compatibilidade — dados mínimos, sem nome/email/documento)
+        $resource = CheckoutService::findResource($uuidOrToken);
+        return view($this->getSuccessViewName(), CheckoutService::buildSuccessData($resource));
     }
 
     // ─────────────────────────────────────────────────────────────

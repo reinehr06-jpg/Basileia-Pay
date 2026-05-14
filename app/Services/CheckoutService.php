@@ -8,6 +8,7 @@ use App\Helpers\PaymentStatusMapper;
 use App\Models\Subscription;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -382,5 +383,74 @@ class CheckoutService
         }
 
         return null; // NUNCA retorna company_id de outra empresa como fallback
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // Tela de sucesso segura — [CRÍTICA-06]
+    // ─────────────────────────────────────────────────────────────
+
+    /**
+     * Gera um token efêmero para acesso à tela de sucesso.
+     *
+     * O token é de uso único (Cache::pull no consumo) e expira em 30min.
+     * Isso impede que alguém com o UUID da transação acesse a tela
+     * de sucesso e veja dados do pagador.
+     *
+     * @return string Token UUID para redirecionar.
+     */
+    public static function generateSuccessToken(Transaction|Subscription $resource): string
+    {
+        $token = Str::uuid()->toString();
+
+        Cache::put(
+            "checkout_success:{$token}",
+            [
+                'uuid'       => $resource->uuid,
+                'created_at' => now()->toIso8601String(),
+            ],
+            now()->addMinutes(30)
+        );
+
+        return $token;
+    }
+
+    /**
+     * Resolve e consome um token de sucesso.
+     *
+     * Retorna o UUID da transação se o token for válido.
+     * Retorna null se o token for inválido, expirado ou já consumido.
+     *
+     * Usa Cache::pull() (pega e remove) — token de uso único.
+     */
+    public static function resolveSuccessToken(?string $token): ?string
+    {
+        if (!$token) {
+            return null;
+        }
+
+        $payload = Cache::pull("checkout_success:{$token}");
+
+        if (!$payload || empty($payload['uuid'])) {
+            return null;
+        }
+
+        return $payload['uuid'];
+    }
+
+    /**
+     * Dados seguros para exibir na tela de sucesso.
+     *
+     * NUNCA inclui nome, email, documento ou telefone do cliente.
+     * Apenas protocolo, valor e método de pagamento.
+     */
+    public static function buildSuccessData(Transaction|Subscription $resource): array
+    {
+        return [
+            'protocol'       => strtoupper(substr($resource->uuid, 0, 8)),
+            'amount'         => $resource->amount ?? 0,
+            'payment_method' => $resource->payment_method ?? 'credit_card',
+            'status'         => $resource->status ?? 'pending',
+            'description'    => $resource->description ?? 'Pagamento',
+        ];
     }
 }

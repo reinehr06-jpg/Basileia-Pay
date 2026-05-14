@@ -10,6 +10,7 @@ class Integration extends Model
 {
     protected $fillable = [
         'company_id',
+        'gateway_id',
         'name',
         'slug',
         'base_url',
@@ -28,6 +29,33 @@ class Integration extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function gateway(): BelongsTo
+    {
+        return $this->belongsTo(Gateway::class);
+    }
+
+    /**
+     * Retorna o gateway efetivo desta integração.
+     * Prioridade: gateway próprio da integração → gateway padrão da empresa.
+     *
+     * Company::defaultGateway() é método (não HasOne), então chamamos com ().
+     */
+    public function effectiveGateway(): ?Gateway
+    {
+        if ($this->gateway) {
+            return $this->gateway;
+        }
+
+        if ($this->company) {
+            $default = $this->company->defaultGateway();
+            if ($default) {
+                return $default;
+            }
+        }
+
+        return null;
     }
 
     public function webhookEndpoints(): HasMany

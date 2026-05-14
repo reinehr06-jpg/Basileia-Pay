@@ -1,95 +1,36 @@
 <?php
 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\AuthController;
-use App\Http\Controllers\Api\V1\TransactionController;
-use App\Http\Controllers\Api\V1\PaymentController;
-use App\Http\Controllers\Api\V1\CustomerController;
-use App\Http\Controllers\Api\V1\SubscriptionController;
-use App\Http\Controllers\Api\V1\ReportController;
-use App\Http\Controllers\Api\V1\CheckoutWebhookController;
-use App\Http\Controllers\Api\V1\WebhookController;
-use App\Http\Controllers\AsaasWebhookController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\TransactionController;
+use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Api\CustomerController;
+use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Dashboard\CheckoutConfigController;
-use App\Http\Controllers\Dashboard\CheckoutVersionController;
-use App\Http\Controllers\Dashboard\CheckoutAbTestController;
 use App\Http\Controllers\Dashboard\CheckoutAuditController;
-use App\Http\Controllers\Dashboard\CheckoutApprovalController;
 use App\Http\Controllers\Dashboard\CheckoutWhiteLabelController;
+use App\Http\Controllers\Dashboard\CheckoutABTestController;
+use App\Http\Controllers\Dashboard\CheckoutVersionController;
 
-// ─── Lab / Checkout Editor (API REST para o frontend Next.js) ───
-Route::middleware(['auth:sanctum'])->prefix('dashboard')->group(function () {
-    // Checkout configs CRUD
-    Route::get   ('checkout-configs',              [CheckoutConfigController::class, 'index']);
-    Route::get   ('checkout-configs/{id}',         [CheckoutConfigController::class, 'show']);
-    Route::post  ('checkout-configs',              [CheckoutConfigController::class, 'store']);
-    Route::put   ('checkout-configs/{id}',         [CheckoutConfigController::class, 'update']);
-    Route::delete('checkout-configs/{id}',         [CheckoutConfigController::class, 'destroy']);
-    Route::post  ('checkout-configs/{id}/publish', [CheckoutConfigController::class, 'publish']);
-    Route::post  ('upload',                        [CheckoutConfigController::class, 'upload']);
-    Route::post  ('checkout-configs/import-url',   [\App\Http\Controllers\Dashboard\CheckoutImportController::class, 'fromUrl']);
-    
-    // AI Import
-    Route::post('checkout-configs/import-image',          [\App\Http\Controllers\Dashboard\CheckoutAiImportController::class, 'fromImage']);
-    Route::post('checkout-configs/import-html',           [\App\Http\Controllers\Dashboard\CheckoutAiImportController::class, 'fromHtml']);
-    Route::post('checkout-configs/import-url-screenshot', [\App\Http\Controllers\Dashboard\CheckoutAiImportController::class, 'fromUrlScreenshot']);
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
 
-    // Histórico de versões
-    Route::get ('checkout-configs/{id}/versions',                [CheckoutVersionController::class, 'index']);
-    Route::post('checkout-configs/{id}/versions/{vid}/restore',  [CheckoutVersionController::class, 'restore']);
-
-    // Link de teste temporário
-    Route::post('checkout-configs/{id}/test-link',               [CheckoutConfigController::class, 'generateTestLink']);
-
-    // A/B Test
-    Route::get ('ab-test',              [CheckoutAbTestController::class, 'show']);
-    Route::post('ab-test',              [CheckoutAbTestController::class, 'store']);
-    Route::put ('ab-test',              [CheckoutAbTestController::class, 'update']);
-    Route::post('ab-test/{id}/toggle',  [CheckoutAbTestController::class, 'toggle']);
-
-    // RBAC
-    Route::get('me/lab-role', function(\Illuminate\Http\Request $req) {
-        $u = $req->user(); $r = 'viewer';
-        if ($u->isSuperAdmin()) $r = 'owner';
-        elseif ($u->isAdmin()) $r = 'admin';
-        elseif ($u->isOperator()) $r = 'editor';
-        return response()->json(['role' => $r]);
-    });
-
-    // Auditoria
-    Route::get('audit', [CheckoutAuditController::class, 'index']);
-    Route::get('checkout-configs/{id}/audit', [CheckoutAuditController::class, 'forConfig']);
-
-    // White Label
-    Route::get('white-label', [CheckoutWhiteLabelController::class, 'show']);
-    Route::put('white-label', [CheckoutWhiteLabelController::class, 'update']);
-
-    // Aprovações
-    Route::get('approvals', [CheckoutApprovalController::class, 'queue']);
-    Route::post('checkout-configs/{id}/request-publish', [CheckoutApprovalController::class, 'request']);
-    Route::post('approvals/{id}/approve', [CheckoutApprovalController::class, 'approve']);
-    Route::post('approvals/{id}/reject', [CheckoutApprovalController::class, 'reject']);
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+    return $request->user();
 });
 
-// Rota pública para checkout de teste (sem auth)
-Route::get('checkout/test/{token}', [CheckoutConfigController::class, 'showTestLink']);
-
-Route::get('diag-check', function() {
-    return response()->json([
-        'status' => 'OK',
-        'server' => 'CheckOut-Production',
-        'version' => 'NUCLEAR_DIAG_999',
-        'timestamp' => now()->toIso8601String(),
-    ]);
-});
-
-// Webhook do Asaas (Rota pública oficial)
-Route::post('webhooks/asaas', [AsaasWebhookController::class, 'handle'])->name('webhook.asaas');
-
+// V1 API (Legacy/Blade compatibility)
 Route::prefix('v1')->group(function () {
-    // Ingestão de pagamentos do Vendas/Sistemas Externos
-    Route::post('payments/receive', [\App\Http\Controllers\Api\PaymentApiController::class, 'receive']);
-
     // Auth
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
@@ -204,5 +145,38 @@ Route::prefix('v2')->name('api.v2.')->group(function () {
         // Settings
         Route::get('settings/receipt',   [\App\Http\Controllers\Api\V2\SettingsController::class, 'receipt']);
         Route::put('settings/receipt',   [\App\Http\Controllers\Api\V2\SettingsController::class, 'updateReceipt']);
+
+        // Lab / Builder
+        Route::apiResource('checkout-configs', CheckoutConfigController::class);
+        Route::post('checkout-configs/{id}/duplicate', [CheckoutConfigController::class, 'duplicate']);
+        Route::get('checkout-configs/{id}/versions', [CheckoutVersionController::class, 'index']);
+        Route::post('checkout-configs/{id}/restore/{versionId}', [CheckoutVersionController::class, 'restore']);
+
+        // Auditoria
+        Route::get('audit', [CheckoutAuditController::class, 'index']);
+        Route::get('checkout-configs/{id}/audit', [CheckoutAuditController::class, 'forConfig']);
+
+        // Analytics / Observability
+        Route::get('analytics/overview', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'overview']);
+        Route::get('analytics/gateways', [\App\Http\Controllers\Dashboard\AnalyticsController::class, 'byGateway']);
+
+        // Roteamento Inteligente (Smart Routing)
+        Route::apiResource('routing-rules', \App\Http\Controllers\Dashboard\RoutingRuleController::class);
+
+        // White Label
+        Route::get('white-label', [CheckoutWhiteLabelController::class, 'show']);
+        Route::put('white-label', [CheckoutWhiteLabelController::class, 'update']);
+
+        // Testes A/B
+        Route::apiResource('ab-tests', CheckoutABTestController::class);
+        Route::post('ab-tests/{id}/toggle', [CheckoutABTestController::class, 'toggle']);
     });
+});
+
+// ─── Internal Vault (Serviço próprio de Tokenização) ───
+// ATENÇÃO: Em produção, estas rotas devem estar sob firewall interno (mTLS) ou API Key forte.
+// Elas NÃO devem ser expostas para acesso irrestrito externo.
+Route::prefix('vault')->group(function () {
+    Route::post('tokenize-card', [\App\Http\Controllers\Api\VaultController::class, 'tokenize']);
+    Route::post('resolve-token', [\App\Http\Controllers\Api\VaultController::class, 'resolve']);
 });

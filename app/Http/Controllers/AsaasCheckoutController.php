@@ -136,12 +136,13 @@ class AsaasCheckoutController extends Controller
         }
     }
 
-    public function success(string $uuid)
+    public function success(string $uuidOrToken)
     {
+        $resolvedUuid = \App\Services\CheckoutService::resolveSuccessToken($uuidOrToken);
+        $uuid = $resolvedUuid ?? $uuidOrToken;
+
         $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
 
-        return view('checkout.card.front.sucesso', [
-            'transaction' => $transaction,
-        ]);
+        return view('checkout.card.front.sucesso', \App\Services\CheckoutService::buildSuccessData($transaction));
     }
 }

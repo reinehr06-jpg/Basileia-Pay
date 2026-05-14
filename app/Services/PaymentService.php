@@ -21,6 +21,8 @@ use RuntimeException;
 
 class PaymentService
 {
+    use \App\Traits\EmitsPaymentEvents;
+
     public function __construct(
         private GatewayFactory $gatewayFactory,
         private CustomerService $customerService,
@@ -47,15 +49,41 @@ class PaymentService
             ];
             $billingType = $billingTypeMap[$data['payment_method']] ?? 'CREDIT_CARD';
 
+            // Se for cartão, resolve os dados através do Vault interno
+            $cardToken = $data['card_token'] ?? ($data['card']['number'] ?? null); // fallback pra payload antigo se vier
+            $resolvedCard = null;
+
+            if ($billingType === 'CREDIT_CARD' && $cardToken) {
+                // Tentamos resolver via VaultService
+                // transaction->integration->company_id seria ideal. Vamos assumir que integration->company_id existe.
+                $companyId = $integration->company_id ?? $transaction->integration->company_id;
+                
+                $resolvedCard = \App\Services\Vault\VaultService::resolveToken($companyId, $cardToken);
+                
+                if (!$resolvedCard && !str_contains($cardToken, '-')) {
+                    // Se não achou e não tem formato de UUID, vamos assumir que mandaram PAN direto (legado)
+                    $resolvedCard = [
+                        'number' => $data['card']['number'] ?? $cardToken,
+                        'expiry' => isset($data['card']['expiry_month']) ? "{$data['card']['expiry_month']}/{$data['card']['expiry_year']}" : null,
+                        'cvv'    => $data['card']['cvv'] ?? null,
+                    ];
+                } elseif (!$resolvedCard) {
+                    throw new \RuntimeException('Falha ao resolver token do cartão de crédito.');
+                }
+            }
+
             // Prepara dados para o gateway
             $gatewayInput = [
                 'amountBRL' => (float) $transaction->amount,
                 'description' => $transaction->description ?? "Pagamento #{$transaction->uuid}",
-                'installments' => (int) ($data['card']['installments'] ?? 1),
-                'cardToken' => $data['card']['number'] ?? null,
-                'cardHolderName' => $data['card']['holder_name'] ?? null,
-                'cardExpiry' => isset($data['card']['expiry_month']) ? "{$data['card']['expiry_month']}/{$data['card']['expiry_year']}" : null,
-                'cardCvv' => $data['card']['cvv'] ?? null,
+                'installments' => (int) ($data['installments'] ?? $data['card']['installments'] ?? 1),
+                
+                // Dados do cartão resolvido
+                'cardToken' => $resolvedCard ? $resolvedCard['number'] : null, // O driver espera 'cardToken' como number ou o payload do cartão
+                'cardHolderName' => $data['card_holder_name'] ?? $data['card']['holder_name'] ?? null,
+                'cardExpiry' => $resolvedCard ? $resolvedCard['expiry'] : null,
+                'cardCvv' => $resolvedCard ? $resolvedCard['cvv'] : null,
+                
                 'remoteIp' => request()->ip(),
                 
                 // Holder info real (BUG-02)
@@ -66,11 +94,74 @@ class PaymentService
             // Executa a cobrança no gateway
             $customerId = $this->resolveGatewayCustomerId($transaction, $gateway);
             
-            $gatewayResponse = match($billingType) {
-                'PIX' => $gateway->chargeViaPix($gatewayInput, $customerId),
-                'BOLETO' => $gateway->chargeViaBoleto($gatewayInput, $customerId),
-                default => $gateway->charge($gatewayInput, $customerId),
-            };
+            $this->emitPaymentEvent([
+                'transaction_uuid' => $transaction->uuid,
+                'company_id'       => $integration->company_id,
+                'integration_id'   => $integration->id,
+                'gateway_id'       => $integration->gateway_id,
+                'gateway_type'     => $integration->gateway->type,
+                'event_type'       => 'gateway_request',
+                'status_normalized'=> $transaction->status,
+                'payment_method'   => $data['payment_method'],
+                'amount'           => $transaction->amount,
+            ]);
+            
+            try {
+                $gatewayResponse = match($billingType) {
+                    'PIX' => $gateway->chargeViaPix($gatewayInput, $customerId),
+                    'BOLETO' => $gateway->chargeViaBoleto($gatewayInput, $customerId),
+                    default => $gateway->charge($gatewayInput, $customerId),
+                };
+            } catch (\Throwable $e) {
+                $fallbackIds = $transaction->metadata['fallback_gateway_ids'] ?? [];
+                $successFallback = false;
+
+                foreach ($fallbackIds as $fallbackGatewayId) {
+                    $fallbackGateway = \App\Models\Gateway::where('company_id', $integration->company_id)
+                        ->where('id', $fallbackGatewayId)
+                        ->where('status', 'active')
+                        ->first();
+
+                    if (!$fallbackGateway) continue;
+
+                    $this->emitPaymentEvent([
+                        'transaction_uuid' => $transaction->uuid,
+                        'company_id'       => $integration->company_id,
+                        'gateway_id'       => $fallbackGateway->id,
+                        'gateway_type'     => $fallbackGateway->type,
+                        'event_type'       => 'retry_gateway',
+                        'status_normalized'=> $transaction->status,
+                    ]);
+
+                    $driver = $this->gatewayFactory->make($fallbackGateway->type);
+
+                    try {
+                        $gatewayResponse = match($billingType) {
+                            'PIX' => $driver->chargeViaPix($gatewayInput, $customerId),
+                            'BOLETO' => $driver->chargeViaBoleto($gatewayInput, $customerId),
+                            default => $driver->charge($gatewayInput, $customerId),
+                        };
+                        
+                        // Atualizar gateway da transação
+                        $transaction->gateway_id = $fallbackGateway->id;
+                        $transaction->save();
+                        $integration->gateway_id = $fallbackGateway->id; // Para logs abaixo
+                        
+                        $successFallback = true;
+                        break;
+                    } catch (\Throwable $e2) {
+                        \Illuminate\Support\Facades\Log::error('gateway.retry_failed', [
+                            'tx'      => $transaction->uuid,
+                            'gateway' => $fallbackGateway->type,
+                            'error'   => $e2->getMessage(),
+                        ]);
+                    }
+                }
+
+                if (!$successFallback) {
+                    throw $e;
+                }
+            }
 
             // Cria o registro de pagamento alinhado com o schema real
             $payment = Payment::create([
@@ -94,6 +185,20 @@ class PaymentService
                 'status' => $payment->status,
                 'payment_method' => $payment->payment_method,
                 'asaas_payment_id' => $payment->gateway_transaction_id
+            ]);
+
+            $this->emitPaymentEvent([
+                'transaction_uuid' => $transaction->uuid,
+                'company_id'       => $integration->company_id,
+                'integration_id'   => $integration->id,
+                'gateway_id'       => $integration->gateway_id,
+                'gateway_type'     => $integration->gateway->type,
+                'event_type'       => 'payment_status_update',
+                'status_normalized'=> $payment->status,
+                'payment_method'   => $payment->payment_method,
+                'amount'           => $transaction->amount,
+                'gateway_status'   => $gatewayResponse['status'] ?? null,
+                'gateway_code'     => $gatewayResponse['errorCode'] ?? null,
             ]);
 
             return $payment->toArray();

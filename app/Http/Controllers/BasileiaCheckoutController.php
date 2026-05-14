@@ -323,13 +323,16 @@ class BasileiaCheckoutController extends Controller
         return response()->json(['status' => $transaction->status]);
     }
 
-    public function success(string $uuid)
+    public function success(string $uuidOrToken)
     {
-        $transaction = Transaction::where('uuid', $uuid)->first()
+        // Tenta resolver como token efêmero primeiro
+        $resolvedUuid = CheckoutService::resolveSuccessToken($uuidOrToken);
+        $uuid = $resolvedUuid ?? $uuidOrToken;
+
+        $resource = Transaction::where('uuid', $uuid)->first()
             ?? \App\Models\Subscription::where('uuid', $uuid)->firstOrFail();
 
-        return view('checkout.card.front.sucesso', [
-            'transaction' => $transaction,
-        ]);
+        // NUNCA passa o objeto Transaction inteiro — apenas dados seguros
+        return view('checkout.card.front.sucesso', CheckoutService::buildSuccessData($resource));
     }
 }

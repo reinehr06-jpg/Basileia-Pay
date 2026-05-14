@@ -54,20 +54,11 @@ update_env "SESSION_DRIVER" "file"
 update_env "CACHE_STORE" "file"
 update_env "QUEUE_CONNECTION" "sync"
 
-# Gateway settings - Only update if provided in environment
-update_env "DEFAULT_GATEWAY" "$DEFAULT_GATEWAY"
-update_env "ASAAS_API_KEY" "$ASAAS_API_KEY"
-update_env "ASAAS_ENVIRONMENT" "$ASAAS_ENVIRONMENT"
-update_env "ASAAS_WEBHOOK_TOKEN" "$ASAAS_WEBHOOK_TOKEN"
+# Gateway credentials are NO LONGER stored in env vars.
+# Each tenant configures their gateway via Dashboard → Gateways.
+# Credentials are stored encrypted in the gateway_configs table.
+# See: GatewayResolver::forTransaction() and AsaasGateway::fromGatewayModel()
 
-# Additional Gateways
-update_env "STRIPE_KEY" "$STRIPE_KEY"
-update_env "STRIPE_SECRET" "$STRIPE_SECRET"
-update_env "MERCADOPAGO_ACCESS_TOKEN" "$MERCADOPAGO_ACCESS_TOKEN"
-update_env "SQUARE_ACCESS_TOKEN" "$SQUARE_ACCESS_TOKEN"
-update_env "SQUARE_LOCATION_ID" "$SQUARE_LOCATION_ID"
-
-echo "Environment configuration updated"
 
 # Clear config cache and set total permissions
 find storage -type d -exec chmod 777 {} + 2>/dev/null || true

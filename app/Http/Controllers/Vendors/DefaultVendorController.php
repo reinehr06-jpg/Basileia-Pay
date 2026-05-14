@@ -167,8 +167,11 @@ class DefaultVendorController extends Controller
         }
     }
 
-    public function success(string $uuid)
+    public function success(string $uuidOrToken)
     {
+        $resolvedUuid = \App\Services\CheckoutService::resolveSuccessToken($uuidOrToken);
+        $uuid = $resolvedUuid ?? $uuidOrToken;
+
         $transaction = Transaction::where('uuid', $uuid)->firstOrFail();
         return redirect()->to(route('basileia.checkout.show', $transaction->asaas_payment_id) . '?success=1');
     }

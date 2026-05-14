@@ -25,13 +25,12 @@ class ProcessPaymentRequest extends FormRequest
     {
         return [
             'payment_method' => 'required|in:pix,boleto,credit_card,debit_card',
-            'card' => 'required_if:payment_method,credit_card,debit_card|array',
-            'card.number' => 'required_with:card|string',
-            'card.holder_name' => 'required_with:card|string',
-            'card.expiry_month' => 'required_with:card|string',
-            'card.expiry_year' => 'required_with:card|string',
-            'card.cvv' => 'required_with:card|string',
-            'installments' => 'nullable|integer|min:1|max:12',
+            'card_token'     => 'required_if:payment_method,credit_card,debit_card|string|uuid',
+            'card_last4'     => 'nullable|string|size:4',
+            'card_brand'     => 'nullable|string|max:20',
+            'installments'   => 'nullable|integer|min:1|max:12',
+            // Opcional: holder_name pode vir no root se for credit_card
+            'card_holder_name' => 'required_if:payment_method,credit_card,debit_card|string',
         ];
     }
 
@@ -40,12 +39,9 @@ class ProcessPaymentRequest extends FormRequest
         return [
             'payment_method.required' => 'The payment method is required.',
             'payment_method.in' => 'The payment method must be one of: pix, boleto, credit_card, debit_card.',
-            'card.required_if' => 'Card details are required for credit or debit card payments.',
-            'card.number.required_with' => 'The card number is required.',
-            'card.holder_name.required_with' => 'The card holder name is required.',
-            'card.expiry_month.required_with' => 'The card expiry month is required.',
-            'card.expiry_year.required_with' => 'The card expiry year is required.',
-            'card.cvv.required_with' => 'The card CVV is required.',
+            'card_token.required_if' => 'The card token is required for credit or debit card payments.',
+            'card_token.uuid' => 'The card token must be a valid UUID.',
+            'card_holder_name.required_if' => 'The card holder name is required for credit or debit card payments.',
             'installments.max' => 'The installments cannot exceed 12.',
         ];
     }

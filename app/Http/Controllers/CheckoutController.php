@@ -168,12 +168,15 @@ class CheckoutController extends Controller
     /**
      * Show success page.
      */
-    public function success(string $uuid)
+    public function success(string $uuidOrToken)
     {
+        $resolvedUuid = \App\Services\CheckoutService::resolveSuccessToken($uuidOrToken);
+        $uuid = $resolvedUuid ?? $uuidOrToken;
+
         $resource = Transaction::where('uuid', $uuid)->first()
             ?? Subscription::where('uuid', $uuid)->firstOrFail();
 
-        return view('checkout.card.front.sucesso', ['transaction' => $resource]);
+        return view('checkout.card.front.sucesso', \App\Services\CheckoutService::buildSuccessData($resource));
     }
 
     public function receipt(string $uuid)

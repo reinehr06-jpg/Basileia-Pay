@@ -16,6 +16,8 @@ use RuntimeException;
 
 class TransactionService
 {
+    use \App\Traits\EmitsPaymentEvents;
+
     public function __construct(
         private AuditService $auditService,
         private Fraud\BasicFraudService $fraudService,
@@ -40,6 +42,32 @@ class TransactionService
                 'payment_method' => $data['payment_method'] ?? null,
                 'installments' => $data['installments'] ?? 1,
             ]);
+
+            // Motor de Roteamento (Routing Engine)
+            $ctx = new \App\Services\Routing\RoutingContext(
+                companyId:      $transaction->company_id,
+                integrationId:  $transaction->integration_id,
+                currentGatewayId: $transaction->gateway_id, // Pode ser null
+                paymentMethod:  $transaction->payment_method,
+                amount:         (float) $transaction->amount,
+                country:        $data['customer']['country'] ?? null,
+                bin:            $data['card_bin'] ?? null,
+            );
+
+            $engine = new \App\Services\Routing\RoutingEngine($ctx);
+            $gateway = $engine->resolveGatewayModel();
+
+            if ($gateway) {
+                $transaction->gateway_id = $gateway->id;
+                
+                // Armazena fallbacks e regra aplicada no metadata
+                $meta = $transaction->metadata ?? [];
+                $meta['routing_rule_id'] = $gateway->resolved_by_rule_id ?? null;
+                $meta['fallback_gateway_ids'] = $gateway->fallback_gateway_ids ?? [];
+                $transaction->metadata = $meta;
+
+                $transaction->save();
+            }
 
             if (!empty($data['items'])) {
                 foreach ($data['items'] as $item) {
@@ -77,6 +105,20 @@ class TransactionService
             $this->auditService->log('transaction.created', $transaction, [
                 'amount' => $data['amount'],
                 'customer' => $data['customer'] ?? null,
+            ]);
+
+            $this->emitPaymentEvent([
+                'transaction_uuid' => $transaction->uuid,
+                'company_id'       => $transaction->company_id,
+                'integration_id'   => $transaction->integration_id,
+                'gateway_id'       => clone $transaction->gateway_id, // Pode ser null aqui
+                'gateway_type'     => null,
+                'event_type'       => 'transaction_created',
+                'status_normalized'=> $transaction->status,
+                'payment_method'   => $transaction->payment_method,
+                'currency'         => $transaction->currency ?? 'BRL',
+                'amount'           => $transaction->amount,
+                'country'          => $data['customer']['country'] ?? null,
             ]);
 
             return $transaction->fresh();
