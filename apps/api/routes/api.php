@@ -35,6 +35,10 @@ Route::prefix('v1')->group(function () {
     Route::post('checkout-sessions', [\App\Http\Controllers\Api\V1\CheckoutSessionController::class, 'store']);
     Route::get('checkout-sessions/{id}', [\App\Http\Controllers\Api\V1\CheckoutSessionController::class, 'show']);
     
+    // Checkout Público (Acessado pelo Next.js public checkout app)
+    Route::get('public/checkout-sessions/{sessionToken}', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'show']);
+    Route::post('public/checkout-sessions/{sessionToken}/pay', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'pay']);
+    
     // Auth (Legacy)
     Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
     Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
