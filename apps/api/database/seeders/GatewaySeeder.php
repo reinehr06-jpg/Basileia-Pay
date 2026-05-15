@@ -2,24 +2,22 @@
 
 namespace Database\Seeders;
 
-use App\Models\Company;
-use App\Models\Gateway;
+use App\Models\GatewayAccount;
 use Illuminate\Database\Seeder;
 
 class GatewaySeeder extends Seeder
 {
     public function run(): void
     {
-        $company = Company::first();
-        if (!$company) return;
-
-        Gateway::create([
-            'company_id' => $company->id,
+        GatewayAccount::create([
+            'company_id' => 1,
             'name' => 'Asaas Principal',
-            'slug' => 'asaas',
-            'type' => 'asaas',
+            'provider' => 'asaas',
+            'credentials_encrypted' => encrypt([
+                'api_key' => 'fake_key',
+            ]),
+            'environment' => 'sandbox',
             'status' => 'active',
-            'is_default' => true,
         ]);
     }
 }

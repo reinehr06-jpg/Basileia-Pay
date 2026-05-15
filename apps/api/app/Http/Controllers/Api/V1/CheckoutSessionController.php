@@ -36,12 +36,12 @@ class CheckoutSessionController extends Controller
             return response()->json($cached)->header('X-Idempotent-Replayed', 'true');
         }
 
-        // Resolvido pelo ResolveCompany middleware
-        $company = $request->attributes->get('company');
-        $system = $company->systems()->first(); // assuming simple case for now, normally resolved via API Key
+        // Resolvido pelo ResolveApiKey middleware
+        $company = \App\Services\TenantContext::company();
+        $system = \App\Services\TenantContext::connectedSystem();
 
         $checkout = CheckoutExperience::where('id', $request->checkout_id)
-            ->where('status', 'published')
+            ->where('company_id', $company->id)
             ->firstOrFail();
 
         // Validar gateway disponível (throws RuntimeException if not found)
@@ -55,30 +55,28 @@ class CheckoutSessionController extends Controller
         $order = Order::create([
             'uuid'               => \Illuminate\Support\Str::uuid(),
             'company_id'         => $company->id,
-            'system_id'          => $system?->id,
+            'connected_system_id' => $system?->id,
             'customer_id'        => $customer?->id,
             'external_order_id'  => $request->external_order_id,
             'amount'             => $request->amount,
             'currency'           => $request->currency ?? 'BRL',
             'items'              => $request->items ?? [],
-            'discount_amount'    => $request->discount_amount ?? 0,
             'status'             => 'created',
-            'expires_at'         => now()->addHours(24),
         ]);
 
         $sessionToken = bin2hex(random_bytes(32));
         $session = CheckoutSession::create([
-            'uuid'                => \Illuminate\Support\Str::uuid(),
-            'company_id'          => $company->id,
-            'system_id'           => $system?->id,
-            'checkout_version_id' => $checkout->current_version_id,
-            'customer_id'         => $customer?->id,
-            'session_token'       => $sessionToken,
-            'amount'              => $request->amount,
-            'currency'            => $request->currency ?? 'BRL',
-            'status'              => 'created',
-            'expires_at'          => now()->addHours(24),
-            'metadata'            => $request->metadata ?? [],
+            'uuid'                  => \Illuminate\Support\Str::uuid(),
+            'company_id'            => $company->id,
+            'connected_system_id'   => $system?->id,
+            'checkout_experience_id' => $checkout->id,
+            'session_token'         => $sessionToken,
+            'amount'                => $request->amount,
+            'currency'              => $request->currency ?? 'BRL',
+            'status'                => 'created',
+            'environment'           => \App\Services\TenantContext::environment(),
+            'expires_at'            => now()->addHours(24),
+            'metadata'              => $request->metadata ?? [],
         ]);
 
         $order->update(['checkout_session_id' => $session->id]);

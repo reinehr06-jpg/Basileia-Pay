@@ -16,17 +16,34 @@ class StudioController extends Controller
 {
     public function index(): JsonResponse
     {
-        $checkouts = CheckoutExperience::where('company_id', Auth::user()->company_id)->get();
-        return response()->json($checkouts);
+        $checkouts = CheckoutExperience::where('company_id', \App\Services\TenantContext::companyId())
+            ->with(['publishedVersion'])
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $checkouts->map(fn($c) => [
+                'id' => $c->id,
+                'uuid' => $c->uuid,
+                'name' => $c->name,
+                'slug' => $c->slug,
+                'status' => $c->status,
+                'published_version' => $c->publishedVersion?->uuid,
+                'created_at' => $c->created_at->format('d/m/Y H:i'),
+            ])
+        ]);
     }
 
     public function show(string $id): JsonResponse
     {
-        $checkout = CheckoutExperience::where('company_id', Auth::user()->company_id)
+        $checkout = CheckoutExperience::where('company_id', \App\Services\TenantContext::companyId())
             ->where('id', $id)
             ->firstOrFail();
         
-        return response()->json($checkout);
+        return response()->json([
+            'success' => true,
+            'data' => $checkout
+        ]);
     }
 
     public function presets(Request $request): JsonResponse

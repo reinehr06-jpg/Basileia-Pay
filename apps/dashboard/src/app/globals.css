@@ -21,23 +21,23 @@
 }
 
 :root {
-  --color-background:    #F7F8FA;
+  --color-background:    #F7F7FA;
   --color-surface:       #FFFFFF;
   --color-surface-raised:#FFFFFF;
-  --color-border:        #E4E7EC;
-  --color-ink:           #101828;
-  --color-ink-muted:     #475467;
-  --color-ink-subtle:    #98A2B3;
-  --color-brand:         #2563EB;
-  --color-brand-muted:   #DBEAFE;
+  --color-border:        #E7E5EF;
+  --color-ink:           #17151F;
+  --color-ink-muted:     #4B5563;
+  --color-ink-subtle:    #8B8A95;
+  --color-brand:         #7B16D9;
+  --color-brand-muted:   #F3E8FF;
   --color-success:       #16A34A;
   --color-success-muted: #DCFCE7;
-  --color-warning:       #D97706;
+  --color-warning:       #F59E0B;
   --color-warning-muted: #FEF3C7;
   --color-danger:        #DC2626;
   --color-danger-muted:  #FEE2E2;
-  --color-info:          #0891B2;
-  --color-info-muted:    #CFFAFE;
+  --color-info:          #2563EB;
+  --color-info-muted:    #DBEAFE;
   
   background-color: var(--color-background);
   color: var(--color-ink);

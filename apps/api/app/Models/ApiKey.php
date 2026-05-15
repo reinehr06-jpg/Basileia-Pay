@@ -11,22 +11,20 @@ class ApiKey extends Model
 {
     use HasFactory, BelongsToCompany;
 
-    protected $table = 'system_api_keys';
+    protected $table = 'api_keys';
 
     protected $fillable = [
-        'connected_system_id',
+        'uuid',
         'company_id',
+        'connected_system_id',
         'name',
-        'key_prefix',
+        'key',
         'key_hash',
-        'scopes',
         'environment',
+        'scopes',
         'last_used_at',
         'expires_at',
         'revoked_at',
-        'revoked_by',
-        'created_by',
-        'uuid',
     ];
 
     protected $hidden = [

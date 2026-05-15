@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, Cpu, CreditCard, ShoppingBag, 
-  Package, Banknote, Webhook, Shield, Settings 
+  Package, Banknote, Webhook, Shield, Settings,
+  Shuffle, Zap, Code, Lock
 } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -14,15 +15,19 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const NAV_ITEMS = [
-  { href: '/',           icon: LayoutDashboard, label: 'Visão Geral' },
-  { href: '/systems',    icon: Cpu,             label: 'Sistemas'    },
-  { href: '/gateways',   icon: CreditCard,      label: 'Gateways'    },
-  { href: '/checkouts',  icon: ShoppingBag,     label: 'Checkouts'   },
-  { href: '/orders',     icon: Package,         label: 'Vendas'      },
-  { href: '/payments',   icon: Banknote,        label: 'Pagamentos'  },
-  { href: '/webhooks',   icon: Webhook,         label: 'Webhooks'    },
-  { href: '/audit',      icon: Shield,          label: 'Auditoria'   },
-  { href: '/settings',   icon: Settings,        label: 'Configurações'},
+  { href: '/',               icon: LayoutDashboard, label: 'Visão Geral' },
+  { href: '/systems',        icon: Cpu,             label: 'Sistemas'    },
+  { href: '/checkouts',      icon: ShoppingBag,     label: 'Checkouts'   },
+  { href: '/gateways',       icon: CreditCard,      label: 'Gateways'    },
+  { href: '/orders',         icon: Package,         label: 'Vendas'      },
+  { href: '/payments',       icon: Banknote,        label: 'Pagamentos'  },
+  { href: '/webhooks',       icon: Webhook,         label: 'Webhooks'    },
+  { href: '/routing',        icon: Shuffle,         label: 'Roteamento'  },
+  { href: '/trust',          icon: Zap,             label: 'Trust Layer' },
+  { href: '/audit',          icon: Shield,          label: 'Auditoria'   },
+  { href: '/developers',     icon: Code,            label: 'Desenvolvedores'},
+  { href: '/security',       icon: Lock,            label: 'Segurança'   },
+  { href: '/settings',       icon: Settings,        label: 'Configurações'},
 ];
 
 function SidebarItem({ href, icon: Icon, label, active }: any) {

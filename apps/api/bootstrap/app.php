@@ -20,9 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Resolve company context for API requests (skips public endpoints internally)
+        // Global tracing for all requests
+        $middleware->prepend(\App\Http\Middleware\RequestTracingMiddleware::class);
+
+        // Resolve context for API requests
         $middleware->prependToGroup('api', [
-            \App\Http\Middleware\ResolveCompany::class,
+            \App\Http\Middleware\ResolveApiKey::class,
         ]);
 
         // Sanctum stateful requests
@@ -36,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Route middleware aliases
         $middleware->alias([
             'reauth' => \App\Http\Middleware\RequireReauth::class,
+            'api.auth' => \App\Http\Middleware\ResolveApiKey::class,
         ]);
 
     })

@@ -10,9 +10,8 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             CompanySeeder::class,
-            DefaultAdminSeeder::class,
+            ConnectedSystemSeeder::class,
             GatewaySeeder::class,
-            SourceConfigSeeder::class,
         ]);
     }
 }

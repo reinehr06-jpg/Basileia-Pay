@@ -13,33 +13,23 @@ class CheckoutSession extends Model
 
     protected $fillable = [
         'uuid',
-        'session_token',
         'company_id',
         'connected_system_id',
-        'order_id',
         'checkout_experience_id',
-        'checkout_experience_version_id',
-        'gateway_account_id',
-        'status',
+        'session_token',
         'amount',
         'currency',
-        'success_url',
-        'cancel_url',
-        'expires_at',
-        'resolved_config_json',
+        'status',
+        'environment',
+        'customer_data',
         'metadata',
-        'external_order_id',
-        'idempotency_key',
-        'customer',
-        'items',
+        'expires_at',
     ];
 
     protected $casts = [
-        'customer'             => 'array',
-        'items'                => 'array',
-        'metadata'             => 'array',
-        'resolved_config_json' => 'array',
-        'expires_at'           => 'datetime'
+        'customer_data' => 'array',
+        'metadata'      => 'array',
+        'expires_at'    => 'datetime'
     ];
 
     public function connectedSystem(): BelongsTo

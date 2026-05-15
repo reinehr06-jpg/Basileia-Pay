@@ -1,8 +1,13 @@
+'use client';
+
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Card } from '@/components/ui/Card';
-import { Search, Filter, Download, CreditCard, Banknote, QrCode } from 'lucide-react';
+import { Search, Filter, Download, CreditCard, Banknote, QrCode, Loader2, AlertCircle } from 'lucide-react';
+import { usePayments } from '@/hooks/api/usePayments';
 
 export default function PaymentsPage() {
+  const { payments, loading, error, requestId, refetch } = usePayments();
+
   return (
     <PageLayout 
       title="Pagamentos"
@@ -28,51 +33,89 @@ export default function PaymentsPage() {
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-ink">
-            <thead className="border-b border-border bg-surface-raised text-ink-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Payment ID</th>
-                <th className="px-4 py-3 font-medium">Método</th>
-                <th className="px-4 py-3 font-medium">Gateway</th>
-                <th className="px-4 py-3 font-medium">Valor</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium">Data</th>
-                <th className="px-4 py-3 font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { id: 'PAY_1a2b3c', method: 'PIX', icon: <QrCode size={14} />, gateway: 'Asaas', amount: 'R$ 197,00', status: 'approved', statusLabel: 'Aprovado', date: '15/05/2026 09:12' },
-                { id: 'PAY_4d5e6f', method: 'Cartão', icon: <CreditCard size={14} />, gateway: 'Stripe', amount: 'R$ 450,00', status: 'pending', statusLabel: 'Pendente', date: '15/05/2026 08:45' },
-                { id: 'PAY_7g8h9i', method: 'Boleto', icon: <Banknote size={14} />, gateway: 'Asaas', amount: 'R$ 97,00', status: 'failed', statusLabel: 'Falhou', date: '14/05/2026 23:30' },
-              ].map((payment) => (
-                <tr key={payment.id} className="border-b border-border hover:bg-surface-raised/50 transition-colors">
-                  <td className="px-4 py-3 font-mono text-ink-subtle">{payment.id}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-ink-subtle">{payment.icon}</span>
-                      <span>{payment.method}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">{payment.gateway}</td>
-                  <td className="px-4 py-3 font-medium">{payment.amount}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                      payment.status === 'approved' ? 'bg-success-muted text-success' :
-                      payment.status === 'pending' ? 'bg-warning-muted text-warning' :
-                      'bg-danger-muted text-danger'
-                    }`}>
-                      {payment.statusLabel}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-ink-subtle">{payment.date}</td>
-                  <td className="px-4 py-3">
-                    <button className="text-brand hover:underline">Ver detalhes</button>
-                  </td>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="animate-spin text-brand" size={32} />
+              <p className="text-ink-subtle text-sm">Carregando pagamentos...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
+              <AlertCircle className="text-danger" size={32} />
+              <div>
+                <p className="text-ink font-medium">Não foi possível carregar os pagamentos</p>
+                <p className="text-ink-subtle text-sm mt-1">{error}</p>
+                {requestId && (
+                  <p className="text-xs text-ink-muted mt-4 font-mono">Request ID: {requestId}</p>
+                )}
+              </div>
+              <button 
+                onClick={refetch}
+                className="mt-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-medium hover:bg-brand-raised transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
+              <div className="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mb-2">
+                <CreditCard className="text-ink-subtle" size={24} />
+              </div>
+              <div>
+                <p className="text-ink font-medium">Nenhum pagamento encontrado</p>
+                <p className="text-ink-subtle text-sm mt-1">
+                  Quando suas vendas começarem, elas aparecerão aqui.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm text-ink">
+              <thead className="border-b border-border bg-surface-raised text-ink-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Payment ID</th>
+                  <th className="px-4 py-3 font-medium">Método</th>
+                  <th className="px-4 py-3 font-medium">Gateway</th>
+                  <th className="px-4 py-3 font-medium">Valor</th>
+                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Data</th>
+                  <th className="px-4 py-3 font-medium">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr key={payment.id} className="border-b border-border hover:bg-surface-raised/50 transition-colors">
+                    <td className="px-4 py-3 font-mono text-ink-subtle">{payment.uuid.split('-')[0]}...</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-ink-subtle">
+                          {payment.method === 'pix' ? <QrCode size={14} /> : 
+                           payment.method === 'boleto' ? <Banknote size={14} /> : 
+                           <CreditCard size={14} />}
+                        </span>
+                        <span className="capitalize">{payment.method}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">{payment.gateway}</td>
+                    <td className="px-4 py-3 font-medium">
+                      {(payment.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        payment.status === 'approved' || payment.status === 'paid' ? 'bg-success-muted text-success' :
+                        payment.status === 'pending' ? 'bg-warning-muted text-warning' :
+                        'bg-danger-muted text-danger'
+                      }`}>
+                        {payment.status_label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-ink-subtle">{payment.created_at}</td>
+                    <td className="px-4 py-3">
+                      <button className="text-brand hover:underline">Ver detalhes</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </PageLayout>

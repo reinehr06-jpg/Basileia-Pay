@@ -1,15 +1,12 @@
+'use client';
+
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Card } from '@/components/ui/Card';
-import { Shield, Search, Download } from 'lucide-react';
+import { Shield, Search, Download, Loader2, AlertCircle } from 'lucide-react';
+import { useAudit } from '@/hooks/api/useAudit';
 
 export default function AuditPage() {
-  const auditEvents = [
-    { date: '15/05/2026 10:45:22', event: '🔐 Login', user: 'vinicius@basileia.pay', entity: 'User', ip: '[mascarado]', details: 'Login efetuado com sucesso (2FA)' },
-    { date: '15/05/2026 10:30:05', event: '💳 Gateway criado', user: 'vinicius@basileia.pay', entity: 'GatewayAccount', ip: '[mascarado]', details: 'Adicionado Asaas - Produção' },
-    { date: '15/05/2026 10:12:14', event: '🔑 API Key criada', user: 'vinicius@basileia.pay', entity: 'ApiKey', ip: '[mascarado]', details: 'Nova chave para Site Principal' },
-    { date: '15/05/2026 09:45:33', event: '🚀 Checkout publicado', user: 'vinicius@basileia.pay', entity: 'CheckoutSession', ip: '[mascarado]', details: 'Checkout Principal v2.4' },
-    { date: '15/05/2026 09:12:00', event: '✅ Pagamento aprovado', user: 'Sistema', entity: 'Payment', ip: '[mascarado]', details: 'PAY_1a2b3c (R$ 197,00)' },
-  ];
+  const { logs, loading, error, refetch } = useAudit();
 
   return (
     <PageLayout 
@@ -38,32 +35,65 @@ export default function AuditPage() {
 
       <Card>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-ink">
-            <thead className="border-b border-border bg-surface-raised text-ink-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Data/hora</th>
-                <th className="px-4 py-3 font-medium">Evento</th>
-                <th className="px-4 py-3 font-medium">Usuário</th>
-                <th className="px-4 py-3 font-medium">Entidade</th>
-                <th className="px-4 py-3 font-medium">IP</th>
-                <th className="px-4 py-3 font-medium">Detalhes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {auditEvents.map((item, i) => (
-                <tr key={i} className="border-b border-border hover:bg-surface-raised/50 transition-colors">
-                  <td className="px-4 py-3 whitespace-nowrap text-ink-subtle font-mono text-xs">{item.date}</td>
-                  <td className="px-4 py-3 font-medium">{item.event}</td>
-                  <td className="px-4 py-3 text-ink-muted">{item.user}</td>
-                  <td className="px-4 py-3 text-xs uppercase tracking-wider text-ink-subtle">{item.entity}</td>
-                  <td className="px-4 py-3 text-ink-subtle italic">{item.ip}</td>
-                  <td className="px-4 py-3">
-                    <button className="text-brand hover:underline font-medium">Ver detalhes</button>
-                  </td>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Loader2 className="animate-spin text-brand" size={32} />
+              <p className="text-ink-subtle text-sm">Carregando auditoria...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
+              <AlertCircle className="text-danger" size={32} />
+              <div>
+                <p className="text-ink font-medium">Erro ao carregar auditoria</p>
+                <p className="text-ink-subtle text-sm mt-1">{error}</p>
+              </div>
+              <button 
+                onClick={() => refetch()}
+                className="mt-2 px-4 py-2 bg-brand text-white rounded-md text-sm font-medium hover:bg-brand-deep transition-colors"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-center px-4">
+              <div className="w-16 h-16 bg-surface-raised rounded-full flex items-center justify-center mb-2">
+                <Shield className="text-ink-subtle" size={24} />
+              </div>
+              <div>
+                <p className="text-ink font-medium">Nenhum log encontrado</p>
+                <p className="text-ink-subtle text-sm mt-1">
+                  Todas as ações realizadas na plataforma serão listadas aqui.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <table className="w-full text-left text-sm text-ink">
+              <thead className="border-b border-border bg-surface-raised text-ink-muted">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Data/hora</th>
+                  <th className="px-4 py-3 font-medium">Evento</th>
+                  <th className="px-4 py-3 font-medium">Usuário</th>
+                  <th className="px-4 py-3 font-medium">Entidade</th>
+                  <th className="px-4 py-3 font-medium">IP</th>
+                  <th className="px-4 py-3 font-medium">Detalhes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {logs.map((item) => (
+                  <tr key={item.id} className="border-b border-border hover:bg-surface-raised/50 transition-colors">
+                    <td className="px-4 py-3 whitespace-nowrap text-ink-subtle font-mono text-xs">{item.created_at}</td>
+                    <td className="px-4 py-3 font-medium">{item.event}</td>
+                    <td className="px-4 py-3 text-ink-muted">{item.user_name}</td>
+                    <td className="px-4 py-3 text-xs uppercase tracking-wider text-ink-subtle">{item.entity_type}</td>
+                    <td className="px-4 py-3 text-ink-subtle italic">{item.ip_address || '[mascarado]'}</td>
+                    <td className="px-4 py-3">
+                      <button className="text-brand hover:underline font-medium">Ver detalhes</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </Card>
     </PageLayout>

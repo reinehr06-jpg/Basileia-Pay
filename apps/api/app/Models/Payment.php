@@ -14,30 +14,24 @@ class Payment extends Model
 
     protected $fillable = [
         'uuid',
+        'company_id',
         'order_id',
         'checkout_session_id',
         'gateway_account_id',
-        'gateway_transaction_id',
         'method',
-        'amount',
         'status',
-        'gateway_response',
-        'pix_qrcode',
-        'pix_qrcode_url',
-        'pix_expires_at',
-        'boleto_url',
-        'boleto_barcode',
-        'boleto_expires_at',
-        'card_last_digits',
-        'card_brand',
-        'paid_at',
+        'amount',
+        'currency',
+        'gateway_payment_id',
+        'idempotency_key',
+        'trace_id',
+        'approved_at',
+        'refunded_at',
     ];
 
     protected $casts = [
-        'gateway_response' => 'array',
-        'pix_expires_at' => 'datetime',
-        'boleto_expires_at' => 'datetime',
-        'paid_at' => 'datetime',
+        'approved_at' => 'datetime',
+        'refunded_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

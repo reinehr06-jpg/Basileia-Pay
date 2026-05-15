@@ -50,7 +50,7 @@ export default function TwoFactorPage() {
               {code.map((digit, i) => (
                 <input
                   key={i}
-                  ref={el => inputs.current[i] = el}
+                  ref={el => { inputs.current[i] = el; }}
                   type="text"
                   maxLength={1}
                   value={digit}

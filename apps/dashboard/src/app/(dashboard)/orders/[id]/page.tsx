@@ -1,6 +1,6 @@
 import { PageLayout } from '@/components/layout/PageLayout';
 import { Card } from '@/components/ui/Card';
-import { Package, User, Clock, FileText, CheckCircle } from 'lucide-react';
+import { Package, User, Clock, FileText, CheckCircle, Globe } from 'lucide-react';
 
 export default function OrderDetailPage({ params }: { params: { id: string } }) {
   return (

@@ -13,6 +13,34 @@ class PaymentController extends Controller
     {
     }
 
+    public function index(Request $request)
+    {
+        $payments = \App\Models\Payment::where('company_id', \App\Services\TenantContext::companyId())
+            ->with(['order', 'gatewayAccount'])
+            ->latest()
+            ->paginate($request->per_page ?? 20);
+
+        return response()->json([
+            'success' => true,
+            'data' => $payments->getCollection()->map(fn($p) => [
+                'id' => $p->id,
+                'uuid' => $p->uuid,
+                'method' => $p->method,
+                'gateway' => $p->gatewayAccount->name,
+                'amount' => $p->amount,
+                'status' => $p->status,
+                'status_label' => ucfirst($p->status),
+                'created_at' => $p->created_at->format('d/m/Y H:i'),
+            ]),
+            'meta' => [
+                'current_page' => $payments->currentPage(),
+                'last_page' => $payments->lastPage(),
+                'total' => $payments->total(),
+                'request_id' => $request->attributes->get('request_id'),
+            ]
+        ]);
+    }
+
     public function process(Request $request)
     {
         $request->validate([
@@ -27,9 +55,7 @@ class PaymentController extends Controller
             'card.installments' => 'sometimes|integer|min:1|max:12',
         ]);
 
-        $integration = $request->attributes->get('integration');
-
-        $payment = $this->paymentService->process($request->validated(), $integration);
+        $payment = $this->paymentService->process($request->validated(), \App\Services\TenantContext::companyId());
 
         return response()->json([
             'payment' => $payment,

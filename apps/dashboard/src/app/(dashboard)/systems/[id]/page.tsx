@@ -136,7 +136,9 @@ export default function SystemDetailPage({ params }: { params: { id: string } })
 
       {tab === 'settings' && (
         <Card title="Configurações do Sistema">
-           {/* System configuration form */}
+           <div className="py-10 text-center text-ink-subtle text-sm">
+             Configurações em breve.
+           </div>
         </Card>
       )}
     </PageLayout>
