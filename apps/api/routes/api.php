@@ -56,6 +56,11 @@ Route::prefix('v1')->group(function () {
     Route::get('public/checkout-sessions/{sessionToken}', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'show']);
     Route::post('public/checkout-sessions/{sessionToken}/pay', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'pay']);
     Route::get('public/checkout-sessions/{sessionToken}/status', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'status']);
+    Route::post('public/checkout-sessions/{sessionToken}/frames', [\App\Http\Controllers\Public\SessionFramesController::class, 'store']);
+    Route::post('public/checkout-sessions/{sessionToken}/abandon', [\App\Http\Controllers\Public\SessionFramesController::class, 'abandon']);
+    Route::post('public/checkout-sessions/{sessionToken}/adaptive', [\App\Http\Controllers\Public\PublicAdaptiveController::class, 'resolve']);
+    Route::get('public/checkout-sessions/{sessionToken}/social-proof', [\App\Http\Controllers\Public\PublicExperienceController::class, 'socialProof']);
+    Route::get('public/checkout-sessions/{sessionToken}/guarantee', [\App\Http\Controllers\Public\PublicExperienceController::class, 'guarantee']);
 
     // ── Webhooks de Gateways ──────────────────────────────────────────────
     Route::post('webhooks/gateways/{provider}/{accountUuid?}', [\App\Http\Controllers\Api\V1\GatewayWebhookController::class, 'handle']);
@@ -166,6 +171,20 @@ Route::prefix('v1')->group(function () {
             ->middleware('reauth:subscription.cancel');
         Route::get('subscriptions/{uuid}/cycles', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'cycles']);
         Route::get('subscriptions/{uuid}/events', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'events']);
+
+        // Analytics & Observabilidade
+        Route::get('analytics/overview', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'overview']);
+        Route::get('analytics/score/{checkoutUuid}', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'score']);
+        Route::get('analytics/abandonment', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'abandonment']);
+        Route::get('analytics/risk-map', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'riskMap']);
+        Route::get('analytics/sessions', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'sessions']);
+        Route::get('analytics/sessions/{id}/frames', [\App\Http\Controllers\Api\V1\AnalyticsController::class, 'frames']);
+
+        // Recovery & Recuperação
+        Route::get('recovery/campaigns', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'campaigns']);
+        Route::post('recovery/campaigns', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'storeCampaign']);
+        Route::get('recovery/attempts', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'attempts']);
+        Route::get('recovery/stats', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'stats']);
     });
 });
 
