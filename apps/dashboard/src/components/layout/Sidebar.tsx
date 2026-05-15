@@ -1,93 +1,84 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, 
-  Server, 
-  LayoutTemplate, 
-  CreditCard, 
-  ShoppingCart, 
-  Wallet, 
-  Webhook, 
-  GitBranch, 
-  ShieldCheck, 
-  History, 
-  Settings,
-  HelpCircle,
-  ChevronRight
-} from "lucide-react";
-import { clsx } from "clsx";
+  LayoutDashboard, Cpu, CreditCard, ShoppingBag, 
+  Package, Banknote, Webhook, Shield, Settings 
+} from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
-const menuItems = [
-  { name: "Visão Geral", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Sistemas", href: "/dashboard/systems", icon: Server },
-  { name: "Checkouts", href: "/dashboard/checkouts", icon: LayoutTemplate },
-  { name: "Gateways", href: "/dashboard/gateways", icon: CreditCard },
-  { name: "Vendas", href: "/dashboard/orders", icon: ShoppingCart },
-  { name: "Pagamentos", href: "/dashboard/payments", icon: Wallet },
-  { name: "Webhooks", href: "/dashboard/webhooks", icon: Webhook },
-  { name: "Roteamento", href: "/dashboard/routing", icon: GitBranch },
-  { name: "Trust Layer", href: "/dashboard/trust", icon: ShieldCheck },
-  { name: "Auditoria", href: "/dashboard/audit", icon: History },
-  { name: "Configurações", href: "/dashboard/settings", icon: Settings },
+function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+const NAV_ITEMS = [
+  { href: '/',           icon: LayoutDashboard, label: 'Visão Geral' },
+  { href: '/systems',    icon: Cpu,             label: 'Sistemas'    },
+  { href: '/gateways',   icon: CreditCard,      label: 'Gateways'    },
+  { href: '/checkouts',  icon: ShoppingBag,     label: 'Checkouts'   },
+  { href: '/orders',     icon: Package,         label: 'Vendas'      },
+  { href: '/payments',   icon: Banknote,        label: 'Pagamentos'  },
+  { href: '/webhooks',   icon: Webhook,         label: 'Webhooks'    },
+  { href: '/audit',      icon: Shield,          label: 'Auditoria'   },
+  { href: '/settings',   icon: Settings,        label: 'Configurações'},
 ];
+
+function SidebarItem({ href, icon: Icon, label, active }: any) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
+        active 
+          ? "bg-brand/10 text-brand font-medium" 
+          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
+      )}
+    >
+      <Icon size={20} className={active ? "text-brand" : "text-ink-subtle"} />
+      <span>{label}</span>
+    </Link>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 w-64 bg-surface border-r border-line flex flex-col z-20 transition-colors">
-      {/* Logo */}
-      <div className="h-16 flex items-center px-6 border-b border-line">
-        <div className="flex items-center gap-2 text-brand-primary">
-          <div className="w-8 h-8 rounded-lg bg-brand-primary flex items-center justify-center text-white font-bold text-lg">
+    <aside className="w-64 bg-surface border-r border-border flex flex-col h-full flex-shrink-0">
+      <div className="h-16 flex items-center px-6 border-b border-border">
+        <div className="font-bold text-xl text-ink flex items-center gap-2">
+          <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center text-white">
             B
           </div>
-          <span className="font-bold text-xl tracking-tight text-ink">Basileia Pay</span>
+          Basileia <span className="text-brand">Pay</span>
         </div>
       </div>
 
-      {/* Menu */}
-      <div className="flex-1 overflow-y-auto py-6 px-4 no-scrollbar">
-        <nav className="flex flex-col gap-1">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={clsx(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all group",
-                  isActive 
-                    ? "bg-brand-soft text-brand-primary" 
-                    : "text-muted hover:bg-background hover:text-ink"
-                )}
-              >
-                <Icon className={clsx("w-5 h-5", isActive ? "text-brand-primary" : "text-muted group-hover:text-ink")} />
-                {item.name}
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+        {NAV_ITEMS.map(item => {
+          const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
+          return (
+            <SidebarItem
+              key={item.href}
+              {...item}
+              active={active}
+            />
+          );
+        })}
+      </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-line">
-        <button className="flex items-center gap-2 text-sm text-muted hover:text-ink w-full px-2 py-2 transition-colors">
-          <HelpCircle className="w-4 h-4 text-muted" />
-          Central de Ajuda
-        </button>
-        <div className="mt-4 px-2 py-3 bg-background border border-line rounded-lg flex items-center gap-3 cursor-pointer hover:border-brand-primary/30 transition-all group">
-          <div className="w-8 h-8 rounded bg-brand-deep text-white flex items-center justify-center text-xs font-bold">
-            AC
+      <div className="p-4 border-t border-border">
+        {/* Company Badge, ThemeToggle, UserMenu */}
+        <div className="flex items-center gap-3 p-2">
+          <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center border border-border">
+            <span className="text-sm font-medium">VR</span>
           </div>
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <span className="text-sm font-semibold truncate text-ink">Acme Corp</span>
-            <span className="text-[10px] text-muted uppercase tracking-wider font-bold">Produção</span>
+          <div>
+            <div className="text-sm font-medium text-ink">Minha Empresa</div>
+            <div className="text-xs text-ink-subtle">Plano Pro</div>
           </div>
-          <ChevronRight className="w-4 h-4 text-muted group-hover:text-brand-primary transition-colors" />
         </div>
       </div>
     </aside>

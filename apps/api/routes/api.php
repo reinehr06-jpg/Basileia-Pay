@@ -116,6 +116,44 @@ Route::prefix('v1')->group(function () {
 
         // Audit Logs
         Route::get('audit-logs', [\App\Http\Controllers\Dashboard\AuditLogController::class, 'index']);
+
+        // ── Dashboard Operacional (Parte 3) ───────────────────────────────────
+        
+        // Visão Geral
+        Route::get('dashboard/stats', [\App\Http\Controllers\Api\V1\DashboardStatsController::class, 'index']);
+
+        // Builder / Studio
+        Route::get('checkouts', [\App\Http\Controllers\Api\V1\StudioController::class, 'index']);
+        Route::post('checkouts', [\App\Http\Controllers\Api\V1\StudioController::class, 'store']);
+        Route::get('checkouts/{id}', [\App\Http\Controllers\Api\V1\StudioController::class, 'show']);
+        Route::patch('checkouts/{id}', [\App\Http\Controllers\Api\V1\StudioController::class, 'update']);
+        Route::get('checkouts/{id}/versions', [\App\Http\Controllers\Api\V1\StudioController::class, 'versions']);
+        Route::post('checkouts/{id}/publish', [\App\Http\Controllers\Api\V1\StudioController::class, 'publish']);
+        Route::post('checkouts/{id}/rollback/{vid}', [\App\Http\Controllers\Api\V1\StudioController::class, 'rollback']);
+        Route::post('checkouts/{id}/validate', [\App\Http\Controllers\Api\V1\StudioController::class, 'validateCheckout']);
+
+        // Studio IA
+        Route::post('studio/ai/generate', [\App\Http\Controllers\Api\V1\AiStudioController::class, 'generate']);
+        Route::post('studio/ai/import-html', [\App\Http\Controllers\Api\V1\AiStudioController::class, 'importHtml']);
+        Route::post('studio/ai/import-url', [\App\Http\Controllers\Api\V1\AiStudioController::class, 'importUrl']);
+
+        // Configurações
+        Route::get('settings/company', [\App\Http\Controllers\Api\V1\CompanySettingsController::class, 'show']);
+        Route::patch('settings/company', [\App\Http\Controllers\Api\V1\CompanySettingsController::class, 'update']);
+        Route::get('settings/users', [\App\Http\Controllers\Api\V1\UserSettingsController::class, 'index']);
+        Route::post('settings/users/invite', [\App\Http\Controllers\Api\V1\UserSettingsController::class, 'invite']);
+        Route::patch('settings/users/{id}/role', [\App\Http\Controllers\Api\V1\UserSettingsController::class, 'updateRole']);
+        Route::delete('settings/users/{id}', [\App\Http\Controllers\Api\V1\UserSettingsController::class, 'destroy']);
+        
+        Route::get('settings/ai-providers', [\App\Http\Controllers\Api\V1\AiProviderSettingsController::class, 'index']);
+        Route::post('settings/ai-providers', [\App\Http\Controllers\Api\V1\AiProviderSettingsController::class, 'store']);
+        Route::patch('settings/ai-providers/{id}', [\App\Http\Controllers\Api\V1\AiProviderSettingsController::class, 'update']);
+        Route::delete('settings/ai-providers/{id}', [\App\Http\Controllers\Api\V1\AiProviderSettingsController::class, 'destroy']);
+
+        // Preferências de usuário
+        Route::patch('me/preferences', [\App\Http\Controllers\Api\V1\MeController::class, 'updatePreferences']);
+        Route::get('me/sessions', [\App\Http\Controllers\Api\V1\MeController::class, 'sessions']);
+        Route::delete('me/sessions/{id}', [\App\Http\Controllers\Api\V1\MeController::class, 'revokeSession']);
     });
 });
 

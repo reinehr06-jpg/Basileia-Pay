@@ -1,47 +1,66 @@
 @import "tailwindcss";
 
 @theme {
-  /* Tokens de Marca (Fixos) */
-  --color-brand-primary: #7B16D9;
-  --color-brand-deep: #4B168A;
-  --color-brand-soft: #F3E8FF;
-  --color-brand-accent: #A855F7;
-
-  /* Mapeamento dos Tokens Dinâmicos para Classes do Tailwind */
-  --color-background: var(--bg-app);
-  --color-surface: var(--bg-surface);
-  --color-surface-raised: var(--bg-surface-raised);
-  --color-ink: var(--text-main);
-  --color-muted: var(--text-muted);
-  --color-line: var(--border-main);
-  
-  --color-status-success: #16A34A;
-  --color-status-warning: #F59E0B;
-  --color-status-danger: #DC2626;
-  --color-status-info: #2563EB;
+  --color-background:    var(--color-background);
+  --color-surface:       var(--color-surface);
+  --color-surface-raised:var(--color-surface-raised);
+  --color-border:        var(--color-border);
+  --color-ink:           var(--color-ink);
+  --color-ink-muted:     var(--color-ink-muted);
+  --color-ink-subtle:    var(--color-ink-subtle);
+  --color-brand:         var(--color-brand);
+  --color-brand-muted:   var(--color-brand-muted);
+  --color-success:       var(--color-success);
+  --color-success-muted: var(--color-success-muted);
+  --color-warning:       var(--color-warning);
+  --color-warning-muted: var(--color-warning-muted);
+  --color-danger:        var(--color-danger);
+  --color-danger-muted:  var(--color-danger-muted);
+  --color-info:          var(--color-info);
+  --color-info-muted:    var(--color-info-muted);
 }
 
 :root {
-  /* Light Mode (Padrão) */
-  --bg-app: #F7F7FA;
-  --bg-surface: #FFFFFF;
-  --bg-surface-raised: #FFFFFF;
-  --text-main: #17151F;
-  --text-muted: #8B8A95;
-  --border-main: #E7E5EF;
+  --color-background:    #F7F8FA;
+  --color-surface:       #FFFFFF;
+  --color-surface-raised:#FFFFFF;
+  --color-border:        #E4E7EC;
+  --color-ink:           #101828;
+  --color-ink-muted:     #475467;
+  --color-ink-subtle:    #98A2B3;
+  --color-brand:         #2563EB;
+  --color-brand-muted:   #DBEAFE;
+  --color-success:       #16A34A;
+  --color-success-muted: #DCFCE7;
+  --color-warning:       #D97706;
+  --color-warning-muted: #FEF3C7;
+  --color-danger:        #DC2626;
+  --color-danger-muted:  #FEE2E2;
+  --color-info:          #0891B2;
+  --color-info-muted:    #CFFAFE;
   
-  background-color: var(--bg-app);
-  color: var(--text-main);
+  background-color: var(--color-background);
+  color: var(--color-ink);
 }
 
-.dark, [data-theme='dark'] {
-  /* Dark Mode */
-  --bg-app: #0F0E13;
-  --bg-surface: #17151F;
-  --bg-surface-raised: #1C1B24;
-  --text-main: #F7F7FA;
-  --text-muted: #A1A0AA;
-  --border-main: #2A2834;
+[data-theme="dark"], .dark {
+  --color-background:    #0D0F12;
+  --color-surface:       #161A20;
+  --color-surface-raised:#1E2330;
+  --color-border:        #2A3040;
+  --color-ink:           #F1F5F9;
+  --color-ink-muted:     #94A3B8;
+  --color-ink-subtle:    #475569;
+  --color-brand:         #3B82F6;
+  --color-brand-muted:   #1E3A8A;
+  --color-success:       #22C55E;
+  --color-success-muted: #14532D;
+  --color-warning:       #F59E0B;
+  --color-warning-muted: #78350F;
+  --color-danger:        #EF4444;
+  --color-danger-muted:  #7F1D1D;
+  --color-info:          #06B6D4;
+  --color-info-muted:    #164E63;
 }
 
 body {
