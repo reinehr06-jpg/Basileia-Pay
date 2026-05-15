@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class SplitRule extends Model
+class FxRate extends Model
 {
     //
 }

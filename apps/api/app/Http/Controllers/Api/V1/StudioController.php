@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\CheckoutExperience;
-use App\Models\CheckoutVersion;
-use App\Domain\Studio\Validators\CheckoutPublishValidator;
+use App\Models\CheckoutExperienceVersion;
+use App\Models\BlockPreset;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,104 +29,40 @@ class StudioController extends Controller
         return response()->json($checkout);
     }
 
-    public function store(Request $request): JsonResponse
+    public function presets(Request $request): JsonResponse
     {
-        $checkout = CheckoutExperience::create([
-            'uuid'       => Str::uuid(),
-            'company_id' => Auth::user()->company_id,
-            'name'       => $request->name,
-            'status'     => 'draft',
-            'settings'   => [],
-            'created_by' => Auth::id(),
-        ]);
+        $niche = $request->query('niche');
+        $query = BlockPreset::where(function($q) {
+            $q->whereNull('company_id')->orWhere('company_id', Auth::user()->company_id);
+        });
 
-        return response()->json($checkout, 201);
-    }
-
-    public function update(Request $request, string $id): JsonResponse
-    {
-        $checkout = CheckoutExperience::where('company_id', Auth::user()->company_id)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        $checkout->update($request->only(['name', 'settings']));
-
-        return response()->json($checkout);
-    }
-
-    public function validateCheckout(Request $request, string $id, CheckoutPublishValidator $validator): JsonResponse
-    {
-        $checkout = CheckoutExperience::where('company_id', Auth::user()->company_id)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        $result = $validator->validate($request->blocks ?? [], $checkout);
-
-        return response()->json($result);
-    }
-
-    public function publish(Request $request, string $id, CheckoutPublishValidator $validator): JsonResponse
-    {
-        $checkout = CheckoutExperience::where('company_id', Auth::user()->company_id)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        $blocks = $request->blocks ?? [];
-        $validation = $validator->validate($blocks, $checkout);
-
-        if (!$validation['can_publish']) {
-            return response()->json(['errors' => $validation['errors']], 422);
+        if ($niche) {
+            $query->where('niche', $niche);
         }
 
-        return DB::transaction(function () use ($checkout, $blocks) {
-            $lastVersion = CheckoutVersion::where('checkout_id', $checkout->id)->max('version_number') ?? 0;
-            
-            $version = CheckoutVersion::create([
+        return response()->json($query->get());
+    }
+
+    public function publish(Request $request, string $id): JsonResponse
+    {
+        $checkout = CheckoutExperience::where('company_id', Auth::user()->company_id)
+            ->where('id', $id)
+            ->firstOrFail();
+
+        return DB::transaction(function () use ($checkout, $request) {
+            $version = CheckoutExperienceVersion::create([
                 'uuid'           => Str::uuid(),
-                'checkout_id'    => $checkout->id,
-                'version_number' => $lastVersion + 1,
-                'snapshot'       => [
-                    'blocks'   => $blocks,
-                    'settings' => $checkout->settings,
-                ],
+                'checkout_experience_id'    => $checkout->id,
+                'company_id'     => $checkout->company_id,
+                'config_json'    => $request->config_json ?? [],
+                'status'         => 'published',
             ]);
 
             $checkout->update([
-                'status'             => 'published',
-                'current_version_id' => $version->id,
+                'published_version_id' => $version->id,
             ]);
 
-            return response()->json([
-                'status'  => 'published',
-                'version' => $version->version_number,
-            ]);
+            return response()->json($version);
         });
-    }
-
-    public function rollback(Request $request, string $id, string $vid): JsonResponse
-    {
-        $checkout = CheckoutExperience::where('company_id', Auth::user()->company_id)
-            ->where('id', $id)
-            ->firstOrFail();
-
-        $version = CheckoutVersion::where('checkout_id', $checkout->id)
-            ->where('id', $vid)
-            ->firstOrFail();
-
-        $checkout->update([
-            'current_version_id' => $version->id,
-            'settings'           => $version->snapshot['settings'] ?? $checkout->settings,
-        ]);
-
-        return response()->json(['status' => 'rolled_back', 'version' => $version->version_number]);
-    }
-
-    public function versions(string $id): JsonResponse
-    {
-        $versions = CheckoutVersion::where('checkout_id', $id)
-            ->orderBy('version_number', 'desc')
-            ->get();
-            
-        return response()->json($versions);
     }
 }

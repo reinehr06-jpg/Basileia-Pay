@@ -185,6 +185,25 @@ Route::prefix('v1')->group(function () {
         Route::post('recovery/campaigns', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'storeCampaign']);
         Route::get('recovery/attempts', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'attempts']);
         Route::get('recovery/stats', [\App\Http\Controllers\Api\V1\RecoveryController::class, 'stats']);
+
+        // Advanced (BCI, Split, FX, Receipts)
+        Route::get('advanced/bci', [\App\Http\Controllers\Api\V1\AdvancedFeatureController::class, 'bciAnalyses']);
+        Route::get('advanced/split-rules', [\App\Http\Controllers\Api\V1\AdvancedFeatureController::class, 'splitRules']);
+        Route::get('advanced/fx-configs', [\App\Http\Controllers\Api\V1\AdvancedFeatureController::class, 'fxConfigs']);
+        Route::get('advanced/receipts', [\App\Http\Controllers\Api\V1\AdvancedFeatureController::class, 'receipts']);
+
+        // Studio
+        Route::get('studio/presets', [\App\Http\Controllers\Api\V1\StudioController::class, 'presets']);
+        Route::post('studio/checkouts/{id}/publish', [\App\Http\Controllers\Api\V1\StudioController::class, 'publish']);
+
+        // AB Tests
+        Route::get('checkouts/{id}/ab-tests', [\App\Http\Controllers\Api\V1\ABTestController::class, 'index']);
+        Route::post('checkouts/{id}/ab-tests', [\App\Http\Controllers\Api\V1\ABTestController::class, 'store']);
+
+        // Subscriptions
+        Route::get('subscriptions', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'index']);
+        Route::get('subscriptions/{uuid}', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'show']);
+        Route::post('subscriptions/{uuid}/cancel', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'cancel']);
     });
 });
 
