@@ -154,6 +154,18 @@ Route::prefix('v1')->group(function () {
         Route::patch('me/preferences', [\App\Http\Controllers\Api\V1\MeController::class, 'updatePreferences']);
         Route::get('me/sessions', [\App\Http\Controllers\Api\V1\MeController::class, 'sessions']);
         Route::delete('me/sessions/{id}', [\App\Http\Controllers\Api\V1\MeController::class, 'revokeSession']);
+
+        // Pix Automático (Assinaturas)
+        Route::get('subscriptions', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'index']);
+        Route::post('subscriptions', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'store']);
+        Route::get('subscriptions/{uuid}', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'show']);
+        Route::patch('subscriptions/{uuid}', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'update']);
+        Route::post('subscriptions/{uuid}/pause', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'pause']);
+        Route::post('subscriptions/{uuid}/resume', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'resume']);
+        Route::post('subscriptions/{uuid}/cancel', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'cancel'])
+            ->middleware('reauth:subscription.cancel');
+        Route::get('subscriptions/{uuid}/cycles', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'cycles']);
+        Route::get('subscriptions/{uuid}/events', [\App\Http\Controllers\Api\V1\PixSubscriptionController::class, 'events']);
     });
 });
 

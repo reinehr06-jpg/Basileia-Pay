@@ -1,0 +1,31 @@
+{
+    "name": "basileia/basileia-laravel",
+    "description": "Basileia Pay Official Laravel SDK",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Basileia Pay Team"
+        }
+    ],
+    "require": {
+        "php": ">=8.0",
+        "illuminate/support": "^8.0|^9.0|^10.0|^11.0",
+        "basileia/basileia-php": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Basileia\\Laravel\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Basileia\\Laravel\\BasileiaServiceProvider"
+            ],
+            "aliases": {
+                "Basileia": "Basileia\\Laravel\\Facades\\Basileia"
+            }
+        }
+    }
+}

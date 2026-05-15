@@ -1,0 +1,19 @@
+{
+    "name": "basileia/basileia-php",
+    "description": "Basileia Pay Official PHP SDK",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Basileia Pay Team"
+        }
+    ],
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Basileia\\": "src/"
+        }
+    }
+}

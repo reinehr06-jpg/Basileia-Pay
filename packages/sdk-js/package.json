@@ -1,0 +1,26 @@
+{
+  "name": "@basileia/js",
+  "version": "1.0.0",
+  "description": "Basileia Pay Official JavaScript SDK",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "basileia",
+    "pay",
+    "checkout",
+    "payments",
+    "sdk"
+  ],
+  "author": "Basileia Pay Team",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
