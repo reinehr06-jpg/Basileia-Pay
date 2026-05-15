@@ -5,35 +5,31 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WebhookEndpoint extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'connected_system_id',
+        'uuid',
+        'company_id',
+        'system_id',
         'url',
         'secret_hash',
         'events',
         'status',
+        'failure_count',
+        'last_delivery_at',
+        'last_delivery_status',
     ];
 
     protected $casts = [
-        'events' => 'array',
+        'events'           => 'array',
+        'last_delivery_at' => 'datetime',
     ];
 
-    protected $hidden = [
-        'secret_hash',
-    ];
-
-    public function connectedSystem(): BelongsTo
+    public function system(): BelongsTo
     {
-        return $this->belongsTo(ConnectedSystem::class);
-    }
-
-    public function deliveries(): HasMany
-    {
-        return $this->hasMany(WebhookDelivery::class);
+        return $this->belongsTo(ConnectedSystem::class, 'system_id');
     }
 }

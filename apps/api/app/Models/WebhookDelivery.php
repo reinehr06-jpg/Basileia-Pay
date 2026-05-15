@@ -12,14 +12,15 @@ class WebhookDelivery extends Model
 
     protected $fillable = [
         'uuid',
-        'connected_system_id',
-        'webhook_endpoint_id',
-        'event',
+        'company_id',
+        'endpoint_id',
+        'event_type',
+        'idempotency_key',
         'payload_masked',
         'status',
+        'http_status',
+        'response_body',
         'attempts',
-        'last_response_code',
-        'last_response_body_masked',
         'next_retry_at',
         'delivered_at',
     ];
@@ -32,11 +33,6 @@ class WebhookDelivery extends Model
 
     public function endpoint(): BelongsTo
     {
-        return $this->belongsTo(WebhookEndpoint::class, 'webhook_endpoint_id');
-    }
-
-    public function connectedSystem(): BelongsTo
-    {
-        return $this->belongsTo(ConnectedSystem::class);
+        return $this->belongsTo(WebhookEndpoint::class, 'endpoint_id');
     }
 }

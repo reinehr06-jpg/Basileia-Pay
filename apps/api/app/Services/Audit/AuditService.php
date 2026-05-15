@@ -5,41 +5,55 @@ namespace App\Services\Audit;
 use App\Models\AuditLog;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Request;
+use Illuminate\Support\Facades\Log;
 
 class AuditService
 {
     /**
-     * Registra uma ação de auditoria.
+     * Log an audit event.
+     *
+     * @param string $event
+     * @param object|null $entity
+     * @param array $metadata
+     * @return \App\Models\AuditLog
      */
-    public function log(string $action, $entity = null, array $metadata = [], $systemId = null)
+    public function log(string $event, $entity = null, array $metadata = []): AuditLog
     {
         $user = Auth::user();
-        
+        $ip = Request::ip();
+
         return AuditLog::create([
-            'company_id'          => $user?->company_id ?? $entity?->company_id ?? null,
-            'user_id'             => $user?->id,
-            'connected_system_id' => $systemId ?? $entity?->connected_system_id ?? null,
-            'action'              => $action,
-            'entity_type'         => $entity ? get_class($entity) : null,
-            'entity_id'           => $entity ? $entity->id : null,
-            'ip'                  => Request::ip(),
-            'user_agent'          => Request::userAgent(),
-            'metadata_masked'     => $this->maskSensitiveData($metadata),
+            'uuid'              => \Illuminate\Support\Str::uuid(),
+            'company_id'        => $user?->company_id ?? $entity?->company_id ?? null,
+            'user_id'           => $user?->id,
+            'event'             => $event,
+            'entity_type'       => $entity ? get_class($entity) : null,
+            'entity_id'         => $entity ? $entity->id : null,
+            'ip_address_hash'   => $this->hashIp($ip),
+            'user_agent'        => Request::userAgent(),
+            'metadata'          => $this->maskSensitive($metadata),
+            'created_at'        => now(),
         ]);
     }
 
-    private function maskSensitiveData(array $data)
+    private function hashIp(string $ip): string
     {
-        $sensitiveKeys = ['password', 'card_number', 'cvv', 'api_key', 'token', 'secret'];
-        
-        foreach ($data as $key => $value) {
-            if (in_array($key, $sensitiveKeys)) {
-                $data[$key] = '********';
-            } elseif (is_array($value)) {
-                $data[$key] = $this->maskSensitiveData($value);
+        return hash('sha256', $ip . config('security.ip_salt', 'basileia-secret-salt'));
+    }
+
+    private function maskSensitive(array $data): array
+    {
+        $sensitive = ['password', 'secret', 'token', 'key', 'cvv', 'pan', 'card', 'api_key', 'credentials'];
+
+        array_walk_recursive($data, function (&$value, $key) use ($sensitive) {
+            foreach ($sensitive as $word) {
+                if (stripos((string) $key, $word) !== false) {
+                    $value = '[MASKED]';
+                    break;
+                }
             }
-        }
-        
+        });
+
         return $data;
     }
 }

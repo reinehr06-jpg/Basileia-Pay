@@ -5,25 +5,30 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\BelongsToCompany;
 
 class CheckoutExperience extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCompany;
 
     protected $fillable = [
-        'connected_system_id',
+        'uuid',
+        'company_id',
+        'system_id',
         'name',
-        'config',
-        'active'
+        'description',
+        'status',
+        'current_version_id',
+        'settings',
+        'created_by',
     ];
 
     protected $casts = [
-        'config' => 'array',
-        'active' => 'boolean'
+        'settings' => 'array',
     ];
 
-    public function connectedSystem(): BelongsTo
+    public function system(): BelongsTo
     {
-        return $this->belongsTo(ConnectedSystem::class);
+        return $this->belongsTo(ConnectedSystem::class, 'system_id');
     }
 }

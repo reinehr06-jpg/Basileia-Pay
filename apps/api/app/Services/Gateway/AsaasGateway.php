@@ -20,8 +20,8 @@ use RuntimeException;
  */
 class AsaasGateway implements GatewayInterface
 {
-    private const URL_SANDBOX    = 'https://sandbox.asaas.com/api/v3';
-    private const URL_PRODUCTION = 'https://api.asaas.com/v3';
+    public const URL_SANDBOX    = 'https://sandbox.asaas.com/api/v3';
+    public const URL_PRODUCTION = 'https://api.asaas.com/v3';
 
     private const BLOCKED_HOLDER_EMAILS = [
         'cupombasileia.global',

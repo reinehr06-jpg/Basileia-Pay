@@ -6,10 +6,13 @@ use App\Http\Controllers\Controller;
 use App\Models\CheckoutSession;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\PaymentAttempt;
+use App\Services\Gateways\GatewayFactory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class PublicCheckoutController extends Controller
 {
@@ -18,7 +21,7 @@ class PublicCheckoutController extends Controller
      */
     public function show($sessionToken)
     {
-        $session = CheckoutSession::with(['connectedSystem.experiences'])
+        $session = CheckoutSession::with(['connectedSystem.experiences', 'gatewayAccount'])
             ->where('uuid', $sessionToken)
             ->first();
 
@@ -26,7 +29,6 @@ class PublicCheckoutController extends Controller
             return response()->json(['error' => 'Sessão inválida ou expirada'], 404);
         }
 
-        // Recuperar design visual se houver
         $experience = $session->experience()->first() 
             ?? $session->connectedSystem->experiences()->where('active', true)->first();
 
@@ -44,13 +46,13 @@ class PublicCheckoutController extends Controller
     }
 
     /**
-     * Processa o pagamento de uma sessão.
+     * Processa o pagamento de uma sessão usando o GatewayFactory real.
      */
-    public function pay(Request $request, $sessionToken)
+    public function pay(Request $request, $sessionToken, GatewayFactory $gatewayFactory)
     {
         $requestId = $request->header('X-Request-Id', (string) Str::uuid());
 
-        $session = CheckoutSession::with('order', 'connectedSystem.defaultGateway')
+        $session = CheckoutSession::with(['order', 'connectedSystem.defaultGateway', 'gatewayAccount'])
             ->where('uuid', $sessionToken)
             ->first();
 
@@ -72,45 +74,61 @@ class PublicCheckoutController extends Controller
         $gatewayAccount = $session->gatewayAccount ?? $session->connectedSystem->defaultGateway;
 
         if (!$gatewayAccount) {
-            return response()->json(['error' => 'Gateway não configurado para este sistema.'], 500);
+            return response()->json(['error' => 'Gateway não configurado.'], 500);
         }
 
+        $order = $session->order;
+        
         DB::beginTransaction();
         try {
-            // A Ordem já deve existir (P0.5 corrigido)
-            $order = $session->order;
-
-            if (!$order) {
-                throw new \Exception("Ordem não encontrada para esta sessão.");
-            }
-
-            // 2. Chamar o Gateway (Mock/Simulação para a V1 P0)
-            $gatewayResponse = [
-                'transaction_id' => 'tx_' . Str::random(10),
-                'status'         => 'pending',
-                'pix_qrcode'     => '00020126580014br.gov.bcb.pix0136' . Str::uuid(),
-                'pix_url'        => 'https://gateway.com/pix/' . Str::random(10)
-            ];
-
-            // 3. Criar o Payment
+            // 1. Criar Payment
             $payment = Payment::create([
-                'uuid'                   => (string) Str::uuid(),
-                'order_id'               => $order->id,
-                'checkout_session_id'    => $session->id,
-                'gateway_account_id'     => $gatewayAccount->id,
-                'gateway_transaction_id' => $gatewayResponse['transaction_id'],
-                'method'                 => $method,
-                'amount'                 => $order->amount,
-                'status'                 => $gatewayResponse['status'],
-                'pix_qrcode'             => $gatewayResponse['pix_qrcode'] ?? null,
-                'pix_qrcode_url'         => $gatewayResponse['pix_url'] ?? null,
-                'pix_expires_at'         => now()->addMinutes(30),
-                'gateway_response'       => $gatewayResponse
+                'uuid'                => (string) Str::uuid(),
+                'order_id'            => $order->id,
+                'checkout_session_id' => $session->id,
+                'gateway_account_id'  => $gatewayAccount->id,
+                'method'              => $method,
+                'amount'              => $order->amount,
+                'status'              => 'pending',
             ]);
 
-            // 4. Ajustar Status da Sessão (Fixes P0.6)
-            // A sessão NÃO vira 'completed' se for PIX ou Boleto pendente.
-            // Ela vira 'processing' aguardando o webhook.
+            // 2. Criar PaymentAttempt (Audit Trail)
+            $attempt = PaymentAttempt::create([
+                'payment_id'             => $payment->id,
+                'gateway_account_id'     => $gatewayAccount->id,
+                'method'                 => $method,
+                'status'                 => 'initiated',
+                'request_payload_masked' => ['method' => $method],
+                'started_at'             => now(),
+            ]);
+
+            // 3. Resolver Provider e Processar
+            $provider = $gatewayFactory->make($gatewayAccount);
+            $gatewayResult = [];
+
+            if ($method === 'pix') {
+                $gatewayResult = $provider->generatePix($gatewayAccount, $order, $session->customer);
+            } else {
+                throw new \Exception("Método {$method} ainda não suportado no provedor real.");
+            }
+
+            // 4. Atualizar Payment e Attempt
+            $payment->update([
+                'gateway_transaction_id' => $gatewayResult['transaction_id'],
+                'status'                 => $gatewayResult['status'],
+                'pix_qrcode'             => $gatewayResult['pix_qrcode'] ?? null,
+                'pix_qrcode_url'         => $gatewayResult['pix_url'] ?? null,
+                'pix_expires_at'         => now()->addMinutes(30),
+                'gateway_response'       => $gatewayResult['raw_response']
+            ]);
+
+            $attempt->update([
+                'status'                  => 'success',
+                'gateway_reference'       => $gatewayResult['transaction_id'],
+                'response_payload_masked' => $gatewayResult['raw_response'],
+                'finished_at'             => now(),
+            ]);
+
             $session->update(['status' => 'processing']);
 
             DB::commit();
@@ -118,22 +136,19 @@ class PublicCheckoutController extends Controller
             return response()->json([
                 'data' => [
                     'payment_id' => $payment->uuid,
-                    'order_id'   => $order->uuid,
                     'status'     => $payment->status,
-                    'method'     => $payment->method,
                     'pix'        => [
-                        'qrcode'     => $payment->pix_qrcode,
-                        'url'        => $payment->pix_qrcode_url,
-                        'expires_at' => $payment->pix_expires_at->toIso8601String(),
+                        'qrcode' => $payment->pix_qrcode,
+                        'url'    => $payment->pix_qrcode_url,
                     ]
                 ],
-                'meta' => ['request_id' => $requestId],
-                'error' => null
+                'meta' => ['request_id' => $requestId]
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['error' => 'Falha ao processar pagamento: ' . $e->getMessage()], 500);
+            Log::error("Pagamento falhou: " . $e->getMessage());
+            return response()->json(['error' => 'Falha no processamento: ' . $e->getMessage()], 500);
         }
     }
 }

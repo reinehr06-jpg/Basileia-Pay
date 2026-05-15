@@ -6,31 +6,67 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Concerns\BelongsToCompany;
 
 class GatewayAccount extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCompany;
 
     protected $fillable = [
-        'connected_system_id',
-        'gateway_type',
+        'company_id',
         'name',
-        'is_active',
-        'is_default'
+        'provider',
+        'credentials_encrypted',
+        'environment',
+        'status',
+        'priority',
+        'settings',
+        'last_tested_at',
+        'last_test_status',
+        'created_by',
+        'uuid',
+    ];
+
+    protected $hidden = [
+        'credentials_encrypted', // NEVER expose encrypted credentials in API responses
     ];
 
     protected $casts = [
-        'is_active'   => 'boolean',
-        'is_default'  => 'boolean'
+        'environment' => 'string',
+        'status' => 'string',
+        'priority' => 'integer',
+        'settings' => 'array',
+        'last_tested_at' => 'datetime',
+        'last_test_status' => 'string',
     ];
 
-    public function connectedSystem(): BelongsTo
+    protected static function booted()
     {
-        return $this->belongsTo(ConnectedSystem::class);
+        static::creating(function ($gatewayAccount) {
+            if (empty($gatewayAccount->uuid)) {
+                $gatewayAccount->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
     }
 
-    public function credentials(): HasMany
+    public function creator(): BelongsTo
     {
-        return $this->hasMany(GatewayCredential::class);
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Scope to only active gateways.
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope to gateways matching an environment.
+     */
+    public function scopeForEnvironment($query, string $environment)
+    {
+        return $query->where('environment', $environment);
     }
 }

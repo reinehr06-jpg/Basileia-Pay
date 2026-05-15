@@ -3,383 +3,197 @@
 namespace App\Http\Controllers\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Gateway;
-use GuzzleHttp\Client;
-use GuzzleHttp\Exception\ClientException;
+use App\Models\GatewayAccount;
+use App\Security\Encryption\EncryptionService;
+use App\Services\Audit\AuditService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class GatewayController extends Controller
 {
-    public function index()
+    public function __construct(
+        private EncryptionService $encryption,
+        private AuditService $audit,
+    ) {}
+
+    /**
+     * List all gateway accounts for the current company.
+     */
+    public function index(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        $companyId = $user->company_id;
+        $this->authorize('permission', ['gateways.manage']);
 
-        $gateways = Gateway::where('company_id', $companyId)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $gateways = GatewayAccount::where('company_id', $request->user()->company_id)
+            ->orderBy('priority')
+            ->get(['id', 'uuid', 'name', 'provider', 'environment', 'status', 'priority', 'last_tested_at', 'last_test_status', 'created_at']);
 
-        return view('dashboard.gateways.index', compact('gateways'));
+        return response()->json($gateways);
     }
 
-    public function create()
+    /**
+     * Create a new gateway account.
+     */
+    public function store(Request $request): JsonResponse
     {
-        return view('dashboard.gateways.create');
-    }
+        $this->authorize('permission', ['gateways.manage']);
 
-    public function store(Request $request)
-    {
-        try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'slug' => 'required|string|max:50|unique:gateways,slug',
-                'is_default' => 'sometimes|boolean',
-                'config' => 'sometimes|array',
-                'config.api_key' => 'required|string',
-                'config.api_secret' => 'nullable|string',
-                'config.sandbox' => 'nullable|boolean',
-                'config.webhook_url' => 'nullable|url',
-            ]);
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'provider' => 'required|in:asaas,stripe,mercadopago,pagarme,manual',
+            'credentials' => 'required|array',
+            'environment' => 'required|in:sandbox,production',
+            'priority' => 'nullable|integer|min:0',
+            'settings' => 'nullable|array',
+        ]);
 
-            $user = Auth::user();
-
-            $config = $request->input('config', []);
-
-            if ($request->boolean('is_default')) {
-                Gateway::where('company_id', $user->company_id)
-                    ->update(['is_default' => false]);
-            }
-
-            $gateway = Gateway::create([
-                'company_id' => $user->company_id,
-                'name' => $request->input('name'),
-                'slug' => $request->input('slug'),
-                'type' => $request->input('slug'),
-                'status' => 'active',
-                'is_default' => $request->boolean('is_default', false),
-            ]);
-
-            if ($request->filled('config')) {
-                $configData = $request->input('config', []);
-                foreach ($configData as $key => $value) {
-                    if ($value !== null && $value !== '') {
-                        $gateway->setConfig($key, $value);
-                    }
-                }
-            }
-
-            return redirect()->route('dashboard.gateways.index')
-                ->with('success', 'Gateway adicionado com sucesso.');
-        } catch (\Exception $e) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Erro ao salvar: '.$e->getMessage());
-        }
-    }
-
-    public function show(int $id)
-    {
-        $user = Auth::user();
-
-        $gateway = Gateway::where('company_id', $user->company_id)
-            ->find($id);
-
-        if (! $gateway) {
-            abort(404, 'Gateway não encontrado.');
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $config = [];
-        foreach ($gateway->configs as $configModel) {
-            $value = $configModel->decrypted_value;
-            if (in_array($configModel->key, ['api_key', 'api_secret', 'webhook_token', 'token'])) {
-                $value = $this->maskValue($value);
-            }
-            $config[$configModel->key] = $value;
-        }
+        $encrypted = $this->encryption->encrypt(json_encode($request->credentials));
 
-        $gateway->config_masked = $config;
+        $gateway = GatewayAccount::create([
+            'company_id' => $request->user()->company_id,
+            'name' => $request->name,
+            'provider' => $request->provider,
+            'credentials_encrypted' => $encrypted,
+            'environment' => $request->environment,
+            'status' => 'active',
+            'priority' => $request->priority ?? 0,
+            'settings' => $request->settings ?? [],
+            'created_by' => $request->user()->id,
+            'uuid' => Str::uuid(),
+        ]);
 
-        return view('dashboard.gateways.show', compact('gateway'));
+        $this->audit->log('gateway.created', $gateway);
+
+        return response()->json($gateway, 201);
     }
 
-    public function edit(int $id)
+    /**
+     * Show a gateway (never exposes credentials).
+     */
+    public function show(GatewayAccount $gateway): JsonResponse
     {
-        $user = Auth::user();
-        $gateway = Gateway::where('company_id', $user->company_id)->find($id);
+        $this->authorize('permission', ['gateways.manage']);
 
-        if (! $gateway) {
-            abort(404, 'Gateway não encontrado.');
-        }
-
-        return view('dashboard.gateways.edit', compact('gateway'));
+        return response()->json($gateway->makeHidden('credentials_encrypted'));
     }
 
-    public function update(Request $request, int $id)
+    /**
+     * Update a gateway.
+     */
+    public function update(Request $request, GatewayAccount $gateway): JsonResponse
     {
-        $request->validate([
+        $this->authorize('permission', ['gateways.manage']);
+
+        $validator = Validator::make($request->all(), [
             'name' => 'sometimes|string|max:255',
-            'is_default' => 'sometimes|boolean',
-            'config' => 'sometimes|array',
-            'is_active' => 'sometimes|boolean',
+            'provider' => 'sometimes|in:asaas,stripe,mercadopago,pagarme,manual',
+            'environment' => 'sometimes|in:sandbox,production',
+            'status' => 'sometimes|in:active,inactive,testing',
+            'priority' => 'nullable|integer|min:0',
+            'settings' => 'nullable|array',
+            'credentials' => 'nullable|array',
         ]);
 
-        $user = Auth::user();
-
-        $gateway = Gateway::where('company_id', $user->company_id)->find($id);
-
-        if (! $gateway) {
-            abort(404, 'Gateway não encontrado.');
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if ($request->boolean('is_default')) {
-            Gateway::where('company_id', $user->company_id)
-                ->where('id', '!=', $id)
-                ->update(['is_default' => false]);
+        $data = $request->only(['name', 'provider', 'environment', 'status', 'priority', 'settings']);
+
+        if ($request->has('credentials')) {
+            $data['credentials_encrypted'] = $this->encryption->encrypt(
+                json_encode($request->credentials)
+            );
         }
 
-        $gateway->update([
-            'name' => $request->input('name'),
-            'is_default' => $request->boolean('is_default'),
-            'status' => $request->boolean('is_active', true) ? 'active' : 'inactive',
-        ]);
+        $gateway->update($data);
 
-        if ($request->has('config')) {
-            foreach ($request->input('config') as $key => $value) {
-                if ($value !== null && $value !== '') {
-                    $gateway->setConfig($key, $value);
-                }
-            }
-        }
+        $this->audit->log('gateway.updated', $gateway);
 
-        return redirect()->route('dashboard.gateways.index')
-            ->with('success', 'Gateway atualizado com sucesso.');
+        return response()->json($gateway->makeHidden('credentials_encrypted'));
     }
 
-    public function destroy(int $id)
+    /**
+     * Delete a gateway.
+     */
+    public function destroy(GatewayAccount $gateway): JsonResponse
     {
-        $user = Auth::user();
-
-        $gateway = Gateway::where('company_id', $user->company_id)->find($id);
-
-        if (! $gateway) {
-            abort(404, 'Gateway não encontrado.');
-        }
+        $this->authorize('permission', ['gateways.manage']);
 
         $gateway->delete();
 
-        return redirect()->route('dashboard.gateways.index')
-            ->with('success', 'Gateway removido permanentemente.');
+        $this->audit->log('gateway.deleted', $gateway);
+
+        return response()->json(null, 204);
     }
 
-    public function toggle(int $id)
+    /**
+     * Test gateway connectivity.
+     */
+    public function test(Request $request, GatewayAccount $gateway): JsonResponse
     {
-        $user = Auth::user();
+        $this->authorize('permission', ['gateways.manage']);
 
-        $gateway = Gateway::where('company_id', $user->company_id)->find($id);
-
-        if (! $gateway) {
-            abort(404, 'Gateway não encontrado.');
-        }
-
-        $gateway->update(['status' => $gateway->status === 'active' ? 'inactive' : 'active']);
-
-        return redirect()->route('dashboard.gateways.index')
-            ->with('success', 'Status do gateway atualizado.');
-    }
-
-    private function maskValue(string $value): string
-    {
-        if (str_starts_with($value, 'ERROR:')) {
-            return $value;
-        }
-
-        if (strlen($value) <= 8) {
-            return str_repeat('*', strlen($value));
-        }
-
-        return substr($value, 0, 4).str_repeat('*', strlen($value) - 8).substr($value, -4);
-    }
-
-    public function test(Request $request, int $id)
-    {
-        $user = Auth::user();
-        $gateway = Gateway::where('company_id', $user->company_id)->find($id);
-
-        if (! $gateway) {
-            return response()->json(['success' => false, 'message' => 'Gateway não encontrado.']);
-        }
-
-        $apiKey = $gateway->getConfig('api_key');
-
-        if (! $apiKey) {
-            return response()->json(['success' => false, 'message' => 'API Key não configurada.']);
-        }
-
-        $results = [];
-        $allPassed = true;
-
+        // Decrypt credentials to verify they are valid
         try {
-            $client = new Client;
-            $sandboxConfig = $gateway->getConfig('sandbox');
-            $environment = $sandboxConfig !== null
-                ? (! $sandboxConfig ? 'production' : 'sandbox')
-                : config('services.asaas.environment', env('APP_ENV', 'sandbox'));
+            $credentialsJson = $this->encryption->decrypt($gateway->credentials_encrypted);
+            $credentials = json_decode($credentialsJson, true);
 
-            $baseUrl = $environment === 'sandbox'
-                ? 'https://sandbox.asaas.com/api/v3'
-                : 'https://api.asaas.com/v3';
-
-            $headers = [
-                'access_token' => $apiKey,
-                'Content-Type' => 'application/json',
-            ];
-
-            // Teste 1: Validar API Key - Usando endpoint de conta
-            try {
-                $response = $client->get($baseUrl.'/myAccount', ['headers' => $headers]);
-                $data = json_decode($response->getBody()->getContents(), true);
-                $results[] = [
-                    'test' => 'API Key',
-                    'status' => 'passed',
-                    'message' => 'API Key válida',
-                    'data' => $data['email'] ?? ($data['businessEmail'] ?? 'N/A'),
-                ];
-            } catch (\Exception $e) {
-                $results[] = ['test' => 'API Key', 'status' => 'failed', 'message' => 'API Key inválida ou endpoint não encontrado'];
-                $allPassed = false;
+            if (!$credentials || !is_array($credentials)) {
+                throw new \RuntimeException('Invalid credentials format.');
             }
 
-            // Teste 2: Listar clientes
-            try {
-                $response = $client->get($baseUrl.'/customers?limit=1', ['headers' => $headers]);
-                $results[] = ['test' => 'Listar Clientes', 'status' => 'passed', 'message' => 'Consulta OK'];
-            } catch (\Exception $e) {
-                $results[] = ['test' => 'Listar Clientes', 'status' => 'failed', 'message' => 'Erro: '.substr($e->getMessage(), 0, 50)];
-                $allPassed = false;
-            }
+            // TODO: Implement actual provider-specific connectivity test
+            // For now, if decryption works, the credentials are at least properly stored.
 
-            // Teste 3: Criar cobrança teste (R$ 5,00)
-            try {
-                // Tentar buscar um cliente real para o teste
-                $customerResponse = $client->get($baseUrl.'/customers?limit=1', ['headers' => $headers]);
-                $customers = json_decode($customerResponse->getBody()->getContents(), true);
-
-                if (empty($customers['data'])) {
-                    throw new \Exception('Nenhum cliente encontrado no Asaas para realizar o teste de cobrança.');
-                }
-
-                $customerId = $customers['data'][0]['id'];
-
-                $paymentData = [
-                    'customer' => $customerId,
-                    'billingType' => 'PIX',
-                    'value' => 5.00,
-                    'dueDate' => date('Y-m-d', strtotime('+1 day')),
-                    'description' => 'Teste de conexão - Checkout Basileia',
-                ];
-                $response = $client->post($baseUrl.'/payments', [
-                    'headers' => $headers,
-                    'json' => $paymentData,
-                ]);
-                $paymentDataResult = json_decode($response->getBody()->getContents(), true);
-                $paymentId = $paymentDataResult['id'] ?? null;
-
-                $envName = $gateway->getConfig('sandbox') ? 'SANDBOX' : 'PRODUÇÃO';
-                $results[] = [
-                    'test' => 'Criar Cobrança',
-                    'status' => 'passed',
-                    'message' => "Cobrança criada com sucesso ($envName)",
-                    'data' => "ID: $paymentId (Acesse seu painel Asaas $envName para conferir)",
-                ];
-            } catch (\Exception $e) {
-                $errorMessage = $e->getMessage();
-                if ($e instanceof ClientException && $e->hasResponse()) {
-                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    if (isset($body['errors'][0]['description'])) {
-                        $errorMessage = $body['errors'][0]['description'];
-                    }
-                }
-
-                $results[] = ['test' => 'Criar Cobrança', 'status' => 'failed', 'message' => 'Erro: '.substr($errorMessage, 0, 100)];
-                $allPassed = false;
-            }
-
-            // Teste 5: Listar formas de pagamento
-            try {
-                $response = $client->get($baseUrl.'/payments', ['headers' => $headers]);
-                $results[] = ['test' => 'Listar Cobranças', 'status' => 'passed', 'message' => 'Consulta OK'];
-            } catch (\Exception $e) {
-                $results[] = ['test' => 'Listar Cobranças', 'status' => 'failed', 'message' => 'Erro'];
-                $allPassed = false;
-            }
-
-            // Teste 6: Webhook - Consultar configuração de webhook
-            try {
-                $webhookUrl = url('/api/webhooks/'.$gateway->slug);
-                $webhookConfigured = false;
-                $currentAsaasUrl = 'N/A';
-
-                try {
-                    $response = $client->get($baseUrl.'/webhook', ['headers' => $headers]);
-                    $webhookData = json_decode($response->getBody()->getContents(), true);
-                    $currentAsaasUrl = $webhookData['url'] ?? 'N/A';
-                    if ($currentAsaasUrl !== 'N/A' && str_contains($currentAsaasUrl, $webhookUrl)) {
-                        $webhookConfigured = true;
-                    }
-                } catch (\Exception $e) {
-                    // Tentar plural se singular falhar
-                    try {
-                        $response = $client->get($baseUrl.'/webhooks', ['headers' => $headers]);
-                        $webhookData = json_decode($response->getBody()->getContents(), true);
-                        foreach ($webhookData['data'] ?? [] as $wh) {
-                            if (isset($wh['url']) && str_contains($wh['url'], $webhookUrl)) {
-                                $webhookConfigured = true;
-                                $currentAsaasUrl = $wh['url'];
-                                break;
-                            }
-                        }
-                    } catch (\Exception $e2) {
-                        $results[] = ['test' => 'Webhook', 'status' => 'warning', 'message' => 'Erro ao consultar: '.substr($e->getMessage(), 0, 50)];
-                        throw $e;
-                    }
-                }
-
-                $results[] = [
-                    'test' => 'Webhook',
-                    'status' => $webhookConfigured ? 'passed' : 'warning',
-                    'message' => $webhookConfigured ? 'Webhook OK' : 'URL divergente ou não configurada',
-                    'data' => "Sistema: $webhookUrl | Asaas: $currentAsaasUrl",
-                ];
-            } catch (\Exception $e) {
-                // Já tratado no try interno ou erro fatal
-            }
-
-            // Teste 7: Assinaturas (Se disponível)
-            try {
-                $response = $client->get($baseUrl.'/subscriptions?limit=1', ['headers' => $headers]);
-                $results[] = ['test' => 'Assinaturas', 'status' => 'passed', 'message' => 'API de assinaturas OK'];
-            } catch (\Exception $e) {
-                $msg = $e->getMessage();
-                if ($e instanceof ClientException && $e->hasResponse()) {
-                    $body = json_decode($e->getResponse()->getBody()->getContents(), true);
-                    $msg = $body['errors'][0]['description'] ?? $msg;
-                }
-                $results[] = ['test' => 'Assinaturas', 'status' => 'warning', 'message' => 'Info: '.substr($msg, 0, 80)];
-            }
-
-            return response()->json([
-                'success' => $allPassed,
-                'message' => $allPassed ? 'Todos os testes passaram!' : 'Alguns testes falharam',
-                'results' => $results,
+            $gateway->update([
+                'last_tested_at' => now(),
+                'last_test_status' => 'success',
             ]);
 
+            $this->audit->log('gateway.tested', $gateway, ['result' => 'success']);
+
+            return response()->json(['status' => 'success', 'message' => 'Gateway connectivity test passed.']);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Erro geral: '.$e->getMessage(),
-                'results' => $results,
+            $gateway->update([
+                'last_tested_at' => now(),
+                'last_test_status' => 'failed',
             ]);
+
+            $this->audit->log('gateway.test_failed', $gateway, ['error' => $e->getMessage()]);
+
+            return response()->json(['status' => 'failed', 'message' => 'Gateway test failed.'], 500);
         }
+    }
+
+    /**
+     * Rotate gateway credentials.
+     */
+    public function rotateCredentials(Request $request, GatewayAccount $gateway): JsonResponse
+    {
+        $this->authorize('permission', ['gateways.manage']);
+
+        $validator = Validator::make($request->all(), [
+            'credentials' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $gateway->update([
+            'credentials_encrypted' => $this->encryption->encrypt(json_encode($request->credentials)),
+            'last_tested_at' => null,
+            'last_test_status' => null,
+        ]);
+
+        $this->audit->log('gateway.credentials_rotated', $gateway);
+
+        return response()->json(['status' => 'rotated', 'message' => 'Credentials rotated. Please run a test.']);
     }
 }

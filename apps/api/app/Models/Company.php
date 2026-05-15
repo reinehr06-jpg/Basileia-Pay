@@ -12,9 +12,18 @@ class Company extends Model
         'name',
         'slug',
         'domain',
-        'api_key',
         'status',
         'settings',
+        'uuid',
+        'display_name',
+        'document',
+        'email',
+        'logo_url',
+        'plan',
+    ];
+
+    protected $hidden = [
+        'api_key', // Never expose legacy api_key if it exists
     ];
 
     protected $casts = [
@@ -27,8 +36,8 @@ class Company extends Model
             if (empty($company->slug)) {
                 $company->slug = Str::slug($company->name);
             }
-            if (empty($company->api_key)) {
-                $company->api_key = 'ck_live_' . Str::random(32);
+            if (empty($company->uuid)) {
+                $company->uuid = (string) Str::uuid();
             }
         });
     }
@@ -36,6 +45,21 @@ class Company extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function systems(): HasMany
+    {
+        return $this->hasMany(ConnectedSystem::class);
+    }
+
+    public function gatewayAccounts(): HasMany
+    {
+        return $this->hasMany(GatewayAccount::class);
+    }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(ApiKey::class);
     }
 
     public function integrations(): HasMany

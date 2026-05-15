@@ -8,23 +8,41 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use App\Models\Concerns\BelongsToCompany;
 
 class ConnectedSystem extends Model
 {
-    use HasFactory, SoftDeletes;
+    use HasFactory, SoftDeletes, BelongsToCompany;
 
     protected $fillable = [
         'company_id',
         'name',
         'slug',
+        'description',
         'settings',
-        'active'
+        'active',
+        'webhook_url',
+        'webhook_secret_hash',
+        'environment',
+        'status',
+        'uuid',
     ];
 
     protected $casts = [
         'settings' => 'array',
-        'active'   => 'boolean'
+        'active'   => 'boolean',
+        'environment' => 'string',
+        'status' => 'string',
     ];
+
+    protected static function booted()
+    {
+        static::creating(function ($system) {
+            if (empty($system->uuid)) {
+                $system->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+        });
+    }
 
     public function company(): BelongsTo
     {
@@ -33,7 +51,7 @@ class ConnectedSystem extends Model
 
     public function apiKeys(): HasMany
     {
-        return $this->hasMany(SystemApiKey::class);
+        return $this->hasMany(ApiKey::class);
     }
 
     public function gatewayAccounts(): HasMany

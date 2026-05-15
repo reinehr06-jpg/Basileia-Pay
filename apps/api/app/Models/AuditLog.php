@@ -5,42 +5,46 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use App\Models\Concerns\BelongsToCompany;
 
 class AuditLog extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToCompany;
 
-    public $timestamps = false; // Só created_at via DB
+    public $timestamps = false; // Só created_at via DB — append-only
 
     protected $fillable = [
+        'uuid',
         'company_id',
         'user_id',
-        'connected_system_id',
-        'action',
+        'event',
         'entity_type',
         'entity_id',
-        'ip',
+        'ip_address_hash',
         'user_agent',
-        'metadata_masked',
+        'metadata',
+        'created_at',
     ];
 
     protected $casts = [
-        'metadata_masked' => 'array',
+        'metadata' => 'array',
         'created_at' => 'datetime',
     ];
 
-    public function company(): BelongsTo
+    protected static function booted()
     {
-        return $this->belongsTo(Company::class);
+        static::creating(function ($log) {
+            if (empty($log->uuid)) {
+                $log->uuid = (string) \Illuminate\Support\Str::uuid();
+            }
+            if (empty($log->created_at)) {
+                $log->created_at = now();
+            }
+        });
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function connectedSystem(): BelongsTo
-    {
-        return $this->belongsTo(ConnectedSystem::class);
     }
 }

@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\Concerns\BelongsToCompany;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, Notifiable;
+    use HasApiTokens, Notifiable, BelongsToCompany;
 
     protected $fillable = [
         'company_id',
@@ -21,17 +23,22 @@ class User extends Authenticatable
         'status',
         'must_change_password',
         'password_changed_at',
-        'failed_login_attempts',
-        'locked_until',
         'two_factor_enabled',
         'two_factor_secret',
         'two_factor_codes',
+        'two_factor_confirmed_at',
         'last_auth_at',
+        'last_login_at',
+        'failed_attempts',
+        'locked_at',
+        'uuid',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'two_factor_secret',
+        'two_factor_codes',
     ];
 
     protected $casts = [
@@ -41,12 +48,19 @@ class User extends Authenticatable
         'must_change_password' => 'boolean',
         'password_changed_at' => 'datetime',
         'last_auth_at' => 'datetime',
-        'locked_until' => 'datetime',
+        'last_login_at' => 'datetime',
+        'locked_at' => 'datetime',
+        'two_factor_confirmed_at' => 'datetime',
+        'failed_attempts' => 'integer',
     ];
 
-    public function company(): BelongsTo
+    protected static function booted()
     {
-        return $this->belongsTo(Company::class);
+        static::creating(function ($user) {
+            if (empty($user->uuid)) {
+                $user->uuid = (string) Str::uuid();
+            }
+        });
     }
 
     public function auditLogs(): HasMany
@@ -54,29 +68,34 @@ class User extends Authenticatable
         return $this->hasMany(AuditLog::class);
     }
 
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class);
+    }
+
     public function reviewedFraudAnalyses(): HasMany
     {
         return $this->hasMany(FraudAnalysis::class, 'reviewed_by');
     }
 
-    public function isSuperAdmin(): bool
+    public function isOwner(): bool
     {
-        return $this->role === 'super_admin';
+        return $this->role === 'owner';
     }
 
     public function isAdmin(): bool
     {
-        return $this->role === 'admin';
-    }
-
-    public function isOperator(): bool
-    {
-        return $this->role === 'operator';
+        return in_array($this->role, ['owner', 'admin']);
     }
 
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->status === 'locked' || $this->locked_at !== null;
     }
 
     public function needsPasswordChange(): bool
@@ -99,5 +118,26 @@ class User extends Authenticatable
         }
 
         return $this->password_changed_at->diffInDays(now()) >= 15;
+    }
+
+    public function incrementFailedAttempts(): void
+    {
+        $this->increment('failed_attempts');
+
+        if ($this->failed_attempts >= 5) {
+            $this->update([
+                'status' => 'locked',
+                'locked_at' => now(),
+            ]);
+        }
+    }
+
+    public function resetFailedAttempts(): void
+    {
+        $this->update([
+            'failed_attempts' => 0,
+            'locked_at' => null,
+            'last_login_at' => now(),
+        ]);
     }
 }

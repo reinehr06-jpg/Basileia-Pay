@@ -20,7 +20,7 @@ class ProcessAsaasWebhookJob implements ShouldQueue
     protected $payload;
     protected $gatewayAccount;
 
-    public function __construct(array $payload, GatewayAccount $gatewayAccount = null)
+    public function __construct(array $payload, ?GatewayAccount $gatewayAccount = null)
     {
         $this->payload = $payload;
         $this->gatewayAccount = $gatewayAccount;
@@ -63,6 +63,11 @@ class ProcessAsaasWebhookJob implements ShouldQueue
             if ($newStatus === 'approved') {
                 $payment->order->update(['status' => 'paid']);
                 $payment->update(['paid_at' => now()]);
+                
+                // 3.1 Atualizar a CheckoutSession
+                if ($payment->checkout_session_id) {
+                    $payment->checkoutSession->update(['status' => 'paid']);
+                }
             }
 
             // 4. DESPACHAR WEBHOOK PARA O SISTEMA DE ORIGEM (Church/Vendor/etc)

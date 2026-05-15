@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Audit\AuditService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -35,6 +36,9 @@ class AuthController extends Controller
         $user->update(['failed_login_attempts' => 0, 'locked_until' => null]);
 
         $token = $user->createToken('next-dashboard')->plainTextToken;
+
+        // Audit log
+        (new AuditService())->log('user.login', $user);
 
         return response()->json([
             'token' => $token,

@@ -2,12 +2,6 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\TransactionController;
-use App\Http\Controllers\Api\PaymentController;
-use App\Http\Controllers\Api\CustomerController;
-use App\Http\Controllers\Api\SubscriptionController;
-use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Dashboard\CheckoutConfigController;
 use App\Http\Controllers\Dashboard\CheckoutAuditController;
 use App\Http\Controllers\Dashboard\CheckoutWhiteLabelController;
@@ -19,9 +13,9 @@ use App\Http\Controllers\Dashboard\CheckoutVersionController;
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
+| Basileia Pay — API Routes.
+| v1: Core Foundation + Legacy
+| v2: Next.js Frontend Integration
 |
 */
 
@@ -29,133 +23,183 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-// Basileia Pay v1 API
+// ═══════════════════════════════════════════════════════════════════════════════
+// API v1 — Core Foundation (Parte 1)
+// ═══════════════════════════════════════════════════════════════════════════════
 Route::prefix('v1')->group(function () {
-    // Checkout Sessions (Sistemas Conectados)
+
+    // ── Auth (sem middleware de auth — é o login) ──────────────────────────
+    Route::post('auth/login', [\App\Http\Controllers\Api\V1\AuthController::class, 'login'])
+        ->middleware('throttle:login');
+    Route::post('auth/logout', [\App\Http\Controllers\Api\V1\AuthController::class, 'logout'])
+        ->middleware('auth:sanctum');
+    Route::get('auth/me', [\App\Http\Controllers\Api\V1\AuthController::class, 'me'])
+        ->middleware('auth:sanctum');
+
+    // 2FA
+    Route::middleware('auth:sanctum')->prefix('auth/2fa')->group(function () {
+        Route::post('enable', [\App\Http\Controllers\Api\V1\AuthController::class, 'enable2fa']);
+        Route::post('confirm', [\App\Http\Controllers\Api\V1\AuthController::class, 'confirm2fa']);
+        Route::post('disable', [\App\Http\Controllers\Api\V1\AuthController::class, 'disable2fa']);
+        Route::post('verify', [\App\Http\Controllers\Api\V1\AuthController::class, 'verify2fa']);
+    });
+
+    // Reauth
+    Route::post('auth/reauth', [\App\Http\Controllers\Api\V1\AuthController::class, 'reauth'])
+        ->middleware('auth:sanctum');
+
+    // ── Checkout Sessions (Sistemas Conectados via API Key) ───────────────
     Route::post('checkout-sessions', [\App\Http\Controllers\Api\V1\CheckoutSessionController::class, 'store']);
     Route::get('checkout-sessions/{id}', [\App\Http\Controllers\Api\V1\CheckoutSessionController::class, 'show']);
-    
-    // Checkout Público (Acessado pelo Next.js public checkout app)
+
+    // ── Checkout Público (Next.js) ────────────────────────────────────────
     Route::get('public/checkout-sessions/{sessionToken}', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'show']);
     Route::post('public/checkout-sessions/{sessionToken}/pay', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'pay']);
-    
-    // Webhooks de Gateways
-    Route::post('webhooks/gateways/{provider}/{accountUuid?}', [\App\Http\Controllers\Api\V1\GatewayWebhookController::class, 'handle']);
-    
-    // Auth (Legacy)
-    Route::post('auth/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
-    Route::post('auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-    Route::post('auth/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
+    Route::get('public/checkout-sessions/{sessionToken}/status', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'status']);
 
-    // Protected routes (via integration ck_live_... keys)
+    // ── Webhooks de Gateways ──────────────────────────────────────────────
+    Route::post('webhooks/gateways/{provider}/{accountUuid?}', [\App\Http\Controllers\Api\V1\GatewayWebhookController::class, 'handle']);
+
+    // ── Protected routes (via integration ck_live_... keys — legacy) ─────
     Route::middleware('api.auth')->group(function () {
         // Transactions
-        Route::apiResource('transactions', TransactionController::class);
-        Route::post('transactions/{id}/cancel', [TransactionController::class, 'cancel']);
-        Route::post('transactions/{id}/refund', [TransactionController::class, 'refund']);
+        Route::apiResource('transactions', \App\Http\Controllers\Api\TransactionController::class);
+        Route::post('transactions/{id}/cancel', [\App\Http\Controllers\Api\TransactionController::class, 'cancel']);
+        Route::post('transactions/{id}/refund', [\App\Http\Controllers\Api\TransactionController::class, 'refund']);
 
         // Payments
-        Route::post('payments/process', [PaymentController::class, 'process']);
-        Route::get('payments/{id}/status', [PaymentController::class, 'status']);
-        Route::get('payments/{id}/pix', [PaymentController::class, 'pix']);
-        Route::get('payments/{id}/boleto', [PaymentController::class, 'boleto']);
+        Route::post('payments/process', [\App\Http\Controllers\Api\PaymentController::class, 'process']);
+        Route::get('payments/{id}/status', [\App\Http\Controllers\Api\PaymentController::class, 'status']);
+        Route::get('payments/{id}/pix', [\App\Http\Controllers\Api\PaymentController::class, 'pix']);
+        Route::get('payments/{id}/boleto', [\App\Http\Controllers\Api\PaymentController::class, 'boleto']);
 
         // Customers
-        Route::apiResource('customers', CustomerController::class);
+        Route::apiResource('customers', \App\Http\Controllers\Api\CustomerController::class);
 
         // Subscriptions
-        Route::apiResource('subscriptions', SubscriptionController::class);
-        Route::post('subscriptions/{id}/pause', [SubscriptionController::class, 'pause']);
-        Route::post('subscriptions/{id}/resume', [SubscriptionController::class, 'resume']);
+        Route::apiResource('subscriptions', \App\Http\Controllers\Api\SubscriptionController::class);
+        Route::post('subscriptions/{id}/pause', [\App\Http\Controllers\Api\SubscriptionController::class, 'pause']);
+        Route::post('subscriptions/{id}/resume', [\App\Http\Controllers\Api\SubscriptionController::class, 'resume']);
 
         // Reports
-        Route::get('reports/summary', [ReportController::class, 'summary']);
-        Route::get('reports/transactions', [ReportController::class, 'transactions']);
+        Route::get('reports/summary', [\App\Http\Controllers\Api\ReportController::class, 'summary']);
+        Route::get('reports/transactions', [\App\Http\Controllers\Api\ReportController::class, 'transactions']);
+    });
+
+    // ── Dashboard APIs — Sanctum auth ─────────────────────────────────────
+    Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
+        // Systems
+        Route::get('systems', [\App\Http\Controllers\Dashboard\SystemController::class, 'index']);
+        Route::post('systems', [\App\Http\Controllers\Dashboard\SystemController::class, 'store']);
+        Route::get('systems/{system}', [\App\Http\Controllers\Dashboard\SystemController::class, 'show']);
+        Route::patch('systems/{system}', [\App\Http\Controllers\Dashboard\SystemController::class, 'update']);
+        Route::delete('systems/{system}', [\App\Http\Controllers\Dashboard\SystemController::class, 'destroy']);
+
+        // API Keys (nested under systems)
+        Route::get('systems/{system}/api-keys', [\App\Http\Controllers\Dashboard\ApiKeyController::class, 'index']);
+        Route::post('systems/{system}/api-keys', [\App\Http\Controllers\Dashboard\ApiKeyController::class, 'store'])
+            ->middleware('reauth:api_key.create');
+        Route::delete('systems/{system}/api-keys/{keyId}', [\App\Http\Controllers\Dashboard\ApiKeyController::class, 'destroy'])
+            ->middleware('reauth:api_key.revoke');
+
+        // Gateways
+        Route::get('gateways', [\App\Http\Controllers\Dashboard\GatewayController::class, 'index']);
+        Route::post('gateways', [\App\Http\Controllers\Dashboard\GatewayController::class, 'store']);
+        Route::get('gateways/{gateway}', [\App\Http\Controllers\Dashboard\GatewayController::class, 'show']);
+        Route::patch('gateways/{gateway}', [\App\Http\Controllers\Dashboard\GatewayController::class, 'update'])
+            ->middleware('reauth:gateway.alter');
+        Route::delete('gateways/{gateway}', [\App\Http\Controllers\Dashboard\GatewayController::class, 'destroy'])
+            ->middleware('reauth:gateway.alter');
+        Route::post('gateways/{gateway}/test', [\App\Http\Controllers\Dashboard\GatewayController::class, 'test']);
+        Route::post('gateways/{gateway}/rotate-credentials', [\App\Http\Controllers\Dashboard\GatewayController::class, 'rotateCredentials'])
+            ->middleware('reauth:gateway.rotate_credentials');
+
+        // Audit Logs
+        Route::get('audit-logs', [\App\Http\Controllers\Dashboard\AuditLogController::class, 'index']);
     });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// API v2 — para o frontend Next.js (migração incremental)
-// Blade continua funcionando normalmente
-// ─────────────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+// API v2 — Next.js Frontend Integration
+// ═══════════════════════════════════════════════════════════════════════════════
 Route::prefix('v2')->name('api.v2.')->group(function () {
 
-    // ── Auth (sem middleware — é o login) ─────────────────────────────────────
-    Route::post('auth/login',  [\App\Http\Controllers\Api\V2\AuthController::class, 'login']);
+    // ── Auth ───────────────────────────────────────────────────────────────
+    Route::post('auth/login', [\App\Http\Controllers\Api\V2\AuthController::class, 'login']);
     Route::post('auth/logout', [\App\Http\Controllers\Api\V2\AuthController::class, 'logout'])
         ->middleware('auth:sanctum');
-    Route::get('auth/me',      [\App\Http\Controllers\Api\V2\AuthController::class, 'me'])
+    Route::get('auth/me', [\App\Http\Controllers\Api\V2\AuthController::class, 'me'])
         ->middleware('auth:sanctum');
 
-    // ── Checkout público (sem auth) ───────────────────────────────────────────
+    // ── Checkout público (sem auth) ───────────────────────────────────────
     Route::prefix('checkout')->name('checkout.')->group(function () {
-        Route::get('{uuid}',         [\App\Http\Controllers\Api\V2\CheckoutController::class, 'show']);
-        Route::post('{uuid}/process',[\App\Http\Controllers\Api\V2\CheckoutController::class, 'process']);
-        Route::get('{uuid}/status',  [\App\Http\Controllers\Api\V2\CheckoutController::class, 'status']);
+        Route::get('{uuid}', [\App\Http\Controllers\Api\V2\CheckoutController::class, 'show']);
+        Route::post('{uuid}/process', [\App\Http\Controllers\Api\V2\CheckoutController::class, 'process']);
+        Route::get('{uuid}/status', [\App\Http\Controllers\Api\V2\CheckoutController::class, 'status']);
         Route::get('{uuid}/receipt', [\App\Http\Controllers\Api\V2\CheckoutController::class, 'receipt']);
     });
 
-    // ── Eventos público (sem auth) ────────────────────────────────────────────
+    // ── Eventos público (sem auth) ────────────────────────────────────────
     Route::prefix('events')->name('events.')->group(function () {
-        Route::get('{slug}',         [\App\Http\Controllers\Api\V2\EventCheckoutController::class, 'show']);
-        Route::post('{slug}/process',[\App\Http\Controllers\Api\V2\EventCheckoutController::class, 'process']);
-        Route::get('{slug}/status',  [\App\Http\Controllers\Api\V2\EventCheckoutController::class, 'status']);
+        Route::get('{slug}', [\App\Http\Controllers\Api\V2\EventCheckoutController::class, 'show']);
+        Route::post('{slug}/process', [\App\Http\Controllers\Api\V2\EventCheckoutController::class, 'process']);
+        Route::get('{slug}/status', [\App\Http\Controllers\Api\V2\EventCheckoutController::class, 'status']);
     });
 
-    // ── Dashboard (autenticado via Sanctum) ───────────────────────────────────
+    // ── Dashboard (autenticado via Sanctum) ───────────────────────────────
     Route::middleware('auth:sanctum')->prefix('dashboard')->name('dashboard.')->group(function () {
 
         // KPIs + gráfico
-        Route::get('stats',          [\App\Http\Controllers\Api\V2\DashboardController::class, 'stats']);
+        Route::get('stats', [\App\Http\Controllers\Api\V2\DashboardController::class, 'stats']);
 
         // Transações
-        Route::get('transactions',           [\App\Http\Controllers\Api\V2\TransactionController::class, 'index']);
-        Route::get('transactions/export',    [\App\Http\Controllers\Api\V2\TransactionController::class, 'export']);
-        Route::get('transactions/{id}',      [\App\Http\Controllers\Api\V2\TransactionController::class, 'show']);
-        Route::post('transactions/{id}/cancel',[\App\Http\Controllers\Api\V2\TransactionController::class, 'cancel']);
-        Route::post('transactions/{id}/refund',[\App\Http\Controllers\Api\V2\TransactionController::class, 'refund']);
+        Route::get('transactions', [\App\Http\Controllers\Api\V2\TransactionController::class, 'index']);
+        Route::get('transactions/export', [\App\Http\Controllers\Api\V2\TransactionController::class, 'export']);
+        Route::get('transactions/{id}', [\App\Http\Controllers\Api\V2\TransactionController::class, 'show']);
+        Route::post('transactions/{id}/cancel', [\App\Http\Controllers\Api\V2\TransactionController::class, 'cancel']);
+        Route::post('transactions/{id}/refund', [\App\Http\Controllers\Api\V2\TransactionController::class, 'refund']);
 
         // Gateways
-        Route::get('gateways',           [\App\Http\Controllers\Api\V2\GatewayController::class, 'index']);
-        Route::post('gateways',          [\App\Http\Controllers\Api\V2\GatewayController::class, 'store']);
-        Route::get('gateways/{id}',      [\App\Http\Controllers\Api\V2\GatewayController::class, 'show']);
-        Route::put('gateways/{id}',      [\App\Http\Controllers\Api\V2\GatewayController::class, 'update']);
-        Route::delete('gateways/{id}',   [\App\Http\Controllers\Api\V2\GatewayController::class, 'destroy']);
-        Route::post('gateways/{id}/toggle',[\App\Http\Controllers\Api\V2\GatewayController::class, 'toggle']);
-        Route::post('gateways/{id}/test',  [\App\Http\Controllers\Api\V2\GatewayController::class, 'test']);
+        Route::get('gateways', [\App\Http\Controllers\Api\V2\GatewayController::class, 'index']);
+        Route::post('gateways', [\App\Http\Controllers\Api\V2\GatewayController::class, 'store']);
+        Route::get('gateways/{id}', [\App\Http\Controllers\Api\V2\GatewayController::class, 'show']);
+        Route::put('gateways/{id}', [\App\Http\Controllers\Api\V2\GatewayController::class, 'update']);
+        Route::delete('gateways/{id}', [\App\Http\Controllers\Api\V2\GatewayController::class, 'destroy']);
+        Route::post('gateways/{id}/toggle', [\App\Http\Controllers\Api\V2\GatewayController::class, 'toggle']);
+        Route::post('gateways/{id}/test', [\App\Http\Controllers\Api\V2\GatewayController::class, 'test']);
 
         // Eventos (painel)
-        Route::get('events',             [\App\Http\Controllers\Api\V2\EventController::class, 'index']);
-        Route::post('events',            [\App\Http\Controllers\Api\V2\EventController::class, 'store']);
-        Route::post('events/{id}/toggle',[\App\Http\Controllers\Api\V2\EventController::class, 'toggle']);
-        Route::delete('events/{id}',     [\App\Http\Controllers\Api\V2\EventController::class, 'destroy']);
+        Route::get('events', [\App\Http\Controllers\Api\V2\EventController::class, 'index']);
+        Route::post('events', [\App\Http\Controllers\Api\V2\EventController::class, 'store']);
+        Route::post('events/{id}/toggle', [\App\Http\Controllers\Api\V2\EventController::class, 'toggle']);
+        Route::delete('events/{id}', [\App\Http\Controllers\Api\V2\EventController::class, 'destroy']);
 
         // Relatórios
-        Route::get('reports/summary',    [\App\Http\Controllers\Api\V2\ReportController::class, 'summary']);
-        Route::get('reports/export',     [\App\Http\Controllers\Api\V2\ReportController::class, 'export']);
+        Route::get('reports/summary', [\App\Http\Controllers\Api\V2\ReportController::class, 'summary']);
+        Route::get('reports/export', [\App\Http\Controllers\Api\V2\ReportController::class, 'export']);
 
         // Webhooks
-        Route::get('webhooks',           [\App\Http\Controllers\Api\V2\WebhookController::class, 'index']);
-        Route::get('webhooks/{id}',      [\App\Http\Controllers\Api\V2\WebhookController::class, 'show']);
-        Route::post('webhooks/{id}/retry',[\App\Http\Controllers\Api\V2\WebhookController::class, 'retry']);
+        Route::get('webhooks', [\App\Http\Controllers\Api\V2\WebhookController::class, 'index']);
+        Route::get('webhooks/{id}', [\App\Http\Controllers\Api\V2\WebhookController::class, 'show']);
+        Route::post('webhooks/{id}/retry', [\App\Http\Controllers\Api\V2\WebhookController::class, 'retry']);
 
         // Integrações
-        Route::get('integrations',           [\App\Http\Controllers\Api\V2\IntegrationController::class, 'index']);
-        Route::post('integrations',          [\App\Http\Controllers\Api\V2\IntegrationController::class, 'store']);
-        Route::put('integrations/{id}',      [\App\Http\Controllers\Api\V2\IntegrationController::class, 'update']);
-        Route::post('integrations/{id}/toggle',[\App\Http\Controllers\Api\V2\IntegrationController::class, 'toggle']);
-        Route::delete('integrations/{id}',   [\App\Http\Controllers\Api\V2\IntegrationController::class, 'destroy']);
+        Route::get('integrations', [\App\Http\Controllers\Api\V2\IntegrationController::class, 'index']);
+        Route::post('integrations', [\App\Http\Controllers\Api\V2\IntegrationController::class, 'store']);
+        Route::put('integrations/{id}', [\App\Http\Controllers\Api\V2\IntegrationController::class, 'update']);
+        Route::post('integrations/{id}/toggle', [\App\Http\Controllers\Api\V2\IntegrationController::class, 'toggle']);
+        Route::delete('integrations/{id}', [\App\Http\Controllers\Api\V2\IntegrationController::class, 'destroy']);
 
         // Sources
-        Route::get('sources',            [\App\Http\Controllers\Api\V2\SourceController::class, 'index']);
-        Route::post('sources',           [\App\Http\Controllers\Api\V2\SourceController::class, 'store']);
-        Route::put('sources/{id}',       [\App\Http\Controllers\Api\V2\SourceController::class, 'update']);
-        Route::patch('sources/{id}/toggle',[\App\Http\Controllers\Api\V2\SourceController::class, 'toggle']);
-        Route::delete('sources/{id}',    [\App\Http\Controllers\Api\V2\SourceController::class, 'destroy']);
+        Route::get('sources', [\App\Http\Controllers\Api\V2\SourceController::class, 'index']);
+        Route::post('sources', [\App\Http\Controllers\Api\V2\SourceController::class, 'store']);
+        Route::put('sources/{id}', [\App\Http\Controllers\Api\V2\SourceController::class, 'update']);
+        Route::patch('sources/{id}/toggle', [\App\Http\Controllers\Api\V2\SourceController::class, 'toggle']);
+        Route::delete('sources/{id}', [\App\Http\Controllers\Api\V2\SourceController::class, 'destroy']);
 
         // Settings
-        Route::get('settings/receipt',   [\App\Http\Controllers\Api\V2\SettingsController::class, 'receipt']);
-        Route::put('settings/receipt',   [\App\Http\Controllers\Api\V2\SettingsController::class, 'updateReceipt']);
+        Route::get('settings/receipt', [\App\Http\Controllers\Api\V2\SettingsController::class, 'receipt']);
+        Route::put('settings/receipt', [\App\Http\Controllers\Api\V2\SettingsController::class, 'updateReceipt']);
 
         // Lab / Builder
         Route::apiResource('checkout-configs', CheckoutConfigController::class);
@@ -184,10 +228,24 @@ Route::prefix('v2')->name('api.v2.')->group(function () {
     });
 });
 
-// ─── Internal Vault (Serviço próprio de Tokenização) ───
-// ATENÇÃO: Em produção, estas rotas devem estar sob firewall interno (mTLS) ou API Key forte.
-// Elas NÃO devem ser expostas para acesso irrestrito externo.
+// ═══════════════════════════════════════════════════════════════════════════════
+// Internal Vault (Tokenização)
+// ═══════════════════════════════════════════════════════════════════════════════
 Route::prefix('vault')->group(function () {
     Route::post('tokenize-card', [\App\Http\Controllers\Api\VaultController::class, 'tokenize']);
     Route::post('resolve-token', [\App\Http\Controllers\Api\VaultController::class, 'resolve']);
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Master Access (localhost + token-based)
+// ═══════════════════════════════════════════════════════════════════════════════
+Route::prefix('local/master-access')->middleware('throttle:master_login')->group(function () {
+    Route::post('challenges', [\App\Http\Controllers\Local\MasterAccessController::class, 'generateChallenge']);
+    Route::get('{token}', [\App\Http\Controllers\Local\MasterAccessController::class, 'showChallenge']);
+});
+
+Route::prefix('master')->middleware('throttle:master_login')->group(function () {
+    Route::post('login', [\App\Http\Controllers\Master\AuthController::class, 'login']);
+    Route::get('session', [\App\Http\Controllers\Master\AuthController::class, 'validateSession']);
+    Route::post('logout', [\App\Http\Controllers\Master\AuthController::class, 'logout']);
 });
