@@ -6,55 +6,56 @@ import { BarChart3, Sparkles, Activity, Plus } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-700">
-      {/* Page Header - Compact & Executive */}
-      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pt-2">
-        <div className="space-y-0.5">
+    <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {/* Page Header - Executive & Dense */}
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pt-1">
+        <div className="space-y-0">
           <div className="flex items-center gap-3">
-            <h1 className="text-[26px] font-black tracking-tight text-ink">Visão Geral</h1>
+            <h1 className="text-[34px] font-black tracking-tighter text-ink leading-none">Visão Geral</h1>
             <div className="h-6 w-px bg-border/60 mx-1" />
-            <BarChart3 className="w-5 h-5 text-brand opacity-60" />
+            <BarChart3 className="w-5 h-5 text-brand opacity-40" />
           </div>
-          <p className="text-slate/60 font-bold text-[13px] tracking-tight">
-            Monitore em tempo real o desempenho, pagamento, conversão e operação
+          <p className="text-slate/50 font-bold text-[14.5px] tracking-tight mt-1">
+            Painel operacional de performance, pagamento e conversão em tempo real
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 bg-success/5 border border-success/10 rounded-xl">
-            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-success/80">Sistemas operando</span>
+        <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-2 bg-success/5 border border-success/10 rounded-xl h-[46px]">
+            <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse shadow-[0_0_8px_rgba(22,163,74,0.4)]" />
+            <span className="text-[9.5px] font-black uppercase tracking-widest text-success/80">Sistemas operando</span>
           </div>
           
-          <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand to-brand-accent text-white rounded-xl text-[12px] font-black shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:translate-y-0 uppercase tracking-tight">
-            <BarChart3 className="w-4 h-4 text-white/80" />
+          <button className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-brand to-brand-accent text-white rounded-xl text-[11.5px] font-black shadow-lg shadow-brand/20 hover:shadow-brand/40 hover:-translate-y-0.5 transition-all active:translate-y-0 uppercase tracking-tight h-[46px]">
+            <Plus className="w-3.5 h-3.5 text-white/80" />
             Nova análise
           </button>
         </div>
       </header>
 
-      {/* Main Content Grid - High Density Area */}
+      {/* Main Content Grid - Maximum Utility Area */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         
-        {/* Left Column (8 units) - Operations & Financials */}
+        {/* Left Column (8 units) */}
         <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
           
-          {/* KPIs Section - Horizontal Row */}
+          {/* KPIs Section */}
           <KpiGrid />
 
-          {/* Charts Section - Two side-by-side cards */}
+          {/* Charts Section */}
           <FinancialCharts />
 
-          {/* Critical Transactions Section - Table View */}
+          {/* Critical Transactions Section */}
           <TransactionTable />
           
         </div>
 
-        {/* Right Column (4 units) - Intelligence & Health */}
+        {/* Right Column (4 units) */}
         <div className="xl:col-span-4 min-w-0">
           <OperationalSidePanel />
         </div>
       </div>
+
 
       {/* Extra space for footer visibility */}
       <div className="h-4" />

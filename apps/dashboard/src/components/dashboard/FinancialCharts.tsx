@@ -36,28 +36,28 @@ const funnelData = [
 export function FinancialCharts() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* Volume Chart - More Compact */}
-      <div className="lg:col-span-7 bg-white p-6 rounded-[24px] border border-border shadow-sm flex flex-col h-[320px]">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
-               <BarChart3 className="w-4 h-4 text-brand" />
+      {/* Volume Chart - Compact (280px) */}
+      <div className="lg:col-span-7 bg-white p-5 rounded-[20px] border border-border shadow-sm flex flex-col h-[280px]">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
+               <BarChart3 className="w-3.5 h-3.5 text-brand" />
             </div>
-            <h3 className="text-[13px] font-black text-ink uppercase tracking-widest">Volume Financeiro</h3>
+            <h3 className="text-[11px] font-black text-ink uppercase tracking-widest">Volume Financeiro</h3>
           </div>
           <div className="flex items-center gap-3">
-             <div className="flex items-center gap-4 mr-2">
-               <div className="flex items-center gap-1.5">
-                 <div className="w-2 h-2 rounded-full bg-brand" />
-                 <span className="text-[10px] font-bold text-slate/60 uppercase">Volume</span>
+             <div className="flex items-center gap-3 mr-2">
+               <div className="flex items-center gap-1">
+                 <div className="w-1.5 h-1.5 rounded-full bg-brand" />
+                 <span className="text-[9px] font-bold text-slate/50 uppercase tracking-tighter">Volume</span>
                </div>
-               <div className="flex items-center gap-1.5">
-                 <div className="w-2 h-0.5 rounded-full bg-brand-accent" />
-                 <span className="text-[10px] font-bold text-slate/60 uppercase">Transações</span>
+               <div className="flex items-center gap-1">
+                 <div className="w-1.5 h-0.5 rounded-full bg-brand-accent" />
+                 <span className="text-[9px] font-bold text-slate/50 uppercase tracking-tighter">Transações</span>
                </div>
              </div>
-             <button className="flex items-center gap-1 px-3 py-1.5 bg-background border border-border rounded-lg text-[10px] font-black text-ink hover:bg-brand-soft transition-all uppercase tracking-tighter">
-               7 dias <ChevronDown className="w-3 h-3 text-slate/40" />
+             <button className="flex items-center gap-1 px-2 py-1 bg-background border border-border rounded-lg text-[9px] font-black text-ink hover:bg-brand-soft transition-all uppercase tracking-tighter">
+               7 dias <ChevronDown className="w-3 h-3 text-slate/30" />
              </button>
           </div>
         </div>
@@ -65,19 +65,19 @@ export function FinancialCharts() {
         <div className="flex-1 min-h-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={volumeData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E9DDFE" opacity={0.5} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E9DDFE" opacity={0.3} />
               <XAxis 
                 dataKey="day" 
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 700 }}
+                tick={{ fill: '#9CA3AF', fontSize: 9, fontWeight: 700 }}
                 dy={5}
               />
               <YAxis 
                 yAxisId="left"
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 700 }}
+                tick={{ fill: '#9CA3AF', fontSize: 9, fontWeight: 700 }}
                 tickFormatter={(val) => `${val} mi`}
               />
               <YAxis 
@@ -85,15 +85,15 @@ export function FinancialCharts() {
                 orientation="right"
                 axisLine={false} 
                 tickLine={false} 
-                tick={{ fill: '#9CA3AF', fontSize: 10, fontWeight: 700 }}
+                tick={{ fill: '#9CA3AF', fontSize: 9, fontWeight: 700 }}
               />
               <Tooltip 
-                cursor={{ fill: 'rgba(124, 58, 237, 0.05)', radius: 4 }}
+                cursor={{ fill: 'rgba(124, 58, 237, 0.03)', radius: 4 }}
                 contentStyle={{ 
-                  borderRadius: '12px', 
+                  borderRadius: '10px', 
                   border: '1px solid #E9DDFE', 
                   boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   fontWeight: 'bold'
                 }}
               />
@@ -101,48 +101,48 @@ export function FinancialCharts() {
                 yAxisId="left" 
                 dataKey="volume" 
                 fill="#7C3AED" 
-                radius={[4, 4, 0, 0]} 
-                barSize={32} 
+                radius={[3, 3, 0, 0]} 
+                barSize={28} 
               />
               <Line 
                 yAxisId="right" 
                 type="monotone" 
                 dataKey="tx" 
                 stroke="#A855F7" 
-                strokeWidth={2} 
-                dot={{ fill: '#fff', stroke: '#A855F7', strokeWidth: 2, r: 3 }}
-                activeDot={{ r: 5, strokeWidth: 0, fill: '#7C3AED' }}
+                strokeWidth={1.5} 
+                dot={{ fill: '#fff', stroke: '#A855F7', strokeWidth: 1.5, r: 2.5 }}
+                activeDot={{ r: 4, strokeWidth: 0, fill: '#7C3AED' }}
               />
             </BarChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      {/* Conversion Funnel - Horizontal Bars */}
-      <div className="lg:col-span-5 bg-white p-6 rounded-[24px] border border-border shadow-sm flex flex-col h-[320px]">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-             <div className="w-8 h-8 rounded-lg bg-brand/10 flex items-center justify-center">
-               <Filter className="w-4 h-4 text-brand" />
+      {/* Conversion Funnel - Compact (280px) */}
+      <div className="lg:col-span-5 bg-white p-5 rounded-[20px] border border-border shadow-sm flex flex-col h-[280px]">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+             <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
+               <Filter className="w-3.5 h-3.5 text-brand" />
              </div>
-             <h3 className="text-[13px] font-black text-ink uppercase tracking-widest">Conversão e Aprovações</h3>
+             <h3 className="text-[11px] font-black text-ink uppercase tracking-widest">Conversão e Aprovações</h3>
           </div>
-          <button className="flex items-center gap-1 px-3 py-1.5 bg-background border border-border rounded-lg text-[10px] font-black text-ink hover:bg-brand-soft transition-all uppercase tracking-tighter">
-            7 dias <ChevronDown className="w-3 h-3 text-slate/40" />
+          <button className="flex items-center gap-1 px-2 py-1 bg-background border border-border rounded-lg text-[9px] font-black text-ink hover:bg-brand-soft transition-all uppercase tracking-tighter">
+            7 dias <ChevronDown className="w-3 h-3 text-slate/30" />
           </button>
         </div>
 
-        <div className="flex-1 space-y-3.5 flex flex-col justify-center">
+        <div className="flex-1 space-y-2.5 flex flex-col justify-center">
           {funnelData.map((item, idx) => (
             <div key={item.name} className="space-y-1">
-              <div className="flex items-center justify-between text-[10px] font-black uppercase tracking-tighter text-slate/60">
-                <span>{item.name}</span>
-                <div className="flex items-center gap-4">
+              <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-tighter text-slate/50">
+                <span className="truncate pr-2">{item.name}</span>
+                <div className="flex items-center gap-3 shrink-0">
                   <span className="text-ink">{item.value.toLocaleString()}</span>
-                  <span className="text-brand w-10 text-right">{item.percent}</span>
+                  <span className="text-brand w-9 text-right">{item.percent}</span>
                 </div>
               </div>
-              <div className="h-6.5 w-full bg-background rounded-lg overflow-hidden group">
+              <div className="h-5 w-full bg-background rounded-lg overflow-hidden group">
                 <div 
                   className="h-full rounded-lg transition-all duration-1000 ease-out shadow-sm relative group-hover:brightness-95"
                   style={{ 

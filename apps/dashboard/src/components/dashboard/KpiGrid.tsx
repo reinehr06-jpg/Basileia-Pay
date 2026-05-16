@@ -68,59 +68,53 @@ const kpis = [
 
 export function KpiGrid() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
       {kpis.map((kpi) => (
         <div 
           key={kpi.title}
-          className="p-5 rounded-[24px] border border-border bg-white shadow-sm hover:shadow-md transition-all relative overflow-hidden h-[160px] flex flex-col justify-between"
+          className="p-5 rounded-[20px] border border-border bg-white shadow-sm hover:shadow-md transition-all relative overflow-hidden h-[142px] flex flex-col justify-between group"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between relative z-10">
+          {/* Header: Icon + Title */}
+          <div className="flex items-start justify-between relative z-10">
             <div className={cn(
-              "w-9 h-9 rounded-xl flex items-center justify-center shadow-sm",
+              "w-8.5 h-8.5 rounded-lg flex items-center justify-center shadow-sm shrink-0",
               `bg-${kpi.color}/10`
             )}>
-              <kpi.icon className={cn("w-4.5 h-4.5", `text-${kpi.color}`)} />
+              <kpi.icon className={cn("w-4 h-4", `text-${kpi.color}`)} />
             </div>
-            <p className="text-[10px] font-black text-slate/50 uppercase tracking-widest text-right max-w-[80px]">
+            <p className="text-[9px] font-black text-slate/40 uppercase tracking-widest text-right leading-tight ml-2">
               {kpi.title}
             </p>
           </div>
 
-          {/* Body */}
-          <div className="mt-2 relative z-10">
-            <p className="text-xl font-black text-ink tracking-tight">
+          {/* Body: Value + Change */}
+          <div className="relative z-10 mt-auto pb-4">
+            <p className="text-[22px] font-black text-ink tracking-tighter leading-none mb-1">
               {kpi.value}
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center gap-1.5">
               <div className={cn(
                 "flex items-center text-[10px] font-black",
                 kpi.trend === 'up' ? "text-success" : "text-danger"
               )}>
-                {kpi.trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                {kpi.trend === 'up' ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
                 {kpi.change}
               </div>
-              <span className="text-[10px] font-bold text-slate/40 uppercase tracking-tighter">vs 7 dias</span>
+              <span className="text-[9px] font-bold text-slate/30 uppercase tracking-tighter">vs 7 dias</span>
             </div>
           </div>
 
-          {/* Sparkline integrated at the bottom */}
-          <div className="absolute bottom-2 left-0 right-0 h-10 opacity-60 px-1">
+          {/* Sparkline: Refined & Transparent (No Fill/Overlay) */}
+          <div className="absolute bottom-0 left-0 right-0 h-9 pointer-events-none">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={kpi.chartData.map((v, i) => ({ v, i }))}>
-                <defs>
-                  <linearGradient id={`gradient-${kpi.title}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={`var(--color-${kpi.color})`} stopOpacity={0.2}/>
-                    <stop offset="100%" stopColor={`var(--color-${kpi.color})`} stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
                 <Area 
                   type="monotone" 
                   dataKey="v" 
                   stroke={`var(--color-${kpi.color})`} 
-                  strokeWidth={2} 
-                  fill={`url(#gradient-${kpi.title})`}
-                  fillOpacity={1}
+                  strokeWidth={1.5} 
+                  fill="transparent"
+                  strokeOpacity={0.4}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -130,3 +124,4 @@ export function KpiGrid() {
     </div>
   );
 }
+
