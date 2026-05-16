@@ -82,14 +82,14 @@ export function KpiGrid() {
             )}>
               <kpi.icon className={cn("w-4 h-4", `text-${kpi.color}`)} />
             </div>
-            <p className="text-[9px] font-black text-slate/40 uppercase tracking-widest text-right leading-tight ml-2">
+            <p className="text-[9px] font-black text-slate/40 uppercase tracking-[0.08em] text-right leading-tight ml-2">
               {kpi.title}
             </p>
           </div>
 
           {/* Body: Value + Change */}
           <div className="relative z-10 mt-auto pb-4">
-            <p className="text-[22px] font-black text-ink tracking-tighter leading-none mb-1">
+            <p className="text-[22px] font-black text-ink tracking-tighter leading-none mb-1 whitespace-nowrap">
               {kpi.value}
             </p>
             <div className="flex items-center gap-1.5">

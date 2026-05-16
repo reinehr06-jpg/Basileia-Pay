@@ -16,9 +16,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex flex-col flex-1 min-w-0 relative z-10 overflow-hidden">
         <Topbar />
         
-        {/* Main Content Area - Optimized padding for 260px sidebar */}
+        {/* Main Content Area - Full screen width, no max-width constraints */}
         <main className="flex-1 overflow-y-auto px-6 pb-6 no-scrollbar scroll-smooth">
-          <div className="max-w-[1640px] mx-auto">
+          <div className="w-full">
             {children}
           </div>
         </main>

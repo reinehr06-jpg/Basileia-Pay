@@ -17,9 +17,9 @@ interface TopbarProps {
 
 export function Topbar({ title, description }: TopbarProps) {
   return (
-    <header className="h-[68px] px-8 flex items-center justify-between sticky top-0 z-20">
-      {/* Search Bar - Professional & Wide */}
-      <div className="relative flex-1 max-w-[640px] group">
+    <header className="h-[68px] px-8 flex items-center justify-between sticky top-0 z-20 w-full">
+      {/* Search Bar - Professional & Expansive */}
+      <div className="relative flex-1 group mr-12">
         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate/40 group-focus-within:text-brand transition-colors">
           <Search className="w-4 h-4" />
         </div>

@@ -35,9 +35,9 @@ const funnelData = [
 
 export function FinancialCharts() {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* Volume Chart - Compact (280px) */}
-      <div className="lg:col-span-7 bg-white p-5 rounded-[20px] border border-border shadow-sm flex flex-col h-[280px]">
+    <div className="grid grid-cols-1 lg:grid-cols-[1.35fr_1fr] gap-6">
+      {/* Volume Chart - Compact (300px) */}
+      <div className="bg-white p-5 rounded-[20px] border border-border shadow-sm flex flex-col h-[300px] min-w-0">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
@@ -102,7 +102,7 @@ export function FinancialCharts() {
                 dataKey="volume" 
                 fill="#7C3AED" 
                 radius={[3, 3, 0, 0]} 
-                barSize={28} 
+                barSize={32} 
               />
               <Line 
                 yAxisId="right" 
@@ -118,9 +118,9 @@ export function FinancialCharts() {
         </div>
       </div>
 
-      {/* Conversion Funnel - Compact (280px) */}
-      <div className="lg:col-span-5 bg-white p-5 rounded-[20px] border border-border shadow-sm flex flex-col h-[280px]">
-        <div className="flex items-center justify-between mb-4">
+      {/* Conversion Funnel - Compact (300px) */}
+      <div className="bg-white p-5 rounded-[20px] border border-border shadow-sm flex flex-col h-[300px] min-w-0 overflow-hidden">
+        <div className="flex items-center justify-between mb-3 shrink-0">
           <div className="flex items-center gap-2">
              <div className="w-7 h-7 rounded-lg bg-brand/10 flex items-center justify-center">
                <Filter className="w-3.5 h-3.5 text-brand" />
@@ -132,9 +132,9 @@ export function FinancialCharts() {
           </button>
         </div>
 
-        <div className="flex-1 space-y-2.5 flex flex-col justify-center">
+        <div className="flex-1 space-y-2 flex flex-col justify-center py-1">
           {funnelData.map((item, idx) => (
-            <div key={item.name} className="space-y-1">
+            <div key={item.name} className="space-y-0.5">
               <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-tighter text-slate/50">
                 <span className="truncate pr-2">{item.name}</span>
                 <div className="flex items-center gap-3 shrink-0">
@@ -142,7 +142,7 @@ export function FinancialCharts() {
                   <span className="text-brand w-9 text-right">{item.percent}</span>
                 </div>
               </div>
-              <div className="h-5 w-full bg-background rounded-lg overflow-hidden group">
+              <div className="h-4 w-full bg-background rounded-lg overflow-hidden group">
                 <div 
                   className="h-full rounded-lg transition-all duration-1000 ease-out shadow-sm relative group-hover:brightness-95"
                   style={{ 
@@ -160,3 +160,4 @@ export function FinancialCharts() {
     </div>
   );
 }
+

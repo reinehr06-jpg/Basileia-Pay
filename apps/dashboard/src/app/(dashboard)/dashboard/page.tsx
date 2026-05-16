@@ -6,9 +6,9 @@ import { BarChart3, Sparkles, Activity, Plus } from 'lucide-react';
 
 export default function DashboardPage() {
   return (
-    <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-700">
+    <div className="flex flex-col gap-5 animate-in fade-in slide-in-from-bottom-2 duration-700 w-full">
       {/* Page Header - Executive & Dense */}
-      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pt-1">
+      <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 pt-1 w-full">
         <div className="space-y-0">
           <div className="flex items-center gap-3">
             <h1 className="text-[34px] font-black tracking-tighter text-ink leading-none">Visão Geral</h1>
@@ -33,11 +33,11 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {/* Main Content Grid - Maximum Utility Area */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
+      {/* Main Content Grid - Maximum Utility Area (Full width) */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start w-full">
         
-        {/* Left Column - Operations & Financials */}
-        <div className="flex flex-col gap-6 min-w-0">
+        {/* Left Column - Operations & Financials (Dynamic 1fr) */}
+        <div className="flex flex-col gap-6 min-w-0 w-full">
           
           {/* KPIs Section */}
           <KpiGrid />
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Right Column - Intelligence & Health (Fixed 360px) */}
-        <div className="min-w-0">
+        <div className="min-w-0 shrink-0 w-[360px]">
           <OperationalSidePanel />
         </div>
       </div>
