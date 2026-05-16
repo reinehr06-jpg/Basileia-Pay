@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { Plus, RefreshCw, TrendingUp, Mail, MessageCircle, BarChart2 } from 'lucide-react';
 
 export default function RecoveryPage() {

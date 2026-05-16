@@ -1,7 +1,7 @@
 'use client';
 
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { ReauthAction } from '@/components/security/ReauthAction';
 import { useGateways } from '@/hooks/api/useGateways';
 import { Loader2, AlertCircle, Plus, CreditCard, Activity, ShieldCheck, ShieldAlert } from 'lucide-react';

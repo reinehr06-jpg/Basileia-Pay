@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { TrustRadar } from '@/components/analytics/TrustRadar';
 import { AbandonmentAutopsy } from '@/components/analytics/AbandonmentAutopsy';
 import { RiskMap } from '@/components/analytics/RiskMap';

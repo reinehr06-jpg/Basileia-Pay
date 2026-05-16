@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { Copy, Plus, Trash2, Key, ShieldCheck, Globe, Settings as SettingsIcon } from 'lucide-react';
 
 export default function SystemDetailPage({ params }: { params: { id: string } }) {

@@ -1,5 +1,5 @@
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 
 export default function AiSettingsPage() {
   return (

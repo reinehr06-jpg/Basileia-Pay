@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { Zap, Brain, TrendingUp, AlertCircle, CheckCircle2, ChevronRight, BarChart3 } from 'lucide-react';
 
 export default function BCIPage() {

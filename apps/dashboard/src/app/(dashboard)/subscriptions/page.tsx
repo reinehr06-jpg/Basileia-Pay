@@ -1,7 +1,7 @@
 'use client';
 
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { Plus, Repeat, Users, AlertCircle, TrendingUp, CheckCircle } from 'lucide-react';
 
 export default function SubscriptionsPage() {

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { MapPin, AlertOctagon, TrendingUp, ShieldAlert } from 'lucide-react';
 
 export function RiskMap() {

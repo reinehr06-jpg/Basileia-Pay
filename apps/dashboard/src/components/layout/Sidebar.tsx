@@ -3,87 +3,109 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, Cpu, CreditCard, ShoppingBag, 
-  Package, Banknote, Webhook, Shield, Settings,
-  Shuffle, Zap, Code, Lock
+  LayoutDashboard, 
+  Layers, 
+  CreditCard, 
+  ShieldCheck, 
+  ShoppingCart, 
+  Receipt, 
+  Webhook, 
+  Shuffle, 
+  Lock, 
+  ClipboardList, 
+  Code2, 
+  Settings,
+  HelpCircle,
+  Building2,
+  ChevronRight
 } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn } from '@/lib/utils';
 
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-const NAV_ITEMS = [
-  { href: '/',               icon: LayoutDashboard, label: 'Visão Geral' },
-  { href: '/systems',        icon: Cpu,             label: 'Sistemas'    },
-  { href: '/checkouts',      icon: ShoppingBag,     label: 'Checkouts'   },
-  { href: '/gateways',       icon: CreditCard,      label: 'Gateways'    },
-  { href: '/orders',         icon: Package,         label: 'Vendas'      },
-  { href: '/payments',       icon: Banknote,        label: 'Pagamentos'  },
-  { href: '/webhooks',       icon: Webhook,         label: 'Webhooks'    },
-  { href: '/routing',        icon: Shuffle,         label: 'Roteamento'  },
-  { href: '/trust',          icon: Zap,             label: 'Trust Layer' },
-  { href: '/audit',          icon: Shield,          label: 'Auditoria'   },
-  { href: '/developers',     icon: Code,            label: 'Desenvolvedores'},
-  { href: '/security',       icon: Lock,            label: 'Segurança'   },
-  { href: '/settings',       icon: Settings,        label: 'Configurações'},
+const menuItems = [
+  { name: 'Visão Geral', icon: LayoutDashboard, href: '/dashboard' },
+  { name: 'Sistemas', icon: Layers, href: '/dashboard/systems' },
+  { name: 'Checkouts', icon: CreditCard, href: '/dashboard/checkouts' },
+  { name: 'Gateways', icon: ShieldCheck, href: '/dashboard/gateways' },
+  { name: 'Vendas', icon: ShoppingCart, href: '/dashboard/orders' },
+  { name: 'Pagamentos', icon: Receipt, href: '/dashboard/payments' },
+  { name: 'Webhooks', icon: Webhook, href: '/dashboard/webhooks' },
+  { name: 'Roteamento', icon: Shuffle, href: '/dashboard/routing' },
+  { name: 'Trust Layer', icon: Lock, href: '/dashboard/trust' },
+  { name: 'Auditoria', icon: ClipboardList, href: '/dashboard/audit' },
+  { name: 'Desenvolvedores', icon: Code2, href: '/dashboard/developers' },
+  { name: 'Segurança', icon: ShieldCheck, href: '/dashboard/security' },
+  { name: 'Configurações', icon: Settings, href: '/dashboard/settings' },
 ];
-
-function SidebarItem({ href, icon: Icon, label, active }: any) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-        active 
-          ? "bg-brand/10 text-brand font-medium" 
-          : "text-ink-muted hover:text-ink hover:bg-surface-raised"
-      )}
-    >
-      <Icon size={20} className={active ? "text-brand" : "text-ink-subtle"} />
-      <span>{label}</span>
-    </Link>
-  );
-}
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-surface border-r border-border flex flex-col h-full flex-shrink-0">
-      <div className="h-16 flex items-center px-6 border-b border-border">
-        <div className="font-bold text-xl text-ink flex items-center gap-2">
-          <div className="w-8 h-8 rounded-md bg-brand flex items-center justify-center text-white">
-            B
-          </div>
-          Basileia <span className="text-brand">Pay</span>
+    <aside className="w-[280px] h-screen bg-surface border-r border-border flex flex-col z-20">
+      {/* Brand */}
+      <div className="p-8 flex items-center gap-3">
+        <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
+          <span className="text-white font-bold text-2xl">B</span>
+        </div>
+        <div>
+          <h1 className="text-ink font-bold text-xl leading-tight">Basileia</h1>
+          <p className="text-muted text-xs font-medium tracking-wide">PAY</p>
         </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {NAV_ITEMS.map(item => {
-          const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
-          return (
-            <SidebarItem
-              key={item.href}
-              {...item}
-              active={active}
-            />
-          );
-        })}
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-4 py-2 no-scrollbar">
+        <div className="space-y-1">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden",
+                  isActive 
+                    ? "bg-gradient-to-br from-brand to-brand-accent text-white shadow-lg shadow-brand/30 scale-[1.02]" 
+                    : "text-slate hover:bg-brand-soft hover:text-brand"
+                )}
+              >
+                {isActive && (
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent)]" />
+                )}
+                <item.icon className={cn(
+                  "w-5 h-5 transition-colors relative z-10",
+                  isActive ? "text-white" : "text-muted group-hover:text-brand"
+                )} />
+                <span className="font-semibold text-[15px] relative z-10">{item.name}</span>
+                {isActive && <ChevronRight className="w-4 h-4 ml-auto text-white/70 relative z-10" />}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
-      <div className="p-4 border-t border-border">
-        {/* Company Badge, ThemeToggle, UserMenu */}
-        <div className="flex items-center gap-3 p-2">
-          <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center border border-border">
-            <span className="text-sm font-medium">VR</span>
+      {/* Footer */}
+      <div className="p-4 border-t border-border bg-background/50">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border shadow-sm">
+            <div className="w-10 h-10 rounded-lg bg-brand-soft flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-brand" />
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <p className="text-sm font-bold text-ink truncate">Basileia Church</p>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                <p className="text-[10px] font-bold text-success uppercase tracking-wider">Produção</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted" />
           </div>
-          <div>
-            <div className="text-sm font-medium text-ink">Minha Empresa</div>
-            <div className="text-xs text-ink-subtle">Plano Pro</div>
-          </div>
+          
+          <button className="flex items-center gap-2 px-4 py-2 text-muted hover:text-brand transition-colors text-sm font-medium">
+            <HelpCircle className="w-4 h-4" />
+            Suporte & Documentação
+          </button>
         </div>
       </div>
     </aside>

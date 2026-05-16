@@ -1,7 +1,7 @@
 'use client';
 
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { Plus, Webhook, CheckCircle, XCircle, RefreshCcw, Loader2, AlertCircle } from 'lucide-react';
 import { useWebhooks } from '@/hooks/api/useWebhooks';
 import { useState } from 'react';

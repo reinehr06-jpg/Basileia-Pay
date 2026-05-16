@@ -1,5 +1,5 @@
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { ReauthAction } from '@/components/security/ReauthAction';
 import { CreditCard, QrCode, ShieldCheck, RefreshCcw, ArrowRightLeft } from 'lucide-react';
 

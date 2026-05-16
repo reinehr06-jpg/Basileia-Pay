@@ -1,7 +1,7 @@
 'use client';
 
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { ShoppingBag, Plus, ExternalLink, MoreVertical, Loader2, AlertCircle } from 'lucide-react';
 import { useCheckouts } from '@/hooks/api/useCheckouts';
 import Link from 'next/link';

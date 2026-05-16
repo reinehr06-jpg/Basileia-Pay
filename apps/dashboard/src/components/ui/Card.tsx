@@ -1,22 +1,13 @@
-import React from 'react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-
-export function Card({ title, children, className }: { title?: string, children: React.ReactNode, className?: string }) {
-  return (
-    <div className={cn("bg-surface border border-border rounded-lg overflow-hidden shadow-sm", className)}>
-      {title && (
-        <div className="px-5 py-4 border-b border-border bg-surface/50">
-          <h3 className="font-semibold text-ink">{title}</h3>
-        </div>
-      )}
-      <div className="p-5">
-        {children}
-      </div>
-    </div>
-  );
-}
+import React from "react";
+export const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => <div ref={ref} className={className} {...props} />);
+Card.displayName = "Card";
+export const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => <div ref={ref} className={className} {...props} />);
+CardHeader.displayName = "CardHeader";
+export const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(({ className, ...props }, ref) => <h3 ref={ref} className={className} {...props} />);
+CardTitle.displayName = "CardTitle";
+export const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(({ className, ...props }, ref) => <p ref={ref} className={className} {...props} />);
+CardDescription.displayName = "CardDescription";
+export const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => <div ref={ref} className={className} {...props} />);
+CardContent.displayName = "CardContent";
+export const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => <div ref={ref} className={className} {...props} />);
+CardFooter.displayName = "CardFooter";

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { MousePointer2, Clock, MapPin, Smartphone, AlertCircle, TrendingDown } from 'lucide-react';
 
 export function AbandonmentAutopsy() {

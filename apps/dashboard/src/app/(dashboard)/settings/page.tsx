@@ -1,7 +1,7 @@
 'use client';
 
 import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/Card';
+import { Card } from '@/components/ui/card';
 import { useCompany } from '@/hooks/api/useCompany';
 import { Loader2, AlertCircle, Save, Building, Shield, Globe } from 'lucide-react';
 import { useState, useEffect } from 'react';
