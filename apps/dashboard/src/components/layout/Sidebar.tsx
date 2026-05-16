@@ -4,108 +4,145 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
-  Layers, 
-  CreditCard, 
-  ShieldCheck, 
   ShoppingCart, 
-  Receipt, 
-  Webhook, 
-  Shuffle, 
-  Lock, 
-  ClipboardList, 
-  Code2, 
+  CreditCard, 
+  Repeat, 
+  Zap,
+  Activity,
+  ClipboardList,
   Settings,
-  HelpCircle,
-  Building2,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  Globe,
+  Monitor
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-const menuItems = [
-  { name: 'Visão Geral', icon: LayoutDashboard, href: '/dashboard' },
-  { name: 'Sistemas', icon: Layers, href: '/dashboard/systems' },
-  { name: 'Checkouts', icon: CreditCard, href: '/dashboard/checkouts' },
-  { name: 'Gateways', icon: ShieldCheck, href: '/dashboard/gateways' },
-  { name: 'Vendas', icon: ShoppingCart, href: '/dashboard/orders' },
-  { name: 'Pagamentos', icon: Receipt, href: '/dashboard/payments' },
-  { name: 'Webhooks', icon: Webhook, href: '/dashboard/webhooks' },
-  { name: 'Roteamento', icon: Shuffle, href: '/dashboard/routing' },
-  { name: 'Trust Layer', icon: Lock, href: '/dashboard/trust' },
-  { name: 'Auditoria', icon: ClipboardList, href: '/dashboard/audit' },
-  { name: 'Desenvolvedores', icon: Code2, href: '/dashboard/developers' },
-  { name: 'Segurança', icon: ShieldCheck, href: '/dashboard/security' },
-  { name: 'Configurações', icon: Settings, href: '/dashboard/settings' },
+const menuGroups = [
+  {
+    title: 'HUB EXECUTIVO',
+    items: [
+      { name: 'Visão Geral', icon: LayoutDashboard, href: '/dashboard' },
+      { name: 'Transações', icon: ShoppingCart, href: '/dashboard/orders' },
+      { name: 'Checkouts', icon: CreditCard, href: '/dashboard/checkouts' },
+      { name: 'Assinaturas', icon: Repeat, href: '/dashboard/subscriptions' },
+      { name: 'Automações', icon: Zap, href: '/dashboard/automations' },
+    ]
+  },
+  {
+    title: 'OPERAÇÕES',
+    items: [
+      { name: 'Operações', icon: Activity, href: '/dashboard/operations' },
+    ]
+  },
+  {
+    title: 'AUDITORIA',
+    items: [
+      { name: 'Auditoria', icon: ClipboardList, href: '/dashboard/audit' },
+      { name: 'Configurações', icon: Settings, href: '/dashboard/settings', isSpecial: true },
+    ]
+  }
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="w-[280px] h-screen bg-surface border-r border-border flex flex-col z-20">
-      {/* Brand */}
-      <div className="p-8 flex items-center gap-3">
-        <div className="w-10 h-10 bg-brand rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
-          <span className="text-white font-bold text-2xl">B</span>
+    <aside className="w-[280px] h-screen p-4 flex flex-col z-20">
+      <div className="flex-1 bg-white/70 backdrop-blur-xl border border-border rounded-[24px] flex flex-col overflow-hidden shadow-xl shadow-brand/5">
+        {/* Brand */}
+        <div className="p-6 pb-2 flex items-center gap-3">
+          <div className="w-9 h-9 bg-gradient-to-br from-brand to-brand-accent rounded-xl flex items-center justify-center shadow-lg shadow-brand/20">
+            <span className="text-white font-black text-xl">B</span>
+          </div>
+          <span className="text-ink font-black text-lg tracking-tight">Basileia Pay</span>
         </div>
-        <div>
-          <h1 className="text-ink font-bold text-xl leading-tight">Basileia</h1>
-          <p className="text-muted text-xs font-medium tracking-wide">PAY</p>
-        </div>
-      </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-4 py-2 no-scrollbar">
-        <div className="space-y-1">
-          {menuItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-            
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={cn(
-                  "group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden",
-                  isActive 
-                    ? "bg-gradient-to-br from-brand to-brand-accent text-white shadow-lg shadow-brand/30 scale-[1.02]" 
-                    : "text-slate hover:bg-brand-soft hover:text-brand"
-                )}
-              >
-                {isActive && (
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.2),transparent)]" />
-                )}
-                <item.icon className={cn(
-                  "w-5 h-5 transition-colors relative z-10",
-                  isActive ? "text-white" : "text-muted group-hover:text-brand"
-                )} />
-                <span className="font-semibold text-[15px] relative z-10">{item.name}</span>
-                {isActive && <ChevronRight className="w-4 h-4 ml-auto text-white/70 relative z-10" />}
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
-
-      {/* Footer */}
-      <div className="p-4 border-t border-border bg-background/50">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3 p-3 rounded-xl bg-surface border border-border shadow-sm">
-            <div className="w-10 h-10 rounded-lg bg-brand-soft flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-brand" />
-            </div>
-            <div className="flex-1 overflow-hidden">
-              <p className="text-sm font-bold text-ink truncate">Basileia Church</p>
-              <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                <p className="text-[10px] font-bold text-success uppercase tracking-wider">Produção</p>
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4 no-scrollbar space-y-6">
+          {menuGroups.map((group) => (
+            <div key={group.title} className="space-y-1">
+              <p className="px-4 text-[10px] font-black text-slate uppercase tracking-widest mb-2 opacity-50">
+                {group.title}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => {
+                  const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                  
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className={cn(
+                        "group flex items-center gap-3 px-4 py-2.5 rounded-xl transition-all duration-300 relative overflow-hidden",
+                        isActive 
+                          ? "bg-gradient-to-r from-brand to-brand-accent text-white shadow-lg shadow-brand/30" 
+                          : item.isSpecial && pathname.startsWith(item.href)
+                            ? "bg-brand text-white shadow-lg shadow-brand/30"
+                            : "text-slate hover:bg-brand-soft hover:text-brand"
+                      )}
+                    >
+                      <item.icon className={cn(
+                        "w-4 h-4 transition-colors relative z-10",
+                        isActive ? "text-white" : "text-slate/60 group-hover:text-brand"
+                      )} />
+                      <span className={cn(
+                        "font-bold text-[13px] relative z-10",
+                        isActive ? "text-white" : "text-slate"
+                      )}>
+                        {item.name}
+                      </span>
+                      {isActive && <ChevronRight className="w-3.5 h-3.5 ml-auto text-white/70 relative z-10" />}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
-            <ChevronRight className="w-4 h-4 text-muted" />
+          ))}
+        </nav>
+
+        {/* Ambiente / Status Block */}
+        <div className="p-4 bg-brand-soft/30 border-t border-border/50">
+          <p className="px-2 text-[10px] font-black text-slate uppercase tracking-widest mb-3 opacity-50">
+            AMBIENTE
+          </p>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-3 py-2 bg-white/80 rounded-xl border border-border shadow-sm group cursor-pointer hover:border-brand/30 transition-all">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-success shadow-[0_0_8px_rgba(22,163,74,0.5)]" />
+                <span className="text-[11px] font-bold text-ink">Produção</span>
+              </div>
+              <ChevronRight className="w-3 h-3 text-muted" />
+            </div>
+
+            <div className="flex items-center justify-between px-3 py-2 bg-white/80 rounded-xl border border-border shadow-sm">
+              <div className="flex items-center gap-2">
+                <Globe className="w-3.5 h-3.5 text-brand opacity-60" />
+                <span className="text-[11px] font-bold text-ink">São Paulo (BR)</span>
+              </div>
+            </div>
+
+            <div className="px-3 py-2.5 bg-white/80 rounded-xl border border-border shadow-sm space-y-1">
+              <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-2">
+                   <ShieldCheck className="w-3.5 h-3.5 text-success opacity-80" />
+                   <span className="text-[11px] font-bold text-ink">Saúde da Plataforma</span>
+                 </div>
+                 <span className="text-[10px] font-black text-success">99,95%</span>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                 <span className="text-[9px] font-bold text-muted uppercase tracking-tighter">Última verificação: há 1 min</span>
+                 <div className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+              </div>
+            </div>
           </div>
-          
-          <button className="flex items-center gap-2 px-4 py-2 text-muted hover:text-brand transition-colors text-sm font-medium">
-            <HelpCircle className="w-4 h-4" />
-            Suporte & Documentação
-          </button>
+        </div>
+
+        {/* Collapse Toggle */}
+        <div className="p-4 flex justify-center border-t border-border/50">
+           <button className="p-2 text-muted hover:text-brand hover:bg-brand-soft rounded-lg transition-all">
+             <Monitor className="w-4 h-4" />
+           </button>
         </div>
       </div>
     </aside>

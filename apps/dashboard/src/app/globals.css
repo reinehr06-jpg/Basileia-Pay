@@ -19,17 +19,16 @@
 }
 
 :root {
-  --color-background:    #F7F7FA;
+  --color-background:    #F4F0FF;
   --color-surface:       #FFFFFF;
   --color-surface-raised:#FFFFFF;
-  --color-border:        #E7E5EF;
-  --color-ink:           #17151F;
-  --color-slate:         #4B5563;
-  --color-muted:         #8B8A95;
-  --color-brand:         #7B16D9;
-  --color-brand-deep:    #4B168A;
-  --color-brand-soft:    #F3E8FF;
+  --color-border:        #E9DDFE;
+  --color-ink:           #151225;
+  --color-slate:         #6B7280;
+  --color-muted:         #9CA3AF;
+  --color-brand:         #7C3AED;
   --color-brand-accent:  #A855F7;
+  --color-brand-soft:    #F3E8FF;
   
   --color-success:       #16A34A;
   --color-warning:       #F59E0B;
@@ -49,9 +48,6 @@
   --color-slate:         #94A3B8;
   --color-muted:         #64748B;
   --color-brand:         #8B5CF6;
-  --color-brand-deep:    #6D28D9;
-  --color-brand-soft:    #1E1B4B;
-  --color-brand-accent:  #A78BFA;
 }
 
 body {
@@ -60,23 +56,14 @@ body {
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--color-background);
   background-image: 
-    radial-gradient(at 0% 0%, rgba(123, 22, 217, 0.03) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.03) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(124, 58, 237, 0.05) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(255, 255, 255, 0.8) 0px, transparent 100%);
   background-attachment: fixed;
   color: var(--color-ink);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-size: 14px;
 }
 
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-/* Base utility for hiding scrollbars */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -84,3 +71,8 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+.card-premium {
+  @apply bg-white/90 backdrop-blur-xl border border-[var(--color-border)] rounded-[24px] shadow-sm hover:shadow-md transition-all duration-300;
+}
+
