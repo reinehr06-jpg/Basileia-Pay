@@ -10,15 +10,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="absolute top-[-15%] left-[-5%] w-[45%] h-[45%] bg-brand/5 rounded-full blur-[160px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[10%] w-[35%] h-[35%] bg-brand-accent/5 rounded-full blur-[140px] pointer-events-none" />
       
-      {/* Sidebar - Margined from screen edge as per Reference 2 */}
+      {/* Sidebar - Compact 260px as per refinement */}
       <Sidebar />
       
       <div className="flex flex-col flex-1 min-w-0 relative z-10 overflow-hidden">
         <Topbar />
         
-        {/* Main Content Area - Reduced padding for high density */}
-        <main className="flex-1 overflow-y-auto px-8 pb-8 no-scrollbar scroll-smooth">
-          <div className="max-w-[1600px] mx-auto">
+        {/* Main Content Area - Optimized padding for 260px sidebar */}
+        <main className="flex-1 overflow-y-auto px-6 pb-6 no-scrollbar scroll-smooth">
+          <div className="max-w-[1640px] mx-auto">
             {children}
           </div>
         </main>

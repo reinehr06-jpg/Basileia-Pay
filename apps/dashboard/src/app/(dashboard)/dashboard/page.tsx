@@ -34,10 +34,10 @@ export default function DashboardPage() {
       </header>
 
       {/* Main Content Grid - Maximum Utility Area */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 items-start">
         
-        {/* Left Column (8 units) */}
-        <div className="xl:col-span-8 flex flex-col gap-6 min-w-0">
+        {/* Left Column - Operations & Financials */}
+        <div className="flex flex-col gap-6 min-w-0">
           
           {/* KPIs Section */}
           <KpiGrid />
@@ -50,8 +50,8 @@ export default function DashboardPage() {
           
         </div>
 
-        {/* Right Column (4 units) */}
-        <div className="xl:col-span-4 min-w-0">
+        {/* Right Column - Intelligence & Health (Fixed 360px) */}
+        <div className="min-w-0">
           <OperationalSidePanel />
         </div>
       </div>
