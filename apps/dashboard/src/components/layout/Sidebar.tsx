@@ -102,36 +102,53 @@ export function Sidebar() {
         </nav>
 
         {/* Ambiente / Status Block - High Density */}
-        <div className="p-2 2xl:p-2.5 bg-brand-soft/20 border-t border-border/50">
+        <div className="p-2.5 bg-brand-soft/20 border-t border-border/50">
+          <p className="px-1 text-[8.5px] font-black text-slate uppercase tracking-widest mb-2 opacity-30">
+            RESUMO SISTEMAS
+          </p>
+          <div className="grid grid-cols-2 gap-1 mb-3">
+            {[
+              { label: 'Operacionais', count: 6, color: 'success' },
+              { label: 'Atenção', count: 1, color: 'warning' },
+              { label: 'Instáveis', count: 1, color: 'danger' },
+              { label: 'Off', count: 1, color: 'slate/30' },
+            ].map((s) => (
+              <div key={s.label} className="p-1.5 bg-white/50 rounded-lg border border-border/40 flex items-center justify-between">
+                <span className="text-[7.5px] font-black uppercase text-slate/50">{s.label}</span>
+                <span className={cn("text-[9px] font-black", `text-${s.color}`)}>{s.count}</span>
+              </div>
+            ))}
+          </div>
+
           <p className="px-1 text-[8.5px] font-black text-slate uppercase tracking-widest mb-1.5 opacity-30">
             AMBIENTE
           </p>
           <div className="space-y-1">
-            <div className="flex items-center justify-between px-2 py-1 bg-white/80 rounded-lg border border-border shadow-sm group cursor-pointer hover:border-brand/30 transition-all">
+            <div className="flex items-center justify-between px-2 py-1.5 bg-white/80 rounded-lg border border-border shadow-sm group cursor-pointer hover:border-brand/30 transition-all">
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-success shadow-[0_0_4px_rgba(22,163,74,0.4)]" />
-                <span className="text-[9.5px] 2xl:text-[10px] font-bold text-ink">Produção</span>
+                <span className="text-[10px] font-bold text-ink">Produção</span>
               </div>
               <ChevronRight className="w-2 h-2 text-muted/30" />
             </div>
 
-            <div className="flex items-center justify-between px-2 py-1 bg-white/80 rounded-lg border border-border shadow-sm">
+            <div className="flex items-center justify-between px-2 py-1.5 bg-white/80 rounded-lg border border-border shadow-sm">
               <div className="flex items-center gap-1.5">
                 <Globe className="w-3 h-3 text-brand opacity-40" />
-                <span className="text-[9.5px] 2xl:text-[10px] font-bold text-ink">São Paulo (BR)</span>
+                <span className="text-[10px] font-bold text-ink">São Paulo (BR)</span>
               </div>
             </div>
 
-            <div className="px-2 py-1.5 bg-white/80 rounded-lg border border-border shadow-sm space-y-0.5">
+            <div className="px-2 py-2 bg-white/80 rounded-lg border border-border shadow-sm space-y-0.5">
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-1">
-                   <ShieldCheck className="w-2.5 h-2.5 2xl:w-3 h-3 text-success opacity-60" />
-                   <span className="text-[9.5px] 2xl:text-[10px] font-bold text-ink">Saúde</span>
+                   <ShieldCheck className="w-3 h-3 text-success opacity-60" />
+                   <span className="text-[10px] font-bold text-ink">Saúde</span>
                  </div>
-                 <span className="text-[8.5px] 2xl:text-[9px] font-black text-success">99,95%</span>
+                 <span className="text-[9px] font-black text-success">99,95%</span>
               </div>
               <div className="flex items-center justify-between pt-0.5 border-t border-border/10">
-                 <span className="text-[7.5px] 2xl:text-[8px] font-bold text-muted uppercase tracking-tighter">1 min atrás</span>
+                 <span className="text-[8px] font-bold text-muted uppercase tracking-tighter">1 min atrás</span>
                  <div className="w-1 h-1 rounded-full bg-success animate-pulse" />
               </div>
             </div>
@@ -139,9 +156,9 @@ export function Sidebar() {
         </div>
 
         {/* Collapse Toggle */}
-        <div className="p-1.5 flex justify-center border-t border-border/50 shrink-0">
-           <button className="p-1 text-muted/30 hover:text-brand hover:bg-brand-soft rounded-lg transition-all">
-             <Monitor className="w-3 h-3 2xl:w-3.5 h-3.5" />
+        <div className="p-2 flex justify-center border-t border-border/50 shrink-0">
+           <button className="p-1.5 text-muted/30 hover:text-brand hover:bg-brand-soft rounded-lg transition-all">
+             <Monitor className="w-3.5 h-3.5" />
            </button>
         </div>
       </div>
