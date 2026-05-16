@@ -68,41 +68,42 @@ const kpis = [
 
 export function KpiGrid() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3.5 2xl:gap-6">
       {kpis.map((kpi) => (
         <div 
-          key={kpi.title}
-          className="p-5 rounded-[20px] border border-border bg-white shadow-sm hover:shadow-md transition-all relative overflow-hidden h-[142px] flex flex-col justify-between group"
+          key={kpi.title} 
+          className="group bg-white p-4 2xl:p-5 rounded-[20px] border border-border shadow-sm hover:shadow-xl hover:shadow-brand/5 hover:-translate-y-1 transition-all duration-500 h-[130px] 2xl:h-[142px] flex flex-col relative overflow-hidden"
         >
           {/* Header: Icon + Title */}
-          <div className="flex items-start justify-between relative z-10">
+          <div className="flex items-center justify-between relative z-10">
             <div className={cn(
-              "w-8.5 h-8.5 rounded-lg flex items-center justify-center shadow-sm shrink-0",
+              "w-7 h-7 2xl:w-8 2xl:h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-110",
               `bg-${kpi.color}/10`
             )}>
-              <kpi.icon className={cn("w-4 h-4", `text-${kpi.color}`)} />
+              <kpi.icon className={cn("w-3.5 h-3.5 2xl:w-4 2xl:h-4", `text-${kpi.color}`)} />
             </div>
-            <p className="text-[9px] font-black text-slate/40 uppercase tracking-[0.08em] text-right leading-tight ml-2">
+            <p className="text-[8px] 2xl:text-[9px] font-black text-slate/40 uppercase tracking-[0.10em] text-right leading-tight ml-2">
               {kpi.title}
             </p>
           </div>
 
           {/* Body: Value + Change */}
-          <div className="relative z-10 mt-auto pb-4">
-            <p className="text-[22px] font-black text-ink tracking-tighter leading-none mb-1 whitespace-nowrap">
+          <div className="relative z-10 mt-auto pb-2 2xl:pb-4">
+            <p className="text-[22px] 2xl:text-[27px] font-black text-ink tracking-tighter leading-none mb-1 whitespace-nowrap">
               {kpi.value}
             </p>
             <div className="flex items-center gap-1.5">
               <div className={cn(
-                "flex items-center text-[10px] font-black",
-                kpi.trend === 'up' ? "text-success" : "text-danger"
+                "flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8.5px] 2xl:text-[9px] font-black",
+                kpi.trend === 'up' ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
               )}>
-                {kpi.trend === 'up' ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowDownRight className="w-2.5 h-2.5" />}
+                {kpi.trend === 'up' ? <ArrowUpRight className="w-2.5 h-2.5" /> : <ArrowUpRight className="w-2.5 h-2.5 rotate-90" />}
                 {kpi.change}
               </div>
-              <span className="text-[9px] font-bold text-slate/30 uppercase tracking-tighter">vs 7 dias</span>
+              <span className="text-[8.5px] 2xl:text-[9px] font-bold text-slate/30">vs. ontem</span>
             </div>
           </div>
+
 
           {/* Sparkline: Refined & Transparent (No Fill/Overlay) */}
           <div className="absolute bottom-0 left-0 right-0 h-9 pointer-events-none">
