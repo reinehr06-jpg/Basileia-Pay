@@ -14,7 +14,8 @@ import {
   ChevronRight,
   ShieldCheck,
   Globe,
-  Monitor
+  Monitor,
+  Wallet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,23 +24,28 @@ const menuGroups = [
     title: 'HUB EXECUTIVO',
     items: [
       { name: 'Visão Geral', icon: LayoutDashboard, href: '/dashboard' },
-      { name: 'Transações', icon: ShoppingCart, href: '/dashboard/orders' },
+      { name: 'Sistemas', icon: Monitor, href: '/dashboard/systems' },
       { name: 'Checkouts', icon: CreditCard, href: '/dashboard/checkouts' },
-      { name: 'Assinaturas', icon: Repeat, href: '/dashboard/subscriptions' },
-      { name: 'Automações', icon: Zap, href: '/dashboard/automations' },
+      { name: 'Gateways', icon: Wallet, href: '/dashboard/gateways' },
     ]
   },
   {
     title: 'OPERAÇÕES',
     items: [
-      { name: 'Operações', icon: Activity, href: '/dashboard/operations' },
+      { name: 'Vendas', icon: ShoppingCart, href: '/dashboard/orders' },
+      { name: 'Pagamentos', icon: CreditCard, href: '/dashboard/payments' },
+      { name: 'Webhooks', icon: Zap, href: '/dashboard/webhooks' },
+      { name: 'Roteamento', icon: Repeat, href: '/dashboard/routing' },
     ]
   },
   {
-    title: 'AUDITORIA',
+    title: 'INTELIGÊNCIA',
     items: [
+      { name: 'Trust Layer', icon: ShieldCheck, href: '/dashboard/trust' },
       { name: 'Auditoria', icon: ClipboardList, href: '/dashboard/audit' },
-      { name: 'Configurações', icon: Settings, iconSize: 14, href: '/dashboard/settings', isSpecial: true },
+      { name: 'Desenvolvedores', icon: Activity, href: '/dashboard/developers' },
+      { name: 'Segurança', icon: ShieldCheck, href: '/dashboard/security' },
+      { name: 'Configurações', icon: Settings, href: '/dashboard/settings', isSpecial: true },
     ]
   }
 ];
