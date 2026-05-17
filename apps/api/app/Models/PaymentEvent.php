@@ -3,31 +3,47 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaymentEvent extends Model
 {
     protected $fillable = [
-        'transaction_uuid',
         'company_id',
-        'integration_id',
-        'gateway_id',
-        'gateway_type',
+        'payment_id',
+        'payment_attempt_id',
+        'order_id',
+        'checkout_session_id',
         'event_type',
-        'status_normalized',
-        'payment_method',
-        'currency',
-        'amount',
-        'gateway_status',
-        'gateway_code',
-        'gateway_message',
-        'bin',
-        'brand',
-        'country',
-        'occurred_at',
+        'status_from',
+        'status_to',
+        'provider',
+        'gateway_payment_id',
+        'request_id',
+        'trace_id',
+        'metadata_masked',
     ];
 
     protected $casts = [
-        'occurred_at' => 'datetime',
-        'amount'      => 'decimal:2',
+        'metadata_masked' => 'array',
     ];
+
+    public function payment(): BelongsTo
+    {
+        return $this->belongsTo(Payment::class);
+    }
+
+    public function attempt(): BelongsTo
+    {
+        return $this->belongsTo(PaymentAttempt::class, 'payment_attempt_id');
+    }
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function checkoutSession(): BelongsTo
+    {
+        return $this->belongsTo(CheckoutSession::class);
+    }
 }

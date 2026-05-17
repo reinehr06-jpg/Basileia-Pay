@@ -2,59 +2,35 @@
 
 namespace App\Services\Payment;
 
-use App\Services\Gateway\GatewayInterface;
-use App\Services\Gateway\GatewayResolver;
+use App\Services\Gateways\GatewayFactory;
+use App\Models\GatewayAccount;
+use App\Models\Order;
 use App\Helpers\PaymentStatusMapper;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Serviço dedicado a pagamentos via Boleto.
- * Encapsula criação de customer, cobrança e geração do link/código do boleto.
- */
 class BoletoPaymentService
 {
-    /**
-     * Processar pagamento com Boleto.
-     *
-     * @param array $input [amountBRL, description, remoteIp]
-     * @param array $customerData [name, email, document]
-     * @param GatewayInterface|null $gateway Gateway opcional
-     * @return array [gatewayId, boletoUrl, boletoBarcode]
-     */
-    public function charge(array $input, array $customerData, ?GatewayInterface $gateway = null): array
+    public function __construct(protected GatewayFactory $gatewayFactory) {}
+
+    public function charge(GatewayAccount $account, Order $order, array $customerData): array
     {
-        $gateway = $gateway ?? GatewayResolver::resolveGateway('asaas');
+        Log::info('BoletoPaymentService: Initiating charge', ['order_id' => $order->uuid]);
 
-        $customerId = $gateway->createCustomer([
-            'name' => $customerData['name'],
-            'email' => $customerData['email'],
-            'phone' => '',
-            'document' => $customerData['document'],
-            'zip' => '',
-        ]);
-
-        Log::info('BoletoPaymentService: Customer created', ['customerId' => $customerId]);
-
-        $result = $gateway->chargeViaBoleto($input, $customerId);
+        $provider = $this->gatewayFactory->make($account);
+        $result = $provider->chargeViaBoleto($account, $order, $customerData);
 
         Log::info('BoletoPaymentService: Payment created', [
-            'gatewayId' => $result['gatewayId'] ?? null,
+            'transaction_id' => $result['transaction_id'] ?? null,
         ]);
 
         return $result;
     }
 
-    /**
-     * Mapear status do gateway para status interno.
-     */
     public function mapStatus(string $gatewayStatus): string
     {
         return PaymentStatusMapper::mapStatus($gatewayStatus);
     }
 
-    /**
-     * Verificar se o status indica pagamento confirmado.
-     */
     public function isPaid(string $gatewayStatus): bool
     {
         return PaymentStatusMapper::isPaid($gatewayStatus);

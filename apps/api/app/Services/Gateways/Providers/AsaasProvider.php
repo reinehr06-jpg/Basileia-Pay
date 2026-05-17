@@ -17,56 +17,121 @@ class AsaasProvider implements GatewayProvider
         $this->baseUrl = config('services.asaas.url', 'https://api.asaas.com/v3');
     }
 
-    public function generatePix(GatewayAccount $account, Order $order, array $customer): array
+    public function chargeViaPix(GatewayAccount $account, Order $order, array $customer): array
     {
         $apiKey = $this->getApiKey($account);
 
-        // 1. Criar a cobrança no Asaas
         $response = Http::withHeaders(['access_token' => $apiKey])
             ->post($this->baseUrl . '/payments', [
                 'customer'    => $this->getOrCreateCustomer($account, $customer),
                 'billingType' => 'PIX',
-                'value'       => $order->amount / 100, // Asaas usa decimal
+                'value'       => $order->amount / 100,
                 'dueDate'     => now()->addDays(1)->format('Y-m-d'),
                 'externalReference' => $order->uuid,
                 'description' => "Pedido #{$order->external_order_id}",
             ]);
 
         if (!$response->successful()) {
-            Log::error("Erro Asaas (Payment): " . $response->body());
-            throw new \Exception("Erro ao gerar cobrança no Asaas.");
+            Log::error("Asaas API Error (Pix): " . $response->body());
+            throw new \Exception("Erro ao gerar PIX no Asaas: " . ($response->json('errors.0.description') ?? 'Desconhecido'));
         }
 
         $paymentData = $response->json();
         $asaasId = $paymentData['id'];
 
-        // 2. Buscar o QR Code do PIX
         $qrResponse = Http::withHeaders(['access_token' => $apiKey])
             ->get($this->baseUrl . "/payments/{$asaasId}/pixQrCode");
-
-        if (!$qrResponse->successful()) {
-            Log::error("Erro Asaas (QRCode): " . $qrResponse->body());
-            throw new \Exception("Erro ao recuperar QR Code do Asaas.");
-        }
 
         $qrData = $qrResponse->json();
 
         return [
             'transaction_id' => $asaasId,
             'status'         => 'pending',
-            'pix_qrcode'     => $qrData['encodedImage'] ?? $qrData['payload'],
+            'pix_qrcode'     => $qrData['payload'] ?? null,
             'pix_url'        => $paymentData['invoiceUrl'],
             'raw_response'   => $paymentData
         ];
     }
 
-    public function processCreditCard(GatewayAccount $account, Order $order, array $cardData, array $customer): array
+    public function chargeViaCard(GatewayAccount $account, Order $order, array $customer, array $card): array
     {
-        // Implementação básica de Cartão para V1 (Futuro)
-        throw new \Exception("Método Cartão não implementado para Asaas na V1.");
+        $apiKey = $this->getApiKey($account);
+
+        $response = Http::withHeaders(['access_token' => $apiKey])
+            ->post($this->baseUrl . '/payments', [
+                'customer'    => $this->getOrCreateCustomer($account, $customer),
+                'billingType' => 'CREDIT_CARD',
+                'value'       => $order->amount / 100,
+                'dueDate'     => now()->format('Y-m-d'),
+                'externalReference' => $order->uuid,
+                'creditCard' => [
+                    'holderName'  => $card['holder_name'],
+                    'number'      => $card['number'],
+                    'expiryMonth' => $card['expiration_month'],
+                    'expiryYear'  => $card['expiration_year'],
+                    'ccv'         => $card['cvv'],
+                ],
+                'creditCardHolderInfo' => [
+                    'name'              => $customer['name'],
+                    'email'             => $customer['email'],
+                    'cpfCnpj'           => $customer['document'],
+                    'postalCode'        => $customer['zipcode'] ?? '00000000',
+                    'addressNumber'     => $customer['number'] ?? 'SN',
+                    'phone'             => $customer['phone'] ?? '',
+                ],
+                'installments' => $card['installments'] ?? 1,
+            ]);
+
+        $data = $response->json();
+
+        if (!$response->successful()) {
+            Log::error("Asaas API Error (Card): " . $response->body());
+            return [
+                'status' => 'failed',
+                'transaction_id' => $data['id'] ?? null,
+                'raw_response' => $data
+            ];
+        }
+
+        return [
+            'transaction_id' => $data['id'],
+            'status'         => strtolower($data['status']) === 'confirmed' ? 'approved' : 'processing',
+            'brand'          => $data['creditCard']['brand'] ?? null,
+            'last4'          => substr($card['number'], -4),
+            'raw_response'   => $data
+        ];
     }
 
-    public function cancelPayment(GatewayAccount $account, string $externalId): bool
+    public function chargeViaBoleto(GatewayAccount $account, Order $order, array $customer): array
+    {
+        $apiKey = $this->getApiKey($account);
+
+        $response = Http::withHeaders(['access_token' => $apiKey])
+            ->post($this->baseUrl . '/payments', [
+                'customer'    => $this->getOrCreateCustomer($account, $customer),
+                'billingType' => 'BOLETO',
+                'value'       => $order->amount / 100,
+                'dueDate'     => now()->addDays(3)->format('Y-m-d'),
+                'externalReference' => $order->uuid,
+            ]);
+
+        if (!$response->successful()) {
+            Log::error("Asaas API Error (Boleto): " . $response->body());
+            throw new \Exception("Erro ao gerar boleto no Asaas.");
+        }
+
+        $data = $response->json();
+
+        return [
+            'transaction_id' => $data['id'],
+            'status'         => 'pending',
+            'boleto_url'     => $data['bankSlipUrl'],
+            'boleto_barcode' => $data['nossoNumero'], // Asaas as vezes retorna isso ou a linha digitável
+            'raw_response'   => $data
+        ];
+    }
+
+    public function cancel(GatewayAccount $account, string $externalId): bool
     {
         $apiKey = $this->getApiKey($account);
         $response = Http::withHeaders(['access_token' => $apiKey])
@@ -75,7 +140,7 @@ class AsaasProvider implements GatewayProvider
         return $response->successful();
     }
 
-    public function refundPayment(GatewayAccount $account, string $externalId, ?float $amount = null): bool
+    public function refund(GatewayAccount $account, string $externalId, ?float $amount = null): bool
     {
         $apiKey = $this->getApiKey($account);
         $payload = [];
@@ -87,27 +152,17 @@ class AsaasProvider implements GatewayProvider
         return $response->successful();
     }
 
-    /**
-     * Recupera a API Key criptografada da conta.
-     */
     protected function getApiKey(GatewayAccount $account): string
     {
         $credential = $account->credentials()->where('key', 'api_key')->first();
-        if (!$credential) {
-            throw new \Exception("API Key não encontrada para a conta de gateway {$account->name}");
-        }
-        return $credential->value; // O Model GatewayCredential já faz o decrypt automático
+        if (!$credential) throw new \Exception("API Key não encontrada.");
+        return $credential->value;
     }
 
-    /**
-     * Helper para buscar ou criar cliente no Asaas.
-     */
     protected function getOrCreateCustomer(GatewayAccount $account, array $customerData): string
     {
         $apiKey = $this->getApiKey($account);
         
-        // Simples: Criar sempre um novo ou buscar por email na V2
-        // Para a V1, vamos criar um cliente "on-the-fly"
         $response = Http::withHeaders(['access_token' => $apiKey])
             ->post($this->baseUrl . '/customers', [
                 'name'  => $customerData['name'],
@@ -116,5 +171,44 @@ class AsaasProvider implements GatewayProvider
             ]);
 
         return $response->json('id');
+    }
+
+    public function createCustomer(GatewayAccount $account, array $customerData): array
+    {
+        $id = $this->getOrCreateCustomer($account, $customerData);
+        return ['id' => $id];
+    }
+
+    public function getPaymentStatus(GatewayAccount $account, string $externalId): array
+    {
+        $apiKey = $this->getApiKey($account);
+        $response = Http::withHeaders(['access_token' => $apiKey])
+            ->get($this->baseUrl . "/payments/{$externalId}");
+
+        if (!$response->successful()) {
+            throw new \Exception("Erro ao buscar status do pagamento.");
+        }
+
+        return $response->json();
+    }
+
+    public function createSplit(GatewayAccount $account, array $splitRules): array
+    {
+        throw new \Exception("Not implemented");
+    }
+
+    public function createSubscription(GatewayAccount $account, array $subscriptionData): array
+    {
+        throw new \Exception("Not implemented");
+    }
+
+    public function validateWebhook(GatewayAccount $account, array $payload, string $signature): bool
+    {
+        return true; // Simplified for now
+    }
+
+    public function parseWebhook(GatewayAccount $account, array $payload): array
+    {
+        return $payload;
     }
 }

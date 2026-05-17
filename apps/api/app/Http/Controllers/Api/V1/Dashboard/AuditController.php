@@ -4,34 +4,28 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Services\TenantContext;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AuditController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Listar logs de auditoria da empresa.
+     */
+    public function index(Request $request): JsonResponse
     {
-        $logs = AuditLog::where('company_id', TenantContext::companyId())
-            ->with(['user'])
-            ->latest()
-            ->paginate($request->per_page ?? 25);
+        $logs = AuditLog::where('company_id', $request->user()->company_id)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->paginate($request->input('per_page', 20));
 
         return response()->json([
             'success' => true,
-            'data' => $logs->getCollection()->map(fn($l) => [
-                'id' => $l->id,
-                'uuid' => $l->uuid,
-                'event' => $l->event,
-                'user_name' => $l->user?->name ?? 'Sistema',
-                'entity_type' => $l->entity_type,
-                'ip_address' => $l->ip_address,
-                'metadata' => $l->metadata,
-                'created_at' => $l->created_at->format('d/m/Y H:i:s'),
-            ]),
-            'meta' => [
+            'data'    => $logs->items(),
+            'meta'    => [
                 'current_page' => $logs->currentPage(),
-                'last_page' => $logs->lastPage(),
-                'total' => $logs->total(),
+                'last_page'    => $logs->lastPage(),
+                'total'        => $logs->total(),
             ]
         ]);
     }

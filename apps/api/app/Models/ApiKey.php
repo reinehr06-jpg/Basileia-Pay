@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models; use App\Models\Concerns\HasUuid;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,7 +18,7 @@ class ApiKey extends Model
         'company_id',
         'connected_system_id',
         'name',
-        'key',
+        'key_prefix',
         'key_hash',
         'environment',
         'scopes',

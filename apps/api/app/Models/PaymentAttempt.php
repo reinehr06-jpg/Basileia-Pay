@@ -2,24 +2,24 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PaymentAttempt extends Model
 {
-    use HasFactory;
+    use HasFactory, HasUuid;
 
     protected $fillable = [
         'payment_id',
+        'company_id',
         'gateway_account_id',
         'method',
         'status',
+        'gateway_payment_id',
         'request_payload_masked',
         'response_payload_masked',
-        'gateway_reference',
-        'error_code',
-        'error_message',
         'started_at',
         'finished_at',
     ];
@@ -34,10 +34,5 @@ class PaymentAttempt extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
-    }
-
-    public function gatewayAccount(): BelongsTo
-    {
-        return $this->belongsTo(GatewayAccount::class);
     }
 }

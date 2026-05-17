@@ -27,6 +27,10 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(AuditService::class, function () {
             return new AuditService();
         });
+
+        $this->app->singleton(\App\Services\Security\SensitiveDataMasker::class, function () {
+            return new \App\Services\Security\SensitiveDataMasker();
+        });
     }
 
     public function boot(): void
@@ -50,21 +54,43 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // ── Rate Limiters ──────────────────────────────────────────────────
-        \Illuminate\Support\Facades\RateLimiter::for('login', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(5)->by($request->ip());
+        
+        // 1. Login & Auth (5 tentativas por IP/E-mail em 10 minutos)
+        \Illuminate\Support\Facades\RateLimiter::for('auth', function (\Illuminate\Http\Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinutes(10, 5)->by($request->input('email', $request->ip()));
         });
 
-        \Illuminate\Support\Facades\RateLimiter::for('api', function (\Illuminate\Http\Request $request) {
-            $companyId = optional($request->user())->company_id ?? $request->ip();
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(120)->by($companyId);
+        // 2. 2FA Verification (5 tentativas em 10 minutos)
+        \Illuminate\Support\Facades\RateLimiter::for('2fa', function (\Illuminate\Http\Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinutes(10, 5)->by($request->user()?->id ?: $request->ip());
         });
 
-        \Illuminate\Support\Facades\RateLimiter::for('master_login', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(3)->by($request->ip());
+        // 3. Checkout Pay (Limite rígido: 10 tentativas por session_token em 10 minutos)
+        \Illuminate\Support\Facades\RateLimiter::for('checkout_pay', function (\Illuminate\Http\Request $request) {
+            $token = $request->route('sessionToken') ?: $request->ip();
+            return \Illuminate\Cache\RateLimiting\Limit::perMinutes(10, 10)->by($token);
         });
 
-        \Illuminate\Support\Facades\RateLimiter::for('checkout', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($request->ip());
+        // 4. Checkout Status (Polling: 60 requests por minuto)
+        \Illuminate\Support\Facades\RateLimiter::for('checkout_status', function (\Illuminate\Http\Request $request) {
+            $token = $request->route('sessionToken') ?: $request->ip();
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(60)->by($token);
+        });
+
+        // 5. API Externa (Por Company/Key: 120/min)
+        \Illuminate\Support\Facades\RateLimiter::for('api_external', function (\Illuminate\Http\Request $request) {
+            $key = $request->header('X-API-Key') ?: $request->ip();
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(120)->by($key);
+        });
+
+        // 6. Webhooks Inbound (Por Provider/IP)
+        \Illuminate\Support\Facades\RateLimiter::for('webhooks', function (\Illuminate\Http\Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(300)->by($request->ip());
+        });
+
+        // 7. Dashboard API
+        \Illuminate\Support\Facades\RateLimiter::for('dashboard', function (\Illuminate\Http\Request $request) {
+            return \Illuminate\Cache\RateLimiting\Limit::perMinute(200)->by($request->user()?->id ?: $request->ip());
         });
     }
 }

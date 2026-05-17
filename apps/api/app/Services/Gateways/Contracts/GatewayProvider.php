@@ -4,27 +4,18 @@ namespace App\Services\Gateways\Contracts;
 
 use App\Models\GatewayAccount;
 use App\Models\Order;
-use App\Models\Payment;
 
 interface GatewayProvider
 {
-    /**
-     * Gera um pagamento via PIX.
-     */
-    public function generatePix(GatewayAccount $account, Order $order, array $customer): array;
-
-    /**
-     * Processa um pagamento via Cartão de Crédito.
-     */
-    public function processCreditCard(GatewayAccount $account, Order $order, array $cardData, array $customer): array;
-
-    /**
-     * Cancela um pagamento.
-     */
-    public function cancelPayment(GatewayAccount $account, string $externalId): bool;
-
-    /**
-     * Realiza o estorno de um pagamento.
-     */
-    public function refundPayment(GatewayAccount $account, string $externalId, ?float $amount = null): bool;
+    public function chargeViaPix(GatewayAccount $account, Order $order, array $customer): array;
+    public function chargeViaCard(GatewayAccount $account, Order $order, array $customer, array $card): array;
+    public function chargeViaBoleto(GatewayAccount $account, Order $order, array $customer): array;
+    public function refund(GatewayAccount $account, string $externalId, ?float $amount = null): bool;
+    public function cancel(GatewayAccount $account, string $externalId): bool;
+    public function getPaymentStatus(GatewayAccount $account, string $externalId): array;
+    public function createCustomer(GatewayAccount $account, array $customerData): array;
+    public function createSplit(GatewayAccount $account, array $splitRules): array;
+    public function createSubscription(GatewayAccount $account, array $subscriptionData): array;
+    public function validateWebhook(GatewayAccount $account, array $payload, string $signature): bool;
+    public function parseWebhook(GatewayAccount $account, array $payload): array;
 }

@@ -23,11 +23,6 @@ return Application::configure(basePath: dirname(__DIR__))
         // Global tracing for all requests
         $middleware->prepend(\App\Http\Middleware\RequestTracingMiddleware::class);
 
-        // Resolve context for API requests
-        $middleware->prependToGroup('api', [
-            \App\Http\Middleware\ResolveApiKey::class,
-        ]);
-
         // Sanctum stateful requests
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
@@ -39,7 +34,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // Route middleware aliases
         $middleware->alias([
             'reauth' => \App\Http\Middleware\RequireReauth::class,
-            'api.auth' => \App\Http\Middleware\ResolveApiKey::class,
+            'resolve.api.key' => \App\Http\Middleware\ResolveApiKey::class,
+            'validate.session' => \App\Http\Middleware\ValidateSessionContext::class,
+            '2fa' => \App\Http\Middleware\EnsureTwoFactorVerified::class,
+            'rate.company' => \App\Http\Middleware\RateLimitByCompany::class,
+            'rate.checkout' => \App\Http\Middleware\RateLimitCheckout::class,
         ]);
 
     })

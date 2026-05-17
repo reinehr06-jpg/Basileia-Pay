@@ -10,6 +10,13 @@ use Illuminate\Http\Request;
 
 class SessionFramesController extends Controller
 {
+    protected $collector;
+
+    public function __construct(\App\Services\Analytics\EventCollector $collector)
+    {
+        $this->collector = $collector;
+    }
+
     public function store(Request $request, string $token): JsonResponse
     {
         $session = CheckoutSession::where('session_token', $token)->firstOrFail();
@@ -50,7 +57,13 @@ class SessionFramesController extends Controller
         
         $session->update([
             'status' => 'abandoned',
-            // In a real scenario we'd update analytics table too
+        ]);
+
+        $this->collector->collect('abandonment', [
+            'company_id' => $session->company_id,
+            'session_id' => $session->id,
+            'last_action' => $request->input('last_action'),
+            'time_spent' => $request->input('time_spent'),
         ]);
 
         return response()->json(['status' => 'abandoned']);

@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,
             ConnectedSystemSeeder::class,
             GatewaySeeder::class,
+            CheckoutSessionSeeder::class,
         ]);
     }
 }

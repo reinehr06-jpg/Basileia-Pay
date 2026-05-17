@@ -7,10 +7,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\Concerns\BelongsToCompany;
+use App\Models\Concerns\HasUuid;
 
 class Order extends Model
 {
-    use HasFactory, BelongsToCompany;
+    use HasFactory, BelongsToCompany, HasUuid;
 
     protected $fillable = [
         'uuid',
@@ -21,19 +22,7 @@ class Order extends Model
         'amount',
         'currency',
         'status',
-        'metadata',
     ];
-
-    protected $casts = [
-        'metadata' => 'array',
-        'customer' => 'array',
-        'items' => 'array',
-    ];
-
-    public function items(): HasMany
-    {
-        return $this->hasMany(OrderItem::class);
-    }
 
     public function connectedSystem(): BelongsTo
     {

@@ -2,65 +2,46 @@
 
 namespace App\Services\Payment;
 
-use App\Services\Gateway\GatewayInterface;
-use App\Services\Gateway\GatewayResolver;
+use App\Services\Gateways\GatewayFactory;
+use App\Models\GatewayAccount;
+use App\Models\Order;
 use App\Helpers\PaymentStatusMapper;
 use Illuminate\Support\Facades\Log;
 
-/**
- * Serviço dedicado a pagamentos via cartão de crédito.
- * Encapsula criação de customer, cobrança e mapeamento de status.
- */
 class CardPaymentService
 {
-    /**
-     * Processar pagamento com cartão de crédito.
-     *
-     * @param array $input [amountBRL, installments, description, cardToken, cardHolderName, cardExpiry, cardCvv, remoteIp]
-     * @param array $customerData [name, email, document]
-     * @param string $billingCycle 'once' | 'annual'
-     * @param GatewayInterface|null $gateway Gateway opcional (usa resolução automática se não informado)
-     * @return array [gatewayId, status, raw]
-     */
-    public function charge(array $input, array $customerData, string $billingCycle = 'once', ?GatewayInterface $gateway = null): array
+    public function __construct(protected GatewayFactory $gatewayFactory) {}
+
+    public function charge(GatewayAccount $account, Order $order, array $customerData, array $card, string $billingCycle = 'once'): array
     {
-        $gateway = $gateway ?? GatewayResolver::resolveGateway('asaas');
+        Log::info('CardPaymentService: Initiating charge', ['order_id' => $order->uuid]);
 
-        $customerId = $gateway->createCustomer([
-            'name' => $customerData['name'],
-            'email' => $customerData['email'],
-            'phone' => '',
-            'document' => $customerData['document'],
-            'zip' => '',
-        ]);
-
-        Log::info('CardPaymentService: Customer created', ['customerId' => $customerId]);
-
+        $provider = $this->gatewayFactory->make($account);
+        
         if ($billingCycle === 'annual') {
-            $result = $gateway->createSubscription($input, $customerId);
+            $result = $provider->createSubscription($account, [
+                'order' => $order,
+                'customer' => $customerData,
+                'card' => $card,
+                'cycle' => 'annual'
+            ]);
         } else {
-            $result = $gateway->charge($input, $customerId);
+            $result = $provider->chargeViaCard($account, $order, $customerData, $card);
         }
 
         Log::info('CardPaymentService: Payment processed', [
-            'gatewayId' => $result['gatewayId'] ?? null,
+            'transaction_id' => $result['transaction_id'] ?? null,
             'status' => $result['status'] ?? null,
         ]);
 
         return $result;
     }
 
-    /**
-     * Mapear status do gateway para status interno.
-     */
     public function mapStatus(string $gatewayStatus): string
     {
         return PaymentStatusMapper::mapStatus($gatewayStatus);
     }
 
-    /**
-     * Verificar se o status indica pagamento confirmado.
-     */
     public function isPaid(string $gatewayStatus): bool
     {
         return PaymentStatusMapper::isPaid($gatewayStatus);

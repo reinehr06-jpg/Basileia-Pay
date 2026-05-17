@@ -13,7 +13,7 @@ trait BelongsToCompany
     protected static function bootBelongsToCompany(): void
     {
         static::addGlobalScope('company', function (Builder $builder) {
-            if ($company = app('current_company')) {
+            if (app()->bound('current_company') && $company = app('current_company')) {
                 $builder->where(
                     (new static)->getTable() . '.company_id',
                     $company->id
@@ -22,7 +22,7 @@ trait BelongsToCompany
         });
 
         static::creating(function ($model) {
-            if (empty($model->company_id) && $company = app('current_company')) {
+            if (empty($model->company_id) && app()->bound('current_company') && $company = app('current_company')) {
                 $model->company_id = $company->id;
             }
         });

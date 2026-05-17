@@ -94,7 +94,7 @@ class CheckoutSessionController extends Controller
 
         $this->idempotency->store($idempotencyKey, 'checkout_session', $result);
 
-        $this->audit->log('checkout_session.created', $company->id, null, 'CheckoutSession', $session->id);
+        $this->audit->log('checkout_session.created', $session);
 
         return response()->json($result, 201);
     }

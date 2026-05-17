@@ -9,7 +9,7 @@ return [
 
     'guard' => ['web'],
 
-    'expiration' => null,
+    'expiration' => env('SANCTUM_EXPIRATION', 1440), // 24 horas
 
     'middleware' => [
         'verify_csrf_token' => App\Http\Middleware\VerifyCsrfToken::class,

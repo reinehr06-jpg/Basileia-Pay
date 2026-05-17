@@ -24,7 +24,7 @@ class ConnectedSystemSeeder extends Seeder
             'company_id' => 1,
             'connected_system_id' => $system->id,
             'name' => 'Default API Key',
-            'key' => 'bp_test_default_key',
+            'key_prefix' => 'bp_test_defa',
             'key_hash' => hash('sha256', 'bp_test_default_key'),
             'environment' => 'sandbox',
         ]);

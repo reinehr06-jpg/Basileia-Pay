@@ -2,45 +2,77 @@
 
 namespace App\Services\Webhooks;
 
-use App\Models\ConnectedSystem;
+use App\Models\WebhookEndpoint;
 use App\Models\WebhookDelivery;
-use App\Jobs\SendOriginWebhookJob;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class WebhookDispatcher
 {
     /**
-     * Despacha um evento de webhook para o sistema de origem.
+     * Dispara eventos para os endpoints configurados de uma empresa.
      */
-    public function dispatch(ConnectedSystem $system, string $event, array $payload)
+    public function dispatch(int $companyId, string $event, array $data): void
     {
-        // 1. Localizar o endpoint ativo para o sistema
-        $endpoint = $system->webhooks()->where('status', 'active')->first();
+        $endpoints = WebhookEndpoint::where('company_id', $companyId)
+            ->where('active', true)
+            ->get();
 
-        if (!$endpoint) {
-            return null;
+        foreach ($endpoints as $endpoint) {
+            // Filtrar eventos se houver configuração específica (v2)
+            
+            $this->send($endpoint, $event, $data);
         }
+    }
 
-        // 2. Verificar se o endpoint assina este evento
-        if ($endpoint->events && !in_array($event, $endpoint->events)) {
-            // Se houver lista de eventos e este não estiver nela, ignora
-            // Mas se for null, assume que assina todos (padrão V1)
-        }
+    /**
+     * Envia o payload para um endpoint específico.
+     */
+    protected function send(WebhookEndpoint $endpoint, string $event, array $data): void
+    {
+        $deliveryId = 'whd_' . Str::random(16);
+        $timestamp = time();
+        $payload = [
+            'id' => $deliveryId,
+            'event' => $event,
+            'created_at' => date('Y-m-d H:i:s', $timestamp),
+            'data' => $data,
+        ];
 
-        // 3. Criar o registro de entrega
+        $jsonPayload = json_encode($payload);
+        $signature = hash_hmac('sha256', $timestamp . '.' . $jsonPayload, $endpoint->secret);
+
         $delivery = WebhookDelivery::create([
             'uuid'                => (string) Str::uuid(),
-            'connected_system_id' => $system->id,
+            'company_id'          => $endpoint->company_id,
             'webhook_endpoint_id' => $endpoint->id,
             'event'               => $event,
-            'payload_masked'      => $payload,
+            'payload'             => $payload,
             'status'              => 'pending',
-            'attempts'            => 0,
+            'attempt_count'       => 1,
         ]);
 
-        // 4. Enfileirar o disparo
-        SendOriginWebhookJob::dispatch($delivery);
+        try {
+            $response = Http::withHeaders([
+                'X-Basileia-Signature' => 'sha256=' . $signature,
+                'X-Basileia-Event' => $event,
+                'X-Basileia-Delivery-ID' => $deliveryId,
+                'Content-Type' => 'application/json',
+            ])->timeout(10)->post($endpoint->url, $payload);
 
-        return $delivery;
+            $delivery->update([
+                'status' => $response->successful() ? 'success' : 'failed',
+                'response_status' => $response->status(),
+                'response_body' => $response->body(),
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error("Falha no envio de webhook [{$deliveryId}]: " . $e->getMessage());
+            $delivery->update([
+                'status' => 'failed',
+                'response_body' => $e->getMessage(),
+            ]);
+        }
     }
 }

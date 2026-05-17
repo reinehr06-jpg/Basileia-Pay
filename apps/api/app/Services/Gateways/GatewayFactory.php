@@ -4,6 +4,8 @@ namespace App\Services\Gateways;
 
 use App\Services\Gateways\Contracts\GatewayProvider;
 use App\Services\Gateways\Providers\AsaasProvider;
+use App\Services\Gateways\Providers\StripeProvider;
+use App\Services\Gateways\Providers\PagSeguroProvider;
 use App\Models\GatewayAccount;
 
 class GatewayFactory
@@ -13,12 +15,11 @@ class GatewayFactory
      */
     public function make(GatewayAccount $account): GatewayProvider
     {
-        switch ($account->gateway_type) {
-            case 'asaas':
-                return new AsaasProvider();
-            
-            default:
-                throw new \Exception("Provedor [{$account->gateway_type}] não suportado.");
-        }
+        return match (strtolower($account->gateway_type)) {
+            'asaas'     => new AsaasProvider(),
+            'stripe'    => new StripeProvider(),
+            'pagseguro' => new PagSeguroProvider(),
+            default     => throw new \Exception("Provedor [{$account->gateway_type}] não suportado."),
+        };
     }
 }

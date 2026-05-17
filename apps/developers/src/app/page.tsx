@@ -48,11 +48,11 @@ export default function DevelopersHome() {
                     <p className="text-white/50">// Instale o SDK</p>
                     <p className="text-brand">npm <span className="text-white">install @basileia/js</span></p>
                     <p className="text-white/50 mt-4">// Crie um checkout em 3 linhas</p>
-                    <p className="text-white"><span className="text-brand">const</span> basileia = <span className="text-brand">new</span> BasileiaClient({ apiKey: <span className="text-success">'bp_live_...'</span> });</p>
-                    <p className="text-white"><span className="text-brand">const</span> session = <span className="text-brand">await</span> basileia.checkouts.create({</p>
+                    <p className="text-white"><span className="text-brand">const</span> basileia = <span className="text-brand">new</span> BasileiaClient(&#123; apiKey: <span className="text-success">'bp_live_...'</span> &#125;);</p>
+                    <p className="text-white"><span className="text-brand">const</span> session = <span className="text-brand">await</span> basileia.checkouts.create(&#123;</p>
                     <p className="text-white ml-4">amount: <span className="text-warning">29900</span>,</p>
-                    <p className="text-white ml-4">customer: { name: <span className="text-success">'João Silva'</span> }</p>
-                    <p className="text-white">});</p>
+                    <p className="text-white ml-4">customer: &#123; name: <span className="text-success">'João Silva'</span> &#125;</p>
+                    <p className="text-white">&#125;);</p>
                     <p className="text-white/50 mt-4">// Redirecione ou use o Embed</p>
                     <p className="text-white">window.location.href = session.checkoutUrl;</p>
                 </div>

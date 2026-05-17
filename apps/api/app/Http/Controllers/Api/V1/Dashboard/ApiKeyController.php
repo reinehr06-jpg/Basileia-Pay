@@ -23,7 +23,7 @@ class ApiKeyController extends Controller
                 'id' => $k->id,
                 'uuid' => $k->uuid,
                 'name' => $k->name,
-                'key_preview' => 'bp_' . $k->environment . '_' . substr($k->key, 0, 8) . '...',
+                'key_preview' => $k->key_prefix . '...',
                 'environment' => $k->environment,
                 'system_name' => $k->connectedSystem?->name ?? 'Global',
                 'last_used_at' => $k->last_used_at ? $k->last_used_at->format('d/m/Y H:i') : 'Nunca',
@@ -40,16 +40,17 @@ class ApiKeyController extends Controller
             'connected_system_id' => 'nullable|exists:connected_systems,id',
         ]);
 
-        $keyString = 'bp_' . $validated['environment'] . '_' . Str::random(32);
+        $rawKey = Str::random(40);
+        $keyString = 'bp_' . ($validated['environment'] === 'production' ? 'live' : 'test') . '_' . $rawKey;
+        $prefix = substr($keyString, 0, 12);
         
         $apiKey = ApiKey::create([
             'company_id' => TenantContext::companyId(),
             'connected_system_id' => $validated['connected_system_id'],
             'name' => $validated['name'],
-            'key' => $keyString,
+            'key_prefix' => $prefix,
             'key_hash' => hash('sha256', $keyString),
             'environment' => $validated['environment'],
-            'status' => 'active',
         ]);
 
         return response()->json([

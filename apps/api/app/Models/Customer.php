@@ -9,11 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Customer extends Model
 {
     protected $fillable = [
+        'uuid',
         'company_id',
         'external_id',
         'name',
         'email',
         'document',
+        'document_type',
         'phone',
         'address',
         'gateway_customer_id',

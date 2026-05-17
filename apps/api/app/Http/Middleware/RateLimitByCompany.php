@@ -32,8 +32,8 @@ class RateLimitByCompany
 
         $response = $next($request);
 
-        $response->headers->add('X-RateLimit-Limit', $this->maxAttempts);
-        $response->headers->add('X-RateLimit-Remaining', RateLimiter::remaining($key, $this->maxAttempts));
+        $response->headers->set('X-RateLimit-Limit', $this->maxAttempts);
+        $response->headers->set('X-RateLimit-Remaining', RateLimiter::remaining($key, $this->maxAttempts));
 
         return $response;
     }

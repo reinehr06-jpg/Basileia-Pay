@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -10,7 +11,7 @@ use App\Models\Concerns\BelongsToCompany;
 
 class Payment extends Model
 {
-    use HasFactory, BelongsToCompany;
+    use HasFactory, BelongsToCompany, HasUuid;
 
     protected $fillable = [
         'uuid',
@@ -24,14 +25,19 @@ class Payment extends Model
         'currency',
         'gateway_payment_id',
         'idempotency_key',
-        'trace_id',
-        'approved_at',
-        'refunded_at',
+        'pix_qrcode',
+        'pix_qrcode_url',
+        'pix_expires_at',
+        'boleto_url',
+        'boleto_barcode',
+        'gateway_response',
+        'paid_at',
     ];
 
     protected $casts = [
-        'approved_at' => 'datetime',
-        'refunded_at' => 'datetime',
+        'pix_expires_at' => 'datetime',
+        'paid_at' => 'datetime',
+        'gateway_response' => 'array',
     ];
 
     public function order(): BelongsTo

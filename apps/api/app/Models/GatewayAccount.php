@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace App\Models; use App\Models\Concerns\HasUuid;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,17 +14,13 @@ class GatewayAccount extends Model
 
     protected $fillable = [
         'company_id',
+        'uuid',
         'name',
-        'provider',
-        'credentials_encrypted',
+        'gateway_type',
         'environment',
         'status',
         'priority',
         'settings',
-        'last_tested_at',
-        'last_test_status',
-        'created_by',
-        'uuid',
     ];
 
     protected $hidden = [

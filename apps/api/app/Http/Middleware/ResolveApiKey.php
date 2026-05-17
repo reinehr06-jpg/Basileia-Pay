@@ -27,7 +27,7 @@ class ResolveApiKey
 
         // Resolve using hash for security
         $keyHash = hash('sha256', $keyString);
-        $apiKey = ApiKey::where('key_hash', $keyHash)->with(['company', 'connectedSystem'])->first();
+        $apiKey = ApiKey::where('key_hash', $keyHash)->with(['company', 'system'])->first();
 
         if (!$apiKey || $apiKey->revoked_at) {
             return response()->json([
@@ -43,7 +43,7 @@ class ResolveApiKey
         // Set Context
         TenantContext::set(
             $apiKey->company,
-            $apiKey->connectedSystem,
+            $apiKey->system,
             $apiKey,
             $apiKey->environment
         );
