@@ -211,7 +211,7 @@ export function SystemsTable() {
       {/* 3. Main Table */}
       <div className="w-full min-w-0 overflow-hidden rounded-[24px] border border-[#E8DDFD] bg-white/80 shadow-sm">
         <div className="w-full overflow-x-auto no-scrollbar">
-          <table className="w-full min-w-[1180px] text-left">
+          <table className="w-full min-w-[1484px] text-left table-fixed">
             <thead>
               <tr className="border-b border-border/40 bg-slate-50/50">
                 <th className="w-[44px] px-4 py-3"></th>
@@ -234,10 +234,10 @@ export function SystemsTable() {
             <tbody className="divide-y divide-border/20">
               {systems.map((sys) => (
                 <tr key={sys.id} className="group hover:bg-brand-50/20 transition-all h-[68px]">
-                  <td className="px-4">
+                  <td className="px-4 w-[44px]">
                     <input type="checkbox" className="w-4 h-4 rounded border-border text-brand focus:ring-brand transition-all cursor-pointer" />
                   </td>
-                  <td className="px-4">
+                  <td className="px-4 w-[260px]">
                     <div className="flex items-center gap-3">
                       <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-sm border border-white/20", sys.iconColor)}>
                         <span className="text-white font-black text-xs">{sys.icon}</span>
@@ -248,7 +248,7 @@ export function SystemsTable() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4">
+                  <td className="px-4 w-[150px]">
                     <div className={cn(
                       "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black border transition-all",
                       sys.status === 'Operacional' ? "bg-success-50 border-success-100 text-success" : 
@@ -259,7 +259,7 @@ export function SystemsTable() {
                       {sys.status}
                     </div>
                   </td>
-                  <td className="px-4">
+                  <td className="px-4 w-[130px]">
                     <div className={cn(
                       "px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight inline-block",
                       sys.env === 'Produção' ? "bg-success-50 text-success" : "bg-blue-50 text-blue-500"
@@ -267,19 +267,19 @@ export function SystemsTable() {
                       {sys.env}
                     </div>
                   </td>
-                  <td className="px-4">
+                  <td className="px-4 w-[210px]">
                     <div className="space-y-0.5">
                       <p className="text-[12px] font-black text-ink leading-none">{sys.gateway}</p>
                       <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">ID: {sys.gwId}</p>
                     </div>
                   </td>
-                  <td className="px-4">
+                  <td className="px-4 w-[210px]">
                      <div className="space-y-0.5">
                       <p className="text-[12px] font-black text-ink leading-none">{sys.checkout}</p>
                       <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">{sys.chkId}</p>
                     </div>
                   </td>
-                  <td className="px-4 whitespace-nowrap">
+                  <td className="px-4 w-[160px] whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className={cn("w-1.5 h-1.5 rounded-full", `bg-${sys.color}-500`)} />
                       <div className="space-y-0">
@@ -288,7 +288,7 @@ export function SystemsTable() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 whitespace-nowrap">
+                  <td className="px-4 w-[130px] whitespace-nowrap">
                     <div className="space-y-0.5">
                       <p className={cn("text-[13px] font-black leading-none", parseInt(sys.uptime) > 98 ? "text-success" : sys.status === 'Desconectado' ? "text-slate-300" : "text-danger")}>
                         {sys.uptime}
@@ -296,7 +296,7 @@ export function SystemsTable() {
                       <p className="text-[9px] font-bold text-slate-300 tracking-tight">{sys.reqs}</p>
                     </div>
                   </td>
-                  <td className="px-4">
+                  <td className="px-4 w-[190px]">
                     <div className="flex items-center gap-2">
                       <button className="px-2.5 py-1.5 border border-border rounded-lg text-[10px] font-black text-ink hover:bg-slate-50 transition-all">Ver detalhe</button>
                       <button className="px-2.5 py-1.5 border border-border rounded-lg text-[10px] font-black text-ink hover:bg-slate-50 transition-all">{sys.name === 'Internal API' ? 'Sincronizar' : 'Testar'}</button>
@@ -311,6 +311,7 @@ export function SystemsTable() {
           </table>
         </div>
       </div>
+
 
       {/* 4. Pagination Footer */}
       <div className="px-8 py-5 flex items-center justify-between bg-white/40 border border-border/40 rounded-[22px] w-full shadow-sm">
