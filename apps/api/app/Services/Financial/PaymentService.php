@@ -53,13 +53,43 @@ class PaymentService
                 $this->orderTransition->transition($order, 'pending');
             }
 
-            // TODO: Aqui integraríamos com o GatewayDriver::createCharge()
-            // Simulando retorno do gateway:
-            $payment->update([
-                'status' => 'pending',
-                'gateway_payment_id' => 'gw_txn_' . Str::random(10),
-                'gateway_response' => ['simulated' => true, 'id' => 'gw_txn_' . Str::random(10)]
-            ]);
+            // Resolver e invocar o driver real do Gateway
+            $registry = app(\App\Services\Gateway\GatewayDriverRegistry::class);
+            $driver = $registry->resolve($gatewayAccount);
+
+            $chargeRequest = new \App\Services\Gateway\DTO\ChargeRequest(
+                amount: $order->amount,
+                paymentMethod: $method,
+                customer: [
+                    'name' => $order->customer_name,
+                    'email' => $order->customer_email,
+                    'document' => $order->customer_document,
+                    'asaas_customer_id' => $order->metadata['asaas_customer_id'] ?? null,
+                ],
+                reference: (string)$order->uuid
+            );
+
+            $response = $driver->createCharge($chargeRequest);
+
+            if ($response->success) {
+                $payment->update([
+                    'status' => 'pending',
+                    'gateway_payment_id' => $response->gatewayPaymentId,
+                    'gateway_response' => array_merge($response->rawResponse ?? [], [
+                        'pix_qr_code' => $response->pixQrCodeUrl
+                    ])
+                ]);
+            } else {
+                $payment->update([
+                    'status' => 'failed',
+                    'gateway_response' => [
+                        'error_message' => $response->errorMessage,
+                        'raw_response' => $response->rawResponse ?? []
+                    ]
+                ]);
+                
+                $this->orderTransition->transition($order, 'failed');
+            }
 
             return $payment;
         });

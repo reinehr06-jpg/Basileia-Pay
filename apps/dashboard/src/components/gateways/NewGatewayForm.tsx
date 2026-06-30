@@ -8,6 +8,9 @@ export function NewGatewayForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [driverType, setDriverType] = useState('native');
+  const [gatewayType, setGatewayType] = useState('');
+  const [configMapJson, setConfigMapJson] = useState('{\n  "base_url": "",\n  "create_charge": {},\n  "webhook": {}\n}');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -22,12 +25,19 @@ export function NewGatewayForm() {
     setError('');
 
     try {
+      let configMap = null;
+      if (driverType === 'generic') {
+        configMap = JSON.parse(configMapJson);
+      }
+
       await apiFetch('/api/v1/dashboard/gateways', {
         method: 'POST',
         body: JSON.stringify({
           name: formData.name,
-          provider: formData.provider,
+          gateway_type: driverType === 'generic' ? 'custom' : gatewayType,
+          driver_type: driverType,
           environment: formData.environment,
+          config_map: configMap,
           credentials: {
             api_key: formData.apiKey,
           }
@@ -63,17 +73,71 @@ export function NewGatewayForm() {
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-bold text-ink">Provedor</label>
-          <select 
-            className="w-full px-4 py-2.5 rounded-xl border border-border focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all text-sm bg-white"
-            value={formData.provider}
-            onChange={e => setFormData({...formData, provider: e.target.value})}
-          >
-            <option value="asaas">Asaas</option>
-            <option value="pagbank">PagBank</option>
-          </select>
+        <div className="space-y-4 pt-4 border-t border-[#333333]">
+        <div>
+          <label className="block text-sm font-medium text-gray-300 mb-1">Driver Type</label>
+          <div className="flex gap-4">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="radio" 
+                name="driver_type" 
+                value="native" 
+                checked={driverType === 'native'} 
+                onChange={(e) => setDriverType(e.target.value)}
+                className="bg-[#111111] border-[#333333] text-indigo-500 focus:ring-indigo-500" 
+              />
+              <span className="text-sm text-gray-300">Native (Asaas, Stripe)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="radio" 
+                name="driver_type" 
+                value="generic"
+                checked={driverType === 'generic'} 
+                onChange={(e) => setDriverType(e.target.value)}
+                className="bg-[#111111] border-[#333333] text-indigo-500 focus:ring-indigo-500" 
+              />
+              <span className="text-sm text-gray-300">Custom Generic (REST/JSON)</span>
+            </label>
+          </div>
         </div>
+
+        {driverType === 'native' ? (
+          <div>
+            <label htmlFor="gateway_type" className="block text-sm font-medium text-gray-300 mb-1">
+              Gateway Provider
+            </label>
+            <select
+              id="gateway_type"
+              name="gateway_type"
+              required
+              value={gatewayType}
+              onChange={(e) => setGatewayType(e.target.value)}
+              className="w-full bg-[#111111] border border-[#333333] rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            >
+              <option value="" disabled>Select a provider...</option>
+              <option value="asaas">Asaas</option>
+              <option value="stripe">Stripe</option>
+              <option value="pagbank">PagBank</option>
+            </select>
+          </div>
+        ) : (
+          <div>
+            <label htmlFor="config_map" className="block text-sm font-medium text-gray-300 mb-1">
+              Configuration Map (JSON)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">Provide the REST mapping for this generic gateway.</p>
+            <textarea
+              id="config_map"
+              name="config_map"
+              rows={12}
+              value={configMapJson}
+              onChange={(e) => setConfigMapJson(e.target.value)}
+              className="w-full bg-[#111111] border border-[#333333] rounded-md px-3 py-2 text-sm text-white font-mono focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+            ></textarea>
+          </div>
+        )}
+      </div>
 
         <div className="space-y-2">
           <label className="text-sm font-bold text-ink">Ambiente</label>

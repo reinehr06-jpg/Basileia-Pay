@@ -18,14 +18,23 @@ class GatewayDriverRegistry
      */
     public function resolve(GatewayAccount $account): GatewayDriverInterface
     {
+        // Get decrypted credentials
+        $credentials = $this->getDecryptedCredentials($account);
+        $apiKey = $credentials['api_key'] ?? ''; // Convenção para o token principal
+
+        if ($account->driver_type === 'generic') {
+            return new \App\Services\Gateway\Drivers\GenericHttpGatewayDriver(
+                $account->config_map ?? [],
+                $apiKey
+            );
+        }
+
+        // Native fallback
         $driverClass = $this->getDriverClass($account->gateway_type);
 
         if (!class_exists($driverClass)) {
             throw new InvalidArgumentException("Driver not found for gateway type: {$account->gateway_type}");
         }
-
-        // Get decrypted credentials
-        $credentials = $this->getDecryptedCredentials($account);
 
         return new $driverClass($credentials, $account->environment);
     }

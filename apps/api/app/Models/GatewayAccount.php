@@ -15,12 +15,16 @@ class GatewayAccount extends Model
     protected $fillable = [
         'company_id',
         'uuid',
-        'name',
+        'gateway_id',
         'gateway_type',
+        'driver_type',
+        'name',
         'environment',
         'status',
         'priority',
         'settings',
+        'is_active',
+        'config_map',
         'last_tested_at',
         'last_test_status',
     ];
@@ -28,6 +32,8 @@ class GatewayAccount extends Model
     protected $hidden = [];
 
     protected $casts = [
+        'is_active' => 'boolean',
+        'config_map' => 'array',
         'environment' => 'string',
         'status' => 'string',
         'priority' => 'integer',
