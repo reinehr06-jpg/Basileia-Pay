@@ -254,7 +254,7 @@ export default function SalesPage() {
     if (selectedIds.length === 0) return;
 
     if (action === 'exportar') {
-      setShowExportModal(true);
+      handleDirectExport();
     } else if (action === 'revisao') {
       triggerSuccessAlert(`${selectedIds.length} pedidos marcados para revisão manual.`);
     } else if (action === 'webhook') {
@@ -266,9 +266,8 @@ export default function SalesPage() {
     if (action !== 'exportar') setSelectedIds([]);
   };
 
-  const handleConfirmExport = () => {
-    setShowExportModal(false);
-    triggerSuccessAlert(`Preparando exportação em formato ${exportFormat.toUpperCase()}...`);
+  const handleDirectExport = () => {
+    triggerSuccessAlert(`Preparando exportação em formato PDF...`);
 
     // Determine which orders to export (all filtered or just selected)
     const exportData = selectedIds.length > 0 
@@ -276,68 +275,40 @@ export default function SalesPage() {
       : filteredOrders;
 
     setTimeout(() => {
-      if (exportFormat === 'pdf') {
-        const doc = new jsPDF();
-        
-        doc.setFontSize(18);
-        doc.setTextColor(109, 40, 217);
-        doc.text('Basileia Pay - Relatório de Vendas', 14, 22);
-        
-        doc.setFontSize(10);
-        doc.setTextColor(124, 58, 237);
-        doc.text('Acompanhamento Operacional de Transações', 14, 30);
-        
-        doc.setFontSize(9);
-        doc.setTextColor(88, 28, 135);
-        doc.text(`Período: ${filterPeriod}`, 14, 40);
-        doc.text(`Data de Geração: ${new Date().toLocaleString()}`, 14, 45);
-        doc.text(`Total de Registros: ${exportData.length}`, 100, 40);
+      const doc = new jsPDF();
+      
+      doc.setFontSize(18);
+      doc.setTextColor(109, 40, 217);
+      doc.text('Basileia Pay - Relatório de Vendas', 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(124, 58, 237);
+      doc.text('Acompanhamento Operacional de Transações', 14, 30);
+      
+      doc.setFontSize(9);
+      doc.setTextColor(88, 28, 135);
+      doc.text(`Período: ${filterPeriod}`, 14, 40);
+      doc.text(`Data de Geração: ${new Date().toLocaleString()}`, 14, 45);
+      doc.text(`Total de Registros: ${exportData.length}`, 100, 40);
 
-        autoTable(doc, {
-          startY: 55,
-          head: [['ID', 'Cliente', 'Status', 'Método', 'Valor', 'Data']],
-          body: exportData.length > 0 ? exportData.map(o => [
-            o.id,
-            o.cliente,
-            o.status,
-            o.metodo,
-            `R$ ${o.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-            o.dataAbs
-          ]) : [['Nenhum pedido encontrado', '-', '-', '-', '-', '-']],
-          theme: 'grid',
-          headStyles: { fillColor: [250, 245, 255], textColor: [88, 28, 135] },
-          styles: { fontSize: 8 }
-        });
+      autoTable(doc, {
+        startY: 55,
+        head: [['ID', 'Cliente', 'Status', 'Método', 'Valor', 'Data']],
+        body: exportData.length > 0 ? exportData.map(o => [
+          o.id,
+          o.cliente,
+          o.status,
+          o.metodo,
+          `R$ ${o.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
+          o.dataAbs
+        ]) : [['Nenhum pedido encontrado', '-', '-', '-', '-', '-']],
+        theme: 'grid',
+        headStyles: { fillColor: [250, 245, 255], textColor: [88, 28, 135] },
+        styles: { fontSize: 8 }
+      });
 
-        doc.save(`relatorio_vendas_${Date.now()}.pdf`);
-        triggerSuccessAlert("Download do PDF concluído com sucesso!");
-      } else {
-        let fileContent = '\ufeff'; // UTF-8 BOM
-        fileContent += "RELATÓRIO DE VENDAS - BASILEIA PAY\r\n";
-        fileContent += `Data de Geração:;${new Date().toLocaleString()}\r\n`;
-        fileContent += `Filtro de Status:;${filterStatus}\r\n`;
-        fileContent += `Filtro de Método:;${filterMethod}\r\n\r\n`;
-
-        fileContent += "ID;Transação Externa;Cliente;Email;Sistema;Checkout;Gateway;Status;Método;Bandeira;Final Cartão;Valor;Valor Reembolsado;Data\r\n";
-        if (exportData.length > 0) {
-          exportData.forEach(o => {
-            fileContent += `${o.id};${o.trxId};${o.cliente};${o.email};${o.sistema};${o.checkout};${o.gateway};${o.status};${o.metodo};${o.brand};${o.last4};${o.valor};${o.reembolsadoValor};${o.dataAbs}\r\n`;
-          });
-        } else {
-          fileContent += "Nenhum dado encontrado\r\n";
-        }
-
-        const mimeType = exportFormat === 'csv' ? 'text/csv;charset=utf-8;' : 'application/vnd.ms-excel;charset=utf-8;';
-        const blob = new Blob([fileContent], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.setAttribute("href", url);
-        link.setAttribute("download", `relatorio_vendas_${Date.now()}.${exportFormat === 'csv' ? 'csv' : 'xls'}`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        triggerSuccessAlert(`Download do ${exportFormat.toUpperCase()} concluído com sucesso!`);
-      }
+      doc.save(`relatorio_vendas_${Date.now()}.pdf`);
+      triggerSuccessAlert("Download do PDF concluído com sucesso!");
     }, 1000);
   };
 
@@ -512,7 +483,7 @@ export default function SalesPage() {
 
         <div className="flex items-center gap-2">
           <button 
-            onClick={() => setShowExportModal(true)}
+            onClick={handleDirectExport}
             className="flex items-center gap-1.5 px-3.5 py-1.5 bg-white border border-[#E8DDFD] rounded-xl text-[10px] 2xl:text-[11px] font-black text-slate-700 shadow-sm hover:bg-brand-soft transition-all uppercase tracking-tight h-[34px] 2xl:h-[36px]"
           >
             <Download className="w-3.5 h-3.5 text-slate-400" />
@@ -1063,69 +1034,7 @@ export default function SalesPage() {
           </div>
         </>
       )}
-      {showExportModal && (
-        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-55 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-[#E8DDFD] shadow-2xl p-6 max-w-md w-full animate-in zoom-in-95 duration-200 text-left">
-            <div className="flex items-center gap-3 text-brand border-b border-slate-100 pb-3 mb-4">
-              <Download className="w-5 h-5 shrink-0" />
-              <h3 className="text-slate-950 font-black text-sm">Exportar Relatório de Vendas</h3>
-            </div>
-
-            <div className="space-y-4">
-              <div className="bg-[#FAF8FF] border border-[#E8DDFD]/60 p-3.5 rounded-2xl">
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider leading-none">Filtros aplicados</p>
-                <div className="grid grid-cols-2 gap-2 mt-2 text-[11px] font-bold text-slate-700">
-                  <div><span className="text-slate-400 font-medium">Período:</span> {filterPeriod}</div>
-                  <div><span className="text-slate-400 font-medium">Sistema:</span> {filterSystem}</div>
-                  <div><span className="text-slate-400 font-medium">Status:</span> {filterStatus}</div>
-                  <div><span className="text-slate-400 font-medium">Método:</span> {filterMethod}</div>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Formato de exportação</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: 'csv', label: 'CSV', desc: 'Dados brutos' },
-                    { id: 'excel', label: 'Excel', desc: 'Planilha formatada' },
-                    { id: 'pdf', label: 'PDF', desc: 'Documento impresso' }
-                  ].map((fmt) => (
-                    <button
-                      key={fmt.id}
-                      onClick={() => setExportFormat(fmt.id as 'csv' | 'excel' | 'pdf')}
-                      className={cn(
-                        "p-2.5 rounded-xl border text-center font-bold text-xs transition-all flex flex-col items-center justify-center gap-1 cursor-pointer",
-                        exportFormat === fmt.id 
-                          ? "bg-brand/10 border-brand/40 text-brand"
-                          : "bg-white border-slate-200 text-slate-650 hover:bg-slate-50"
-                      )}
-                    >
-                      <span className="font-black leading-none">{fmt.label}</span>
-                      <span className="text-[8px] font-medium text-slate-400 leading-none">{fmt.desc}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
-              <button
-                onClick={() => setShowExportModal(false)}
-                className="px-4 py-1.5 border border-[#E8DDFD] hover:bg-slate-50 transition-all rounded-xl text-[10.5px] font-black text-slate-700 uppercase tracking-tight h-[32px] cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmExport}
-                className="px-4 py-1.5 bg-brand text-white hover:bg-brand-deep transition-all rounded-xl text-[10.5px] font-black uppercase tracking-tight h-[32px] cursor-pointer flex items-center gap-1"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Confirmar e Baixar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Export Modal Removed - direct PDF download enabled */}
 
     </div>
   );

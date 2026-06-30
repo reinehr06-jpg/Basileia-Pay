@@ -22,8 +22,6 @@ import {
   Repeat
 } from 'lucide-react';
 import { AuditEvent } from '@/types/audit';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
 
@@ -140,7 +138,8 @@ export default function AuditPage() {
 
   // Export Modal State
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('excel');
+  const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('pdf');
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -165,14 +164,17 @@ export default function AuditPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleConfirmExport = () => {
-    setShowExportModal(false);
-    triggerToast(`Preparando exportação em formato ${exportFormat.toUpperCase()}...`);
+  const handleConfirmExport = async () => {
+    triggerToast(`Preparando exportação em formato PDF...`);
 
     const exportData = filteredEvents;
 
-    setTimeout(() => {
+    try {
       if (exportFormat === 'pdf') {
+        const { jsPDF } = await import('jspdf');
+        const autoTableModule = await import('jspdf-autotable');
+        const autoTable = autoTableModule.default;
+        
         const doc = new jsPDF();
         
         doc.setFontSize(18);
@@ -234,7 +236,10 @@ export default function AuditPage() {
         document.body.removeChild(link);
         triggerToast(`Download do ${exportFormat.toUpperCase()} concluído com sucesso!`);
       }
-    }, 1000);
+    } catch (error) {
+      console.error(error);
+      triggerToast('Erro ao exportar documento.');
+    }
   };
 
   const handleCopyText = (text: string, field: string) => {
@@ -411,7 +416,7 @@ export default function AuditPage() {
             Salvar busca
           </button>
           <button 
-            onClick={() => setShowExportModal(true)}
+            onClick={handleConfirmExport}
             className="flex h-10 items-center justify-center gap-1.5 px-4 bg-white border border-[#E8DDFD] hover:bg-slate-50 rounded-xl text-xs font-black text-slate-770 shadow-sm transition-all"
           >
             <Download className="w-3.5 h-3.5 text-slate-400" />
@@ -715,11 +720,11 @@ export default function AuditPage() {
           <div className="flex items-center justify-between border-b border-[#E8DDFD] px-4 py-3 bg-[#FAF8FF]">
             <div className="flex flex-wrap items-center gap-2">
               {[
-                { id: 'all', label: 'Todos', count: '24.812' },
-                { id: 'critical', label: 'Críticos', count: '71' },
-                { id: 'alteration', label: 'Alterações', count: '18.342' },
-                { id: 'access', label: 'Acessos', count: '3.912' },
-                { id: 'deletion', label: 'Exclusões', count: '187' }
+                { id: 'all', label: 'Todos', count: events.length },
+                { id: 'critical', label: 'Críticos', count: events.filter(e => e.level === 'Crítico').length },
+                { id: 'alteration', label: 'Alterações', count: events.filter(e => e.level === 'Alteração').length },
+                { id: 'access', label: 'Acessos', count: events.filter(e => e.level === 'Acesso' || e.category === 'ACESSO').length },
+                { id: 'deletion', label: 'Exclusões', count: events.filter(e => e.level === 'Exclusão' || e.category === 'EXCLUSÃO').length }
               ].map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -917,7 +922,7 @@ export default function AuditPage() {
           {/* Paginação da tabela (Section 22) */}
           <div className="flex h-[58px] items-center justify-between border-t border-[#E8DDFD] px-5 bg-[#FAF8FF]/40">
             <p className="text-xs font-semibold text-slate-500">
-              Mostrando {Math.min(filteredEvents.length, (currentPage - 1) * rowsPerPage + 1)} a {Math.min(filteredEvents.length, currentPage * rowsPerPage)} de 24.812 eventos
+              Mostrando {Math.min(filteredEvents.length, (currentPage - 1) * rowsPerPage + 1)} a {Math.min(filteredEvents.length, currentPage * rowsPerPage)} de {filteredEvents.length} eventos
             </p>
 
             <div className="flex items-center gap-2">
@@ -941,13 +946,17 @@ export default function AuditPage() {
               >
                 3
               </button>
-              <span className="text-slate-400 text-xs px-1">...</span>
-              <button 
-                onClick={() => setCurrentPage(Math.ceil(filteredEvents.length / rowsPerPage) || 1)} 
-                className="h-8 rounded-xl border border-[#E8DDFD] bg-white px-3 text-xs font-bold hover:bg-slate-50"
-              >
-                2.482
-              </button>
+              {Math.ceil(filteredEvents.length / rowsPerPage) > 3 && (
+                <>
+                  <span className="text-slate-400 text-xs px-1">...</span>
+                  <button 
+                    onClick={() => setCurrentPage(Math.ceil(filteredEvents.length / rowsPerPage) || 1)} 
+                    className="h-8 rounded-xl border border-[#E8DDFD] bg-white px-3 text-xs font-bold hover:bg-slate-50"
+                  >
+                    {Math.ceil(filteredEvents.length / rowsPerPage)}
+                  </button>
+                </>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
@@ -1180,16 +1189,17 @@ export default function AuditPage() {
             <div className="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
               <button
                 onClick={() => setShowExportModal(false)}
-                className="px-4 py-1.5 border border-[#E8DDFD] hover:bg-slate-50 transition-all rounded-xl text-[10.5px] font-black text-slate-700 uppercase tracking-tight h-[32px] cursor-pointer"
+                className="px-4 py-1.5 border border-[#E7E5EF] hover:bg-slate-50 rounded-xl text-[10.5px] font-black text-slate-700 uppercase h-[32px]"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmExport}
-                className="px-4 py-1.5 bg-brand text-white hover:bg-brand-deep transition-all rounded-xl text-[10.5px] font-black uppercase tracking-tight h-[32px] cursor-pointer flex items-center gap-1"
+                disabled={isExporting}
+                className="px-4 py-1.5 bg-brand text-white hover:bg-brand-deep rounded-xl text-[10.5px] font-black uppercase h-[32px] flex items-center gap-1.5"
               >
-                <Download className="w-3.5 h-3.5" />
-                Confirmar e Baixar
+                {isExporting && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                {isExporting ? 'Processando...' : 'Confirmar Download'}
               </button>
             </div>
           </div>

@@ -14,8 +14,15 @@ services:
         condition: service_healthy
       dashboard:
         condition: service_healthy
+      checkout-studio:
+        condition: service_healthy
     networks:
       - proxy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     healthcheck:
       test: ["CMD", "nginx", "-t"]
       interval: 30s
@@ -55,12 +62,17 @@ services:
       - internal
     volumes:
       - api_storage:/var/www/html/storage
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 15s
-      timeout: 10s
-      retries: 8
-      start_period: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
   # ── Dashboard (frontend) ──
   dashboard:
@@ -81,6 +93,23 @@ services:
       - proxy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || test -f /tmp/index.html"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # ── Checkout Studio (visual editor) ──
+  checkout-studio:
+    build:
+      context: ./checkout-studio
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=/api
+    networks:
+      - proxy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5173 || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 5
@@ -117,9 +146,76 @@ services:
       - redis_data:/data
     networks:
       - internal
-    profiles:
-      - queue
-      - cache
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── Queue Worker ──
+  queue-worker:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: php artisan queue:work redis --tries=3 --timeout=90
+    environment:
+      - APP_ENV=production
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-basileia}
+      - DB_USERNAME=${DB_USERNAME:-basileia}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    depends_on:
+      api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  # ── Scheduler ──
+  scheduler:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: php artisan schedule:work
+    environment:
+      - APP_ENV=production
+      - DB_CONNECTION=pgsql
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=${DB_DATABASE:-basileia}
+      - DB_USERNAME=${DB_USERNAME:-basileia}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - QUEUE_CONNECTION=redis
+      - REDIS_HOST=redis
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: '0.2'
+          memory: 256M
 
 volumes:
   pgdata:

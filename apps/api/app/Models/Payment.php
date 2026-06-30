@@ -65,4 +65,9 @@ class Payment extends Model
     {
         return $this->belongsTo(CheckoutSession::class);
     }
+
+    public function refunds(): HasMany
+    {
+        return $this->hasMany(Refund::class);
+    }
 }

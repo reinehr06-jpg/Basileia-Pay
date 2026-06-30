@@ -386,7 +386,12 @@ class AuthController extends Controller
 
         $service = app(TwoFactorAuthService::class);
         $secret = $service->generateSecret();
-        $user->update(['two_factor_secret' => $secret]);
+        
+        $user->twoFactorSecretRel()->updateOrCreate(
+            ['user_id' => $user->id],
+            ['secret' => $secret]
+        );
+        
         $otpUrl = $service->generateQRCodeUrl($user);
 
         $svg = \SimpleSoftwareIO\QrCode\Facades\QrCode::size(200)
@@ -438,8 +443,9 @@ class AuthController extends Controller
                 }
             }
 
-            $recoveryCodes = $user->two_factor_codes
-                ? json_decode(\Illuminate\Support\Facades\Crypt::decryptString($user->two_factor_codes))
+            $secretModel = $user->twoFactorSecretRel()->first();
+            $recoveryCodes = ($secretModel && $secretModel->recovery_codes)
+                ? json_decode(\Illuminate\Support\Facades\Crypt::decryptString($secretModel->recovery_codes))
                 : [];
 
             return response()->json([

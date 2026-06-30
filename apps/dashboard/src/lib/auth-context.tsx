@@ -212,23 +212,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Schedule token auto-refresh
       scheduleRefresh();
 
-      // Fetch companies list for super_admin users to populate switcher on refresh
-      if (userData.role === 'super_admin') {
-        try {
-          const companiesRes = await fetchWithTimeout(`${API_URL}/api/v1/auth/master/companies`, {
-            headers: {
-              'Accept': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-            credentials: 'include',
-          });
-          const companiesData = await companiesRes.json();
-          if (companiesData.success) {
-            setAvailableCompanies(companiesData.data);
-          }
-        } catch (err) {
-          console.error('Failed to load companies in checkSession:', err);
+      // Fetch companies list for users to populate switcher on refresh
+      try {
+        const route = userData.role === 'super_admin' 
+          ? '/api/v1/auth/master/companies'
+          : '/api/v1/dashboard/companies';
+
+        const companiesRes = await fetchWithTimeout(`${API_URL}${route}`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          },
+          credentials: 'include',
+        });
+        const companiesData = await companiesRes.json();
+        if (companiesData.success) {
+          setAvailableCompanies(companiesData.data);
         }
+      } catch (err) {
+        console.error('Failed to load companies in checkSession:', err);
       }
     } catch {
       // Network error or timeout - don't clear user state,
@@ -288,22 +290,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Schedule auto-refresh now that we have tokens
     scheduleRefresh();
 
-    if (userData.role === 'super_admin') {
-      try {
-        const companiesRes = await fetchWithTimeout(`${API_URL}/api/v1/auth/master/companies`, {
-          headers: {
-            'Accept': 'application/json',
-            ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
-          },
-          credentials: 'include',
-        });
-        const companiesData = await companiesRes.json();
-        if (companiesData.success) {
-          setAvailableCompanies(companiesData.data);
-        }
-      } catch (err) {
-        console.error('Failed to load companies:', err);
+    try {
+      const route = userData.role === 'super_admin' 
+        ? '/api/v1/auth/master/companies'
+        : '/api/v1/dashboard/companies';
+        
+      const companiesRes = await fetchWithTimeout(`${API_URL}${route}`, {
+        headers: {
+          'Accept': 'application/json',
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        },
+        credentials: 'include',
+      });
+      const companiesData = await companiesRes.json();
+      if (companiesData.success) {
+        setAvailableCompanies(companiesData.data);
       }
+    } catch (err) {
+      console.error('Failed to load companies:', err);
     }
 
     return { needs_2fa_setup: userData.needs_2fa_setup ?? data.needs_2fa_setup ?? false };
@@ -344,9 +348,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isMaster = user?.role === 'super_admin';
   const isAuthenticated = !!user;
 
-  const switchCompany = useCallback((companyId: number) => {
+  const switchCompany = useCallback(async (companyId: number) => {
     setActiveCompanyId(companyId);
     document.cookie = `basileia_active_company=${companyId}; path=/; SameSite=Lax; Secure; Max-Age=86400`;
+
+    if (companyId !== 0) {
+      try {
+        const token = getAccessToken();
+        const csrfToken = getCsrfToken();
+        await fetchWithTimeout(`${API_URL}/api/v1/dashboard/companies/select`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+            ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+          },
+          credentials: 'include',
+          body: JSON.stringify({ company_id: companyId }),
+        });
+      } catch (err) {
+        console.error('Failed to sync company context with server', err);
+      }
+    }
   }, []);
 
   return (

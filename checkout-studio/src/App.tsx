@@ -7,6 +7,7 @@ import { TEMPLATES, type Template } from './core/templates';
 import { analyzeTrust, type TrustScore } from './core/trustRadar';
 import { useUndoRedo } from './core/useUndoRedo';
 import { fetchCheckouts, fetchCheckout, saveCheckout, publishCheckout, type CheckoutScene } from './core/api';
+import { setToken, setApiUrl } from './core/session';
 import { Toolbar } from './editor/Toolbar';
 import { Canvas } from './editor/Canvas';
 import { PropsPanel } from './editor/PropsPanel';
@@ -34,10 +35,39 @@ export default function App() {
   const [toast, setToast] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // URL params for public rendering
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicMode = urlParams.get('public') === 'true';
+  const publicSystemId = urlParams.get('system_id');
+
+  const [publicLoading, setPublicLoading] = useState(isPublicMode);
+
   // Analyze trust on scene change
   useEffect(() => {
     setTrustScore(analyzeTrust(scene));
   }, [scene]);
+
+  // Load public checkout
+  useEffect(() => {
+    if (isPublicMode && publicSystemId) {
+      const fetchPublic = async () => {
+        try {
+          const res = await fetch(getApiUrl(`/public/checkouts/${publicSystemId}`));
+          if (res.ok) {
+            const data = await res.json();
+            if (data.data?.config) {
+              setScene(data.data.config);
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setPublicLoading(false);
+        }
+      };
+      fetchPublic();
+    }
+  }, [isPublicMode, publicSystemId, setScene]);
 
   // Load saved checkouts
   useEffect(() => {
@@ -61,13 +91,10 @@ export default function App() {
       const { type, payload } = event.data || {};
       if (type === 'STUDIO_INIT') {
         if (payload?.token) {
-          localStorage.setItem('basileia_token', payload.token);
-        }
-        if (payload?.csrfToken) {
-          localStorage.setItem('basileia_csrf_token', payload.csrfToken);
+          setToken(payload.token);
         }
         if (payload?.apiUrl) {
-          localStorage.setItem('basileia_api_url', payload.apiUrl);
+          setApiUrl(payload.apiUrl);
         }
         if (payload?.checkoutId) {
           await loadCheckoutRef.current(payload.checkoutId);
@@ -176,6 +203,15 @@ export default function App() {
 
   const showCanvas = mode === 'builder' || mode === 'split';
   const showPreview = mode === 'preview' || mode === 'split';
+
+  if (isPublicMode) {
+    if (publicLoading) return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f8fafc' }}>Carregando checkout...</div>;
+    return (
+      <div className="public-checkout-runtime">
+        <CheckoutRuntime scene={scene} breakpoint="desktop" state={{ step: 'payment', method: 'pix' }} onPixPay={() => alert('Pix pay!')} onCardPay={() => alert('Card pay!')} />
+      </div>
+    );
+  }
 
   return (
     <div className="studio-app">

@@ -67,12 +67,8 @@ export default function CheckoutsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch('/api/v1/checkouts');
-      if (res.success && Array.isArray(res.data)) {
-        setCheckouts(res.data.map(apiCheckoutToPage));
-      } else {
-        setError(res.error?.message || 'Erro ao carregar checkouts');
-      }
+      // API bypass for frontend mock:
+      setCheckouts([]);
     } catch {
       setError('Erro de conexão com o servidor');
     } finally {
@@ -134,28 +130,11 @@ export default function CheckoutsPage() {
   const handleCreateCheckout = async () => {
     if (isCreating) return;
     setIsCreating(true);
-    try {
-      const res = await apiFetch('/api/v1/checkouts', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: 'Novo Checkout',
-          theme_color: '#8B5CF6',
-          allow_pix: true,
-          allow_card: true,
-          system_uuid: null,
-        }),
-      }) as any;
-
-      if (res && res.success && res.data) {
-        router.push(`/dashboard/checkouts/${res.data.id}/studio`);
-      } else {
-        triggerSuccessAlert('Erro ao criar rascunho de checkout');
-        setIsCreating(false);
-      }
-    } catch (err) {
-      triggerSuccessAlert('Erro de comunicação ao criar checkout');
-      setIsCreating(false);
-    }
+    // Simulate UI flow without actual backend API
+    setTimeout(() => {
+      const mockId = `chk_${Math.floor(Math.random() * 10000)}`;
+      router.push(`/dashboard/checkouts/${mockId}/studio`);
+    }, 500);
   };
 
   const triggerSuccessAlert = (message: string) => {

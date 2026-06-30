@@ -19,13 +19,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
         'status',
         'must_change_password',
         'password_changed_at',
         'two_factor_enabled',
-        'two_factor_secret',
-        'two_factor_codes',
         'two_factor_confirmed_at',
         'last_auth_at',
         'last_login_at',
@@ -37,8 +34,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_secret',
-        'two_factor_codes',
     ];
 
     protected $casts = [
@@ -70,22 +65,31 @@ class User extends Authenticatable
 
     public function sessions(): HasMany
     {
-        return $this->hasMany(UserSession::class);
+        return $this->hasMany(AuthSession::class);
+    }
+
+    public function companies(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Company::class, 'user_companies')
+                    ->withPivot('status')
+                    ->withTimestamps();
+    }
+
+    public function roles(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'user_role_assignments')
+                    ->withPivot('company_id')
+                    ->withTimestamps();
+    }
+
+    public function twoFactorSecretRel() // Can't be named twoFactorSecret due to existing property usage potential
+    {
+        return $this->hasOne(TwoFactorSecret::class);
     }
 
     public function reviewedFraudAnalyses(): HasMany
     {
         return $this->hasMany(FraudAnalysis::class, 'reviewed_by');
-    }
-
-    public function isOwner(): bool
-    {
-        return $this->role === 'owner';
-    }
-
-    public function isAdmin(): bool
-    {
-        return in_array($this->role, ['owner', 'admin']);
     }
 
     public function scopeActive($query)
@@ -95,7 +99,7 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->role === 'super_admin';
+        return $this->roles()->where('slug', 'super-admin')->exists();
     }
 
     public function canImpersonate(): bool

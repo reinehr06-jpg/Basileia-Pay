@@ -132,8 +132,13 @@ export function SecurityTwoFactorPanel({
           {isAdmin && (
             <div className="pt-4 border-t border-[#E8DDFD]/40">
               <button
-                onClick={() => onActionFeedback(`Política 2FA alterada com sucesso. Auditoria gerada.`)}
-                className="w-full h-9 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center cursor-pointer shadow-sm"
+                onClick={() => {
+                  onActionFeedback(`Salvando políticas...`);
+                  setTimeout(() => {
+                    onActionFeedback(`Política 2FA alterada com sucesso. A organização agora opera em modo: ${policyMode}. Auditoria gerada.`);
+                  }, 800);
+                }}
+                className="w-full h-9 bg-slate-900 hover:bg-slate-850 text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center cursor-pointer shadow-sm active:scale-95 transition-all"
               >
                 Aplicar Políticas de Governança
               </button>

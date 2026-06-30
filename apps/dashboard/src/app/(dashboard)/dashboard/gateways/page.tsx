@@ -89,6 +89,7 @@ function apiGatewayToPage(g: any) {
     p95: '—',
     reqs: '—',
     uuid: g.account_uuid || '',
+    assinaturas: g.active_subscriptions || 0,
   };
 }
 
@@ -628,8 +629,8 @@ export default function GatewaysPage() {
                       <th className="w-[14%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Estado</th>
                       <th className="w-[10%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Taxa</th>
                       <th className="w-[10%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Último erro</th>
-                      <th className="w-[8%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Rotas</th>
-                      <th className="w-[16%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Conta</th>
+                      <th className="w-[10%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Carga</th>
+                      <th className="w-[14%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Conta</th>
                       <th className="w-[10%] min-w-0 px-3 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Health</th>
                       <th className="w-[14%] min-w-0 pr-4 pl-1 py-3 text-right text-[9px] font-black uppercase tracking-widest text-slate-400">Ações</th>
                     </tr>
@@ -750,20 +751,25 @@ export default function GatewaysPage() {
                             )}
                           </td>
 
-                          {/* Active Routes */}
+                          {/* Active Routes & Subs */}
                           <td className="min-w-0 px-3 py-3">
-                            {g.rotas === 0 ? (
-                              <span className="text-xs font-bold text-slate-400">0 rotas</span>
-                            ) : (
-                              <div className="leading-tight min-w-0">
-                                <span className="text-[11.5px] font-black text-slate-900 block truncate">
-                                  {g.rotas} {g.rotas === 1 ? 'rota' : 'rotas'}
-                                </span>
-                                <span className="text-[10.5px] font-bold text-slate-400 block mt-0.5 truncate">
-                                  {g.metodos.join(' · ')}
-                                </span>
+                            <div className="leading-tight min-w-0 flex flex-col gap-1.5">
+                              <div>
+                                {g.rotas === 0 ? (
+                                  <span className="text-xs font-bold text-slate-400">0 rotas</span>
+                                ) : (
+                                  <>
+                                    <span className="text-[11px] font-black text-slate-900 block truncate">
+                                      {g.rotas} {g.rotas === 1 ? 'rota' : 'rotas'}
+                                    </span>
+                                  </>
+                                )}
                               </div>
-                            )}
+                              <div className="bg-brand-soft/30 border border-brand/20 rounded-[4px] px-1 py-0.5 inline-flex items-center gap-1 w-max">
+                                <span className="text-[8px] font-black text-slate-500 uppercase">Subs:</span>
+                                <span className="text-[9.5px] font-black text-brand leading-none">{g.assinaturas} vivas</span>
+                              </div>
+                            </div>
                           </td>
 
                           {/* Default Account Link (Merged with systems/Escolha) */}

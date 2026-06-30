@@ -140,11 +140,7 @@ export default function NewSystemConnectionPage() {
 
   // Card 10 — Logs recentes (mock)
   const [logFilter, setLogFilter] = useState('Todos');
-  const [recentLogs, setRecentLogs] = useState([
-    { date: '26/05 22:41', event: 'payment.approved', direction: 'Saída', status: '200 OK', latency: '312ms', response: 'Entregue' },
-    { date: '26/05 22:39', event: 'checkout.completed', direction: 'Saída', status: '500', latency: '890ms', response: 'Erro no destino' },
-    { date: '26/05 22:36', event: 'auth.test', direction: 'Entrada', status: '401', latency: '120ms', response: 'API Key inválida' },
-  ]);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
 
   // Generate tokens on demand
   const handleGenerateCredentials = () => {

@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Landmark, AlertCircle, Edit2, Play } from 'lucide-react';
-import { MOCK_FALLBACKS } from '@/app/(dashboard)/dashboard/routing/__mocks__/routing';
 import { cn } from '@/lib/utils';
 
 interface RoutingFallbacksTabProps {
@@ -11,7 +10,7 @@ interface RoutingFallbacksTabProps {
 }
 
 export function RoutingFallbacksTab({ onActionFeedback, isAdmin }: RoutingFallbacksTabProps) {
-  const [fallbacks, setFallbacks] = useState(MOCK_FALLBACKS);
+  const [fallbacks, setFallbacks] = useState<any[]>([]);
 
   const handleEdit = (system: string) => {
     if (!isAdmin) {
@@ -78,30 +77,38 @@ export function RoutingFallbacksTab({ onActionFeedback, isAdmin }: RoutingFallba
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8DDFD]/40">
-              {fallbacks.map((fb) => (
-                <tr key={fb.id} className="hover:bg-slate-50/20 transition-colors">
-                  <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-1.5">
-                    <span>{fb.systemName === 'Fallback Global da Empresa' ? '⚓ Corporativo' : fb.systemName}</span>
+              {fallbacks.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-slate-400 font-semibold text-xs">
+                    Nenhum fallback configurado.
                   </td>
-                  <td className="py-3 px-4 font-bold text-slate-750">{fb.gatewayName}</td>
-                  <td className="py-3 px-4">
-                    <span className="capitalize font-semibold text-slate-500">{fb.environment}</span>
-                  </td>
-                  <td className="py-3 px-4 text-slate-400 font-semibold">
-                    {fb.lastActivated ? new Date(fb.lastActivated).toLocaleString('pt-BR') : 'Nunca acionado'}
-                  </td>
-                  {isAdmin && (
-                    <td className="py-3 px-4 text-right">
-                      <button
-                        onClick={() => handleEdit(fb.systemName)}
-                        className="p-1.5 text-slate-400 hover:text-brand hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  )}
                 </tr>
-              ))}
+              ) : (
+                fallbacks.map((fb) => (
+                  <tr key={fb.id} className="hover:bg-slate-50/20 transition-colors">
+                    <td className="py-3 px-4 font-bold text-slate-900 flex items-center gap-1.5">
+                      <span>{fb.systemName === 'Fallback Global da Empresa' ? '⚓ Corporativo' : fb.systemName}</span>
+                    </td>
+                    <td className="py-3 px-4 font-bold text-slate-750">{fb.gatewayName}</td>
+                    <td className="py-3 px-4">
+                      <span className="capitalize font-semibold text-slate-500">{fb.environment}</span>
+                    </td>
+                    <td className="py-3 px-4 text-slate-400 font-semibold">
+                      {fb.lastActivated ? new Date(fb.lastActivated).toLocaleString('pt-BR') : 'Nunca acionado'}
+                    </td>
+                    {isAdmin && (
+                      <td className="py-3 px-4 text-right">
+                        <button
+                          onClick={() => handleEdit(fb.systemName)}
+                          className="p-1.5 text-slate-400 hover:text-brand hover:bg-slate-100 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

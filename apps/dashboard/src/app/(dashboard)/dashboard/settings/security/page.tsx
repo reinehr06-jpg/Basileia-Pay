@@ -70,12 +70,7 @@ export default function SecuritySettingsPage() {
   const [testInput, setTestInput] = useState('');
   const [testMaskedResult, setTestMaskedResult] = useState('');
   
-  const [lgpdAuditLogs, setLgpdAuditLogs] = useState([
-    { id: '1', user: 'Carlos Oliveira', role: 'Owner', change: 'Prazo de descarte automático', date: '19/05 16:04:22', oldVal: '30 dias', newVal: '90 dias' },
-    { id: '2', user: 'Carlos Oliveira', role: 'Owner', change: 'Criptografia em Banco Local', date: '19/05 15:10:02', oldVal: 'Desativado', newVal: 'Ativo' },
-    { id: '3', user: 'Carlos Oliveira', role: 'Owner', change: 'Mascaramento CPF/CNPJ', date: '18/05 11:28:10', oldVal: 'Inativo', newVal: 'Strict Active' },
-    { id: '4', user: 'Carlos Oliveira', role: 'Owner', change: 'Sanitizar Logs de Webhooks', date: '17/05 09:15:32', oldVal: 'Inativo', newVal: 'Ativo' }
-  ]);
+  const [lgpdAuditLogs, setLgpdAuditLogs] = useState<any[]>([]);
 
   // Toast Notifications
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
@@ -157,7 +152,8 @@ export default function SecuritySettingsPage() {
       details: `Novo convite gerado para cargo ${freshUser.role}: ${freshUser.email}`
     };
     setEvents((prev) => [newEvt, ...prev]);
-    triggerFeedback(`Convite enviado por e-mail para ${freshUser.email} com sucesso!`);
+    // Simulate an email with a magic link to copy
+    triggerFeedback(`Email enviado para ${freshUser.email}! Link de convite: https://pay.basileia.com/invite/${freshUser.id}`);
   };
 
   const handleUpdateUserRole = (id: string, newRole: SecurityRole) => {
@@ -457,7 +453,7 @@ export default function SecuritySettingsPage() {
             <SecurityActivityFeed 
               events={events}
               onActionFeedback={triggerFeedback}
-              onNavigateToAudit={() => triggerFeedback("Direcionando para o módulo completo de Auditoria...")}
+              onNavigateToAudit={() => window.location.href = '/dashboard/audit'}
             />
           )}
 
@@ -763,20 +759,26 @@ class LGPDSanitizer
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-[11px] font-bold text-slate-700">
-                      {lgpdAuditLogs.map((log) => (
-                        <tr key={log.id} className="hover:bg-slate-50/50 h-[48px]">
-                          <td className="py-2 px-3.5 min-w-0">
-                            <div className="leading-tight">
-                              <span className="font-extrabold text-slate-900 block truncate">{log.user}</span>
-                              <span className="text-[8px] font-black text-brand uppercase tracking-wider block mt-0.5">{log.role}</span>
-                            </div>
-                          </td>
-                          <td className="py-2 px-2 text-slate-800 font-extrabold truncate">{log.change}</td>
-                          <td className="py-2 px-2 text-slate-550 font-semibold">{log.date}</td>
-                          <td className="py-2 px-2 text-red-650 font-mono text-[9.5px]">{log.oldVal}</td>
-                          <td className="py-2 px-2 text-emerald-650 font-mono text-[9.5px]">{log.newVal}</td>
+                      {lgpdAuditLogs.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="py-8 text-center text-slate-400 font-bold">Nenhum registro de auditoria LGPD encontrado.</td>
                         </tr>
-                      ))}
+                      ) : (
+                        lgpdAuditLogs.map((log) => (
+                          <tr key={log.id} className="hover:bg-slate-50/50 h-[48px]">
+                            <td className="py-2 px-3.5 min-w-0">
+                              <div className="leading-tight">
+                                <span className="font-extrabold text-slate-900 block truncate">{log.user}</span>
+                                <span className="text-[8px] font-black text-brand uppercase tracking-wider block mt-0.5">{log.role}</span>
+                              </div>
+                            </td>
+                            <td className="py-2 px-2 text-slate-800 font-extrabold truncate">{log.change}</td>
+                            <td className="py-2 px-2 text-slate-550 font-semibold">{log.date}</td>
+                            <td className="py-2 px-2 text-red-650 font-mono text-[9.5px]">{log.oldVal}</td>
+                            <td className="py-2 px-2 text-emerald-650 font-mono text-[9.5px]">{log.newVal}</td>
+                          </tr>
+                        ))
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -790,7 +792,7 @@ class LGPDSanitizer
         <SecurityAlertsPanel 
           onActionFeedback={triggerFeedback}
           onForceLogoutAll={handleRevokeAllSessions}
-          onNavigateToAudit={() => triggerFeedback("Redirecionando para as trilhas completas de Auditoria...")}
+          onNavigateToAudit={() => window.location.href = '/dashboard/audit'}
           is2faActive={twoFactorActive}
           isIpAllowlistActive={ipRules.length > 0}
         />

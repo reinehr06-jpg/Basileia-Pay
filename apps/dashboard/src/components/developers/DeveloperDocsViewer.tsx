@@ -328,40 +328,174 @@ echo $result;`}</code>
 
         {/* Section 5: Webhooks */}
         {activeSection === 'webhooks' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <h2 className="text-sm font-black text-slate-900">Configuração de Webhooks Técnicos</h2>
+              <h2 className="text-[15px] font-black text-slate-900">Configuração de Webhooks Técnicos</h2>
+              <p className="text-[11px] font-semibold text-slate-450 leading-relaxed mt-2">
+                A Basileia Pay dispara requisições HTTPS do tipo <span className="font-extrabold text-slate-700 bg-slate-100 px-1 rounded">POST</span> sempre que um pagamento é aprovado, recusado ou estornado, enviando o payload correspondente para sua URL configurada em tempo real.
+              </p>
             </div>
 
-            <p className="text-[11px] font-semibold text-slate-450 leading-relaxed">
-              A Basileia Pay dispara requisições HTTPS do tipo <span className="font-extrabold text-slate-700">POST</span> sempre que um pagamento é aprovado, recusado ou estornado, enviando o payload correspondente para sua URL configurada de endpoint em tempo real.
-            </p>
+            <div className="space-y-2 mt-4">
+              <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">Assinatura e Segurança</span>
+              <p className="text-[10.5px] font-semibold text-slate-500 leading-relaxed">
+                Para garantir que o webhook foi enviado pela Basileia Pay, todas as requisições incluem o cabeçalho <code className="font-mono text-[9.5px] font-bold bg-slate-50 text-brand px-1 border border-brand/20 rounded">Basileia-Signature</code>. A assinatura é um HMAC SHA-256 gerado usando sua Chave Secreta de Webhook e o corpo da requisição bruta.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">Eventos Disponíveis</span>
+              <div className="border border-slate-100 rounded-xl overflow-hidden text-[10.5px] font-semibold text-slate-600">
+                <div className="grid grid-cols-2 bg-slate-50 border-b border-slate-100 p-2.5 font-black uppercase text-slate-400 text-[9px]">
+                  <span>Evento</span>
+                  <span>Descrição</span>
+                </div>
+                <div className="grid grid-cols-2 p-2.5 border-b border-slate-100 font-mono text-[10px] items-center">
+                  <span className="text-slate-800 font-black">payment.created</span>
+                  <span className="font-sans text-[10px]">Um novo pagamento foi iniciado e está aguardando processamento.</span>
+                </div>
+                <div className="grid grid-cols-2 p-2.5 border-b border-slate-100 font-mono text-[10px] items-center">
+                  <span className="text-slate-800 font-black">payment.succeeded</span>
+                  <span className="font-sans text-[10px]">O pagamento foi aprovado com sucesso (Cartão ou Pix).</span>
+                </div>
+                <div className="grid grid-cols-2 p-2.5 border-b border-slate-100 font-mono text-[10px] items-center">
+                  <span className="text-slate-800 font-black">payment.failed</span>
+                  <span className="font-sans text-[10px]">O pagamento foi recusado pela adquirente ou o Pix expirou.</span>
+                </div>
+                <div className="grid grid-cols-2 p-2.5 font-mono text-[10px] items-center">
+                  <span className="text-slate-800 font-black">payment.refunded</span>
+                  <span className="font-sans text-[10px]">Um estorno ou reembolso foi concluído na conta do cliente.</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4.5 space-y-2 mt-4">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-450 border-b border-slate-800 pb-2">
+                <span>Exemplo de Payload Webhook (Node.js)</span>
+              </div>
+              <pre className="font-mono text-xs text-yellow-300 overflow-x-auto whitespace-pre no-scrollbar">
+                <code>{`app.post('/webhook', express.raw({type: 'application/json'}), (req, res) => {
+  const signature = req.headers['basileia-signature'];
+  const event = JSON.parse(req.body);
+
+  if (event.type === 'payment.succeeded') {
+    const paymentId = event.data.id;
+    console.log(\`Pagamento \${paymentId} foi aprovado!\`);
+  }
+  
+  res.status(200).send();
+});`}</code>
+              </pre>
+            </div>
           </div>
         )}
 
         {/* Section 6: Errors */}
         {activeSection === 'errors' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <h2 className="text-sm font-black text-slate-900">Tratamento de Falhas e Erros HTTP</h2>
+              <h2 className="text-[15px] font-black text-slate-900">Tratamento de Falhas e Erros HTTP</h2>
+              <p className="text-[11px] font-semibold text-slate-450 leading-relaxed mt-2">
+                A API utiliza códigos de status HTTP padrão do mercado (2xx, 4xx, 5xx) para sinalizar o sucesso ou falha das requisições. Para erros da série 4xx, o corpo da resposta sempre incluirá um código de erro interno e uma mensagem legível.
+              </p>
             </div>
 
-            <p className="text-[11px] font-semibold text-slate-450 leading-relaxed">
-              A API utiliza respostas JSON descritivas e códigos de status HTTP padrão de mercado (2xx, 4xx, 5xx) para sinalizar o sucesso ou falha das requisições executadas.
-            </p>
+            <div className="space-y-2 mt-4">
+              <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">Códigos de Erro Comuns</span>
+              <div className="border border-slate-100 rounded-xl overflow-hidden text-[10.5px] font-semibold text-slate-600">
+                <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-100 p-2.5 font-black uppercase text-slate-400 text-[9px]">
+                  <span className="col-span-2">HTTP</span>
+                  <span className="col-span-4">Código Interno</span>
+                  <span className="col-span-6">Causa & Solução</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 font-mono text-[10px] items-start">
+                  <span className="col-span-2 text-red-600 font-black">400</span>
+                  <span className="col-span-4 text-slate-800 font-black">invalid_request</span>
+                  <span className="col-span-6 font-sans text-[10px] text-slate-500">O payload JSON está malformado ou campos obrigatórios estão ausentes. Verifique a sintaxe.</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 font-mono text-[10px] items-start">
+                  <span className="col-span-2 text-red-600 font-black">401</span>
+                  <span className="col-span-4 text-slate-800 font-black">unauthorized</span>
+                  <span className="col-span-6 font-sans text-[10px] text-slate-500">Chave de API ausente, revogada ou incorreta. Use o cabeçalho Authorization: Bearer sk_live_...</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 font-mono text-[10px] items-start">
+                  <span className="col-span-2 text-red-600 font-black">402</span>
+                  <span className="col-span-4 text-slate-800 font-black">card_declined</span>
+                  <span className="col-span-6 font-sans text-[10px] text-slate-500">Pagamento recusado pela adquirente ou banco emissor (ex: limite insuficiente).</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 font-mono text-[10px] items-start">
+                  <span className="col-span-2 text-red-600 font-black">404</span>
+                  <span className="col-span-4 text-slate-800 font-black">resource_not_found</span>
+                  <span className="col-span-6 font-sans text-[10px] text-slate-500">O ID do pagamento, estorno ou checkout especificado não existe ou não pertence a sua conta.</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 font-mono text-[10px] items-start">
+                  <span className="col-span-2 text-red-600 font-black">429</span>
+                  <span className="col-span-4 text-slate-800 font-black">rate_limit_exceeded</span>
+                  <span className="col-span-6 font-sans text-[10px] text-slate-500">Você enviou requisições demais num curto período. Aguarde alguns segundos.</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4.5 space-y-2 mt-4">
+              <div className="flex justify-between items-center text-[10px] font-black uppercase text-slate-450 border-b border-slate-800 pb-2">
+                <span>Formato da Resposta de Erro</span>
+              </div>
+              <pre className="font-mono text-xs text-red-400 overflow-x-auto whitespace-pre no-scrollbar">
+                <code>{`{
+  "error": {
+    "type": "invalid_request_error",
+    "code": "card_declined",
+    "message": "O cartão foi recusado pelo banco emissor por limite insuficiente.",
+    "decline_code": "insufficient_funds",
+    "request_id": "req_84jf92jfa"
+  }
+}`}</code>
+              </pre>
+            </div>
           </div>
         )}
 
         {/* Section 7: Rate limits */}
         {activeSection === 'rate-limits' && (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <h2 className="text-sm font-black text-slate-900">Políticas de Rate Limit</h2>
+              <h2 className="text-[15px] font-black text-slate-900">Políticas de Rate Limit</h2>
+              <p className="text-[11px] font-semibold text-slate-450 leading-relaxed mt-2">
+                Para garantir a estabilidade da plataforma para todos, aplicamos limites de taxa (Rate Limiting) às requisições da API. O limite padrão é de <strong>60 requisições por minuto</strong> (1 req/s) para endpoints de gravação e <strong>120 requisições por minuto</strong> para leitura.
+              </p>
             </div>
 
-            <p className="text-[11px] font-semibold text-slate-450 leading-relaxed">
-              O limite padrão de requisições por API Key em produção é de <strong>60 requisições por minuto</strong> (1 req/s). Se o seu sistema exceder este valor, a API responderá com o erro HTTP <span className="font-extrabold text-red-655">429 Too Many Requests</span>.
-            </p>
+            <div className="space-y-2 mt-4">
+              <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider block">Cabeçalhos de Retorno</span>
+              <p className="text-[10.5px] font-semibold text-slate-500 leading-relaxed">
+                Toda resposta da API inclui cabeçalhos detalhando o estado atual dos seus limites:
+              </p>
+              <div className="border border-slate-100 rounded-xl overflow-hidden text-[10.5px] font-semibold text-slate-600 mt-2">
+                <div className="grid grid-cols-12 bg-slate-50 border-b border-slate-100 p-2.5 font-black uppercase text-slate-400 text-[9px]">
+                  <span className="col-span-5">Cabeçalho HTTP</span>
+                  <span className="col-span-7">Descrição</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 items-start">
+                  <span className="col-span-5 font-mono text-[10px] font-black text-slate-800">X-RateLimit-Limit</span>
+                  <span className="col-span-7 text-[10px] text-slate-500">O número máximo de requisições permitidas na janela atual (ex: 60).</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 border-b border-slate-100 items-start">
+                  <span className="col-span-5 font-mono text-[10px] font-black text-slate-800">X-RateLimit-Remaining</span>
+                  <span className="col-span-7 text-[10px] text-slate-500">O número de requisições que você ainda pode fazer antes de ser bloqueado.</span>
+                </div>
+                <div className="grid grid-cols-12 p-2.5 items-start">
+                  <span className="col-span-5 font-mono text-[10px] font-black text-slate-800">X-RateLimit-Reset</span>
+                  <span className="col-span-7 text-[10px] text-slate-500">A data e hora (em Epoch Time) em que os limites serão redefinidos.</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3.5 text-[10.5px] font-semibold text-blue-800 leading-relaxed flex items-start gap-2.5 mt-4">
+              <span className="text-blue-500 mt-0.5"><BookOpen className="w-4 h-4" /></span>
+              <span>
+                <strong>Precisa de limites maiores?</strong> Clientes Enterprise podem solicitar aumento das cotas de API diretamente com seu gerente de contas ou via suporte técnico para até 1.000 requisições por segundo.
+              </span>
+            </div>
           </div>
         )}
 

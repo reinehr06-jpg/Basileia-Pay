@@ -4,9 +4,12 @@ namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\Role;
+use App\Services\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 
 class UserManagementController extends Controller
 {
@@ -15,7 +18,14 @@ class UserManagementController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $users = User::where('company_id', $request->user()->company_id)
+        $companyId = TenantContext::companyId();
+        
+        $users = User::whereHas('companies', function($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
+            ->with(['roles' => function($q) use ($companyId) {
+                $q->where('user_role_assignments.company_id', $companyId);
+            }])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -33,22 +43,34 @@ class UserManagementController extends Controller
         $data = $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'role'  => 'required|in:owner,admin,finance,support,developer,viewer',
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,slug',
         ]);
+
+        $companyId = TenantContext::companyId();
 
         $user = User::create([
             'uuid'       => (string) Str::uuid(),
-            'company_id' => $request->user()->company_id,
+            'company_id' => $companyId, // default context
             'name'       => $data['name'],
             'email'      => $data['email'],
-            'role'       => $data['role'],
-            'status'     => 'active', // Em um cenário real, começaria como 'pending'
-            'password'   => bcrypt(Str::random(16)),
+            'status'     => 'active',
+            'password'   => Hash::make(Str::random(16)),
+            'must_change_password' => true,
         ]);
+
+        // Attach to company
+        $user->companies()->attach($companyId, ['status' => 'active']);
+
+        // Attach roles
+        $roles = Role::whereIn('slug', $data['roles'])->get();
+        foreach ($roles as $role) {
+            $user->roles()->attach($role->id, ['company_id' => $companyId]);
+        }
 
         return response()->json([
             'success' => true,
-            'data'    => $user
+            'data'    => $user->load('roles')
         ], 201);
     }
 
@@ -57,20 +79,40 @@ class UserManagementController extends Controller
      */
     public function update(string $uuid, Request $request): JsonResponse
     {
-        $user = User::where('company_id', $request->user()->company_id)
+        $companyId = TenantContext::companyId();
+        
+        $user = User::whereHas('companies', function($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
             ->where('uuid', $uuid)
             ->firstOrFail();
 
         $data = $request->validate([
-            'role'   => 'sometimes|in:owner,admin,finance,support,developer,viewer',
+            'roles'  => 'sometimes|array',
+            'roles.*' => 'exists:roles,slug',
             'status' => 'sometimes|in:active,inactive',
         ]);
 
-        $user->update($data);
+        if (isset($data['status'])) {
+            $user->update(['status' => $data['status']]);
+            $user->companies()->updateExistingPivot($companyId, ['status' => $data['status']]);
+        }
+
+        if (isset($data['roles'])) {
+            $roles = Role::whereIn('slug', $data['roles'])->get();
+            
+            // Detach existing roles for this company
+            $user->roles()->wherePivot('company_id', $companyId)->detach();
+            
+            // Attach new ones
+            foreach ($roles as $role) {
+                $user->roles()->attach($role->id, ['company_id' => $companyId]);
+            }
+        }
 
         return response()->json([
             'success' => true,
-            'data'    => $user
+            'data'    => $user->load('roles')
         ]);
     }
 
@@ -79,7 +121,11 @@ class UserManagementController extends Controller
      */
     public function destroy(string $uuid, Request $request): JsonResponse
     {
-        $user = User::where('company_id', $request->user()->company_id)
+        $companyId = TenantContext::companyId();
+
+        $user = User::whereHas('companies', function($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
             ->where('uuid', $uuid)
             ->firstOrFail();
 
@@ -87,8 +133,29 @@ class UserManagementController extends Controller
             return response()->json(['error' => 'Você não pode remover a si mesmo.'], 403);
         }
 
-        $user->delete();
+        // Remove from company
+        $user->companies()->detach($companyId);
+        $user->roles()->wherePivot('company_id', $companyId)->detach();
 
         return response()->json(['success' => true]);
+    }
+    
+    /**
+     * Reset 2FA para o usuário.
+     */
+    public function reset2fa(string $uuid, Request $request): JsonResponse
+    {
+        $companyId = TenantContext::companyId();
+        
+        $user = User::whereHas('companies', function($q) use ($companyId) {
+                $q->where('company_id', $companyId);
+            })
+            ->where('uuid', $uuid)
+            ->firstOrFail();
+            
+        $user->update(['two_factor_enabled' => false]);
+        $user->twoFactorSecretRel()->delete();
+        
+        return response()->json(['success' => true, 'message' => '2FA desabilitado.']);
     }
 }

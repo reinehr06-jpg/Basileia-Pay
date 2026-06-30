@@ -1,6 +1,7 @@
 'use client';
 
 import { GitBranch, BookOpen, Play, Plus } from 'lucide-react';
+import Link from 'next/link';
 
 interface RoutingHeaderProps {
   onOpenDoc: () => void;

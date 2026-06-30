@@ -12,11 +12,7 @@ export default function TwoFactorSettingsPage() {
   const [forceGlobal, setForceGlobal] = useState(false);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
 
-  const [backupCodes, setBackupCodes] = useState([
-    'B2A9-D8F3-7C4E', '9E3D-1B8A-6F4C', 'A7C4-E3D9-2B8F', '5F1B-8A9E-3D4C',
-    '3D4C-E3D9-2B8F', '6F4C-9E3D-1B8A', '2B8F-A7C4-E3D9', '1B8A-6F4C-9E3D',
-    '9E3D-5F1B-8A9E', '7C4E-B2A9-D8F3'
-  ]);
+  const [backupCodes, setBackupCodes] = useState<string[]>([]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);

@@ -15,6 +15,18 @@ export default function BrandingSettingsPage() {
   });
 
   const [font, setFont] = useState('Inter');
+  const [uploadedLogo, setUploadedLogo] = useState<string | null>(null);
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, type: string) => {
+    if(e.target.files?.length) {
+      const file = e.target.files[0];
+      const url = URL.createObjectURL(file);
+      if (type === 'claro' || type === 'escuro') {
+        setUploadedLogo(url);
+      }
+      triggerToast(`${type === 'favicon' ? 'Favicon' : 'Logo'} carregado com sucesso!`);
+    }
+  };
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -89,23 +101,33 @@ export default function BrandingSettingsPage() {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <label className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition group relative">
-                <input type="file" accept="image/png, image/svg+xml" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={(e) => { if(e.target.files?.length) triggerToast('Logo Claro carregado com sucesso!'); }} />
-                <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2 group-hover:text-brand transition-colors" />
-                <span className="text-[10px] font-black text-slate-800 block">Logo Claro</span>
-                <span className="text-[9px] text-slate-400 block mt-0.5">Fundo claro (PNG/SVG)</span>
+              <label className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition group relative overflow-hidden">
+                <input type="file" accept="image/png, image/svg+xml" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleLogoUpload(e, 'claro')} />
+                <div className="relative z-0">
+                  {uploadedLogo ? (
+                    <img src={uploadedLogo} className="w-10 h-10 object-contain mx-auto mb-2" alt="Logo Claro" />
+                  ) : (
+                    <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2 group-hover:text-brand transition-colors" />
+                  )}
+                  <span className="text-[10px] font-black text-slate-800 block">Logo Claro</span>
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Fundo claro (PNG/SVG)</span>
+                </div>
               </label>
-              <label className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition group relative">
-                <input type="file" accept="image/png, image/svg+xml" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={(e) => { if(e.target.files?.length) triggerToast('Logo Escuro carregado com sucesso!'); }} />
-                <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2 group-hover:text-brand transition-colors" />
-                <span className="text-[10px] font-black text-slate-800 block">Logo Escuro</span>
-                <span className="text-[9px] text-slate-400 block mt-0.5">Fundo escuro (PNG/SVG)</span>
+              <label className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition group relative overflow-hidden">
+                <input type="file" accept="image/png, image/svg+xml" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleLogoUpload(e, 'escuro')} />
+                <div className="relative z-0">
+                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2 group-hover:text-brand transition-colors" />
+                  <span className="text-[10px] font-black text-slate-800 block">Logo Escuro</span>
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Fundo escuro (PNG/SVG)</span>
+                </div>
               </label>
-              <label className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition group relative">
-                <input type="file" accept="image/x-icon, image/png" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onChange={(e) => { if(e.target.files?.length) triggerToast('Favicon carregado com sucesso!'); }} />
-                <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2 group-hover:text-brand transition-colors" />
-                <span className="text-[10px] font-black text-slate-800 block">Favicon</span>
-                <span className="text-[9px] text-slate-400 block mt-0.5">32x32px (ICO/PNG)</span>
+              <label className="border border-slate-100 bg-slate-50/50 rounded-2xl p-4 text-center cursor-pointer hover:bg-slate-50 transition group relative overflow-hidden">
+                <input type="file" accept="image/x-icon, image/png" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onChange={(e) => handleLogoUpload(e, 'favicon')} />
+                <div className="relative z-0">
+                  <Upload className="w-6 h-6 text-slate-400 mx-auto mb-2 group-hover:text-brand transition-colors" />
+                  <span className="text-[10px] font-black text-slate-800 block">Favicon</span>
+                  <span className="text-[9px] text-slate-400 block mt-0.5">32x32px (ICO/PNG)</span>
+                </div>
               </label>
             </div>
           </div>
@@ -192,6 +214,15 @@ export default function BrandingSettingsPage() {
                 <option value="Open Sans">Open Sans (Legível)</option>
                 <option value="Nunito">Nunito (Amigável)</option>
                 <option value="Playfair Display">Playfair Display (Sofisticada)</option>
+                <option value="Lato">Lato (Harmoniosa)</option>
+                <option value="Oswald">Oswald (Impactante)</option>
+                <option value="Raleway">Raleway (Distinta)</option>
+                <option value="Ubuntu">Ubuntu (Tecnológica)</option>
+                <option value="Merriweather">Merriweather (Tradicional)</option>
+                <option value="Quicksand">Quicksand (Arredondada)</option>
+                <option value="Fira Sans">Fira Sans (Acessível)</option>
+                <option value="Space Grotesk">Space Grotesk (Futurista)</option>
+                <option value="DM Sans">DM Sans (Geométrica)</option>
               </select>
             </div>
           </div>
@@ -212,9 +243,13 @@ export default function BrandingSettingsPage() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
               </div>
               <div className="p-4 space-y-4 text-center bg-white">
-                <div className="w-24 h-6 bg-slate-100 rounded mx-auto mb-2 flex items-center justify-center text-[9px] font-black text-slate-400">
-                  SUA LOGO AQUI
-                </div>
+                {uploadedLogo ? (
+                  <img src={uploadedLogo} alt="Logo Preview" className="h-6 mx-auto mb-2 object-contain" />
+                ) : (
+                  <div className="w-24 h-6 bg-slate-100 rounded mx-auto mb-2 flex items-center justify-center text-[9px] font-black text-slate-400">
+                    SUA LOGO AQUI
+                  </div>
+                )}
                 <div className="space-y-2">
                   <div className="h-4 bg-slate-50 rounded max-w-[80%] mx-auto" />
                   <div className="h-3 bg-slate-50 rounded max-w-[60%] mx-auto" />

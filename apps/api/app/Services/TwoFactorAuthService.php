@@ -20,7 +20,8 @@ class TwoFactorAuthService
 
     public function generateQRCodeUrl(User $user): string
     {
-        $secret = $user->two_factor_secret;
+        $secretModel = $user->twoFactorSecretRel()->first();
+        $secret = $secretModel ? $secretModel->secret : null;
         $email = $user->email;
         $name = config('app.name', 'Checkout');
 
@@ -29,11 +30,12 @@ class TwoFactorAuthService
 
     public function verifyCode(User $user, string $code): bool
     {
-        if (!$user->two_factor_secret) {
+        $secretModel = $user->twoFactorSecretRel()->first();
+        if (!$secretModel || !$secretModel->secret) {
             return false;
         }
 
-        $secret = $user->two_factor_secret;
+        $secret = $secretModel->secret;
         $currentTime = time();
 
         Log::debug('2FA verify attempt', [
@@ -59,18 +61,19 @@ class TwoFactorAuthService
 
     public function verifyBackupCode(User $user, string $code): bool
     {
-        if (!$user->two_factor_codes) {
+        $secretModel = $user->twoFactorSecretRel()->first();
+        if (!$secretModel || !$secretModel->recovery_codes) {
             return false;
         }
 
-        $codes = json_decode(Crypt::decryptString($user->two_factor_codes), true);
+        $codes = json_decode(Crypt::decryptString($secretModel->recovery_codes), true);
         $code = strtoupper(trim($code));
 
         foreach ($codes as $index => $storedCode) {
             if (strtoupper($storedCode) === $code) {
                 unset($codes[$index]);
-                $user->update([
-                    'two_factor_codes' => Crypt::encryptString(json_encode(array_values($codes)))
+                $secretModel->update([
+                    'recovery_codes' => Crypt::encryptString(json_encode(array_values($codes)))
                 ]);
                 return true;
             }
@@ -84,8 +87,15 @@ class TwoFactorAuthService
         if ($this->verifyCode($user, $code)) {
             $user->update([
                 'two_factor_enabled' => true,
-                'two_factor_codes' => Crypt::encryptString(json_encode($this->generateBackupCodes()))
             ]);
+            
+            $secretModel = $user->twoFactorSecretRel()->first();
+            if ($secretModel) {
+                $secretModel->update([
+                    'recovery_codes' => Crypt::encryptString(json_encode($this->generateBackupCodes())),
+                    'confirmed_at' => now(),
+                ]);
+            }
             Log::info('2FA enabled', ['user_id' => $user->id]);
             return true;
         }
@@ -100,9 +110,8 @@ class TwoFactorAuthService
 
         $user->update([
             'two_factor_enabled' => false,
-            'two_factor_secret' => null,
-            'two_factor_codes' => null
         ]);
+        $user->twoFactorSecretRel()->delete();
         Log::info('2FA disabled', ['user_id' => $user->id]);
         return true;
     }

@@ -14,6 +14,11 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// API Healthcheck
+// ═══════════════════════════════════════════════════════════════════════════════
+Route::get('/health', [\App\Http\Controllers\HealthController::class, 'check']);
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // API v1 — Core Foundation (Fase 1-5)
 // ═══════════════════════════════════════════════════════════════════════════════
 Route::prefix('v1')->group(function () {
@@ -24,6 +29,7 @@ Route::prefix('v1')->group(function () {
     Route::post('auth/password/forgot', [\App\Http\Controllers\Api\V1\AuthController::class, 'forgotPassword'])->middleware('throttle:auth_password');
     Route::post('auth/password/reset', [\App\Http\Controllers\Api\V1\AuthController::class, 'resetPassword'])->middleware('throttle:auth_password');
     Route::post('auth/refresh', [\App\Http\Controllers\Api\V1\AuthController::class, 'refresh'])->middleware('throttle:auth_login');
+    Route::post('auth/2fa/verify', [\App\Http\Controllers\Api\V1\TwoFactorController::class, 'verify']);
 
     // ── JIT Access (Just-In-Time Privilege Elevation) ─────────────────────
     Route::prefix('jit')->middleware(['auth:sanctum', 'zero.trust', 'scope.company', 'anomaly.detect'])->group(function () {
@@ -42,6 +48,10 @@ Route::prefix('v1')->group(function () {
 
     // ── Checkout Público (Next.js) ────────────────────────────────────────
     Route::middleware(['rate.checkout'])->group(function () {
+        Route::get('public/checkouts/{system_id}', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'show']);
+        Route::post('public/checkouts/{system_id}/orders', [\App\Http\Controllers\Api\V1\PublicOrderController::class, 'storeOrder']);
+        Route::post('public/orders/{order_id}/payments', [\App\Http\Controllers\Api\V1\PublicOrderController::class, 'storePayment']);
+        
         Route::get('public/checkout-sessions/{sessionToken}', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'show'])->middleware('throttle:checkout_status');
         Route::post('public/checkout-sessions/{sessionToken}/pay', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'pay'])->middleware('throttle:checkout_pay');
         Route::get('public/checkout-sessions/{sessionToken}/status', [\App\Http\Controllers\Api\V1\PublicCheckoutController::class, 'status'])->middleware('throttle:checkout_status');
@@ -64,8 +74,19 @@ Route::prefix('v1')->group(function () {
 
         // Dashboard Stats & Lists
         Route::get('dashboard/stats', [\App\Http\Controllers\Api\V1\Dashboard\StatsController::class, 'index']);
+        
+        // Orders & Financials (Bloco 4)
+        Route::get('dashboard/orders', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'indexOrders']);
+        Route::get('dashboard/orders/{id}', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'showOrder']);
+        Route::get('dashboard/orders/{id}/payments', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'orderPayments']);
+        Route::post('dashboard/orders/{id}/refunds', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'storeRefund']);
+        
+        Route::get('dashboard/reconciliation/discrepancies', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'getDiscrepancies']);
+        Route::post('dashboard/reconciliation/{order_id}/resync', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'resyncOrder']);
+        
+        Route::get('dashboard/financial-audit-logs', [\App\Http\Controllers\Api\V1\Dashboard\FinancialController::class, 'getAuditLogs']);
+
         Route::get('dashboard/payments', [\App\Http\Controllers\Api\V1\PaymentController::class, 'index']);
-        Route::get('dashboard/orders', [\App\Http\Controllers\Api\V1\Dashboard\OrderController::class, 'index']);
         Route::get('dashboard/systems', [\App\Http\Controllers\Api\V1\Dashboard\SystemController::class, 'index']);
         Route::post('dashboard/systems', [\App\Http\Controllers\Api\V1\Dashboard\SystemController::class, 'store']);
         Route::get('dashboard/systems/{uuid}', [\App\Http\Controllers\Api\V1\Dashboard\SystemController::class, 'show']);
@@ -117,6 +138,10 @@ Route::prefix('v1')->group(function () {
             Route::get('dashboard/company', [\App\Http\Controllers\Api\V1\Dashboard\CompanySettingsController::class, 'show']);
             Route::patch('dashboard/company', [\App\Http\Controllers\Api\V1\Dashboard\CompanySettingsController::class, 'update']);
             
+            // Company Switching
+            Route::get('dashboard/companies', [\App\Http\Controllers\Api\V1\Dashboard\SelectCompanyController::class, 'list']);
+            Route::post('dashboard/companies/select', [\App\Http\Controllers\Api\V1\Dashboard\SelectCompanyController::class, 'switch']);
+            
             Route::get('dashboard/api-keys', [\App\Http\Controllers\Api\V1\Dashboard\ApiKeyController::class, 'index']);
             Route::post('dashboard/api-keys', [\App\Http\Controllers\Api\V1\Dashboard\ApiKeyController::class, 'store']);
             Route::get('dashboard/audit', [\App\Http\Controllers\Api\V1\Dashboard\AuditController::class, 'index']);
@@ -137,6 +162,14 @@ Route::prefix('v1')->group(function () {
             Route::post('dashboard/users', [\App\Http\Controllers\Api\V1\Dashboard\UserManagementController::class, 'store']);
             Route::patch('dashboard/users/{uuid}', [\App\Http\Controllers\Api\V1\Dashboard\UserManagementController::class, 'update']);
             Route::delete('dashboard/users/{uuid}', [\App\Http\Controllers\Api\V1\Dashboard\UserManagementController::class, 'destroy']);
+            Route::post('dashboard/users/{uuid}/reset-2fa', [\App\Http\Controllers\Api\V1\Dashboard\UserManagementController::class, 'reset2fa']);
+
+            // Role Management
+            Route::get('dashboard/roles/permissions', [\App\Http\Controllers\Api\V1\Dashboard\RoleController::class, 'permissions']);
+            Route::get('dashboard/roles', [\App\Http\Controllers\Api\V1\Dashboard\RoleController::class, 'index']);
+            Route::post('dashboard/roles', [\App\Http\Controllers\Api\V1\Dashboard\RoleController::class, 'store']);
+            Route::patch('dashboard/roles/{id}', [\App\Http\Controllers\Api\V1\Dashboard\RoleController::class, 'update']);
+            Route::delete('dashboard/roles/{id}', [\App\Http\Controllers\Api\V1\Dashboard\RoleController::class, 'destroy']);
 
             // Security & Sessions
             Route::get('dashboard/security/status', [\App\Http\Controllers\Api\V1\Dashboard\SecuritySettingsController::class, 'status']);
@@ -158,15 +191,16 @@ Route::prefix('v1')->group(function () {
         // Onboarding — Gateway (fora de 2fa para permitir fluxo inicial)
         Route::post('dashboard/gateways', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'store']);
         Route::post('dashboard/gateways/{uuid}/test', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'test']);
+        
+        Route::get('dashboard/webhook-events', [\App\Http\Controllers\Api\V1\Dashboard\WebhookEventController::class, 'index']);
 
         // ═══════════════════════════════════════════════════════════════════
         // Studio / Checkouts
         // ═══════════════════════════════════════════════════════════════════
-        Route::get('checkouts', [\App\Http\Controllers\Api\V1\StudioController::class, 'index']);
-        Route::post('checkouts', [\App\Http\Controllers\Api\V1\StudioController::class, 'store']);
-        Route::get('checkouts/{id}', [\App\Http\Controllers\Api\V1\StudioController::class, 'show']);
-        Route::patch('checkouts/{id}', [\App\Http\Controllers\Api\V1\StudioController::class, 'update']);
-        Route::post('checkouts/{id}/publish', [\App\Http\Controllers\Api\V1\StudioController::class, 'publish'])->middleware('2fa');
+        Route::get('dashboard/checkouts/studio/session', [\App\Http\Controllers\Api\V1\Dashboard\CheckoutStudioController::class, 'getSessionToken']);
+        
+        Route::apiResource('checkouts', \App\Http\Controllers\Api\V1\CheckoutController::class);
+        Route::post('checkouts/{id}/publish', [\App\Http\Controllers\Api\V1\CheckoutController::class, 'publish']);
 
         // Basileia Studio (Visual Editor)
         Route::get('studio/blocks', [\App\Http\Controllers\Api\V1\Dashboard\CheckoutStudioController::class, 'blocks']);

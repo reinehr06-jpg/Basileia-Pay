@@ -19,7 +19,7 @@ type ApiSuccessPayload<T> = {
 
 export type ApiResponse<T> = ApiSuccessPayload<T> | ApiErrorPayload;
 
-import { fetchWithTimeout, getCsrfToken } from '@/lib/api';
+import { fetchWithTimeout, getCsrfToken, getAccessToken } from '@/lib/api';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
@@ -38,6 +38,11 @@ export async function apiClient<T>(
     'X-Request-ID': requestId,
     ...(options.headers as Record<string, string> || {}),
   };
+
+  const bearerToken = getAccessToken();
+  if (bearerToken) {
+    headers['Authorization'] = `Bearer ${bearerToken}`;
+  }
 
   if (MUTATING_METHODS.has(method)) {
     const csrfToken = getCsrfToken();

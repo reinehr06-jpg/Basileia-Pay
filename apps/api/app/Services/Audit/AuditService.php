@@ -26,7 +26,7 @@ class AuditService
         $previousHash = $previousLog->record_hash ?? str_repeat('0', 64);
 
         $uuid = (string) \Illuminate\Support\Str::uuid();
-        $companyId = $user?->company_id ?? $entity?->company_id ?? null;
+        $companyId = \App\Services\TenantContext::companyId() ?? $user?->company_id ?? $entity?->company_id ?? null;
         $userId = $user?->id;
         $entityType = $entity ? get_class($entity) : null;
         $entityId = $entity ? $entity->id : null;

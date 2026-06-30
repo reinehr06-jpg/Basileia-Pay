@@ -3,15 +3,16 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { ArrowLeft, Plus } from 'lucide-react';
-import { MOCK_ROUTING_RULES } from '../__mocks__/routing';
+import { ArrowLeft, Plus, Network, Activity, Settings2, Server, Power, Zap, Clock, ShieldCheck, FileText, ChevronRight, Filter, PlusCircle } from 'lucide-react';
+import { RoutingRule, RoutingKpi } from '@/types/routing';
+import { MOCK_ROUTING_KPIS } from '../__mocks__/routing';
 import { RoutingRulesTable } from '@/components/routing/RoutingRulesTable';
 import { RoutingFilters } from '@/components/routing/RoutingFilters';
-import { RoutingRule } from '@/types/routing';
 import { RoutingRuleForm } from '@/components/routing/RoutingRuleForm';
+import { cn } from '@/lib/utils';
 
 export default function RulesPage() {
-  const [rules, setRules] = useState<RoutingRule[]>(MOCK_ROUTING_RULES);
+  const [rules, setRules] = useState<RoutingRule[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [systemFilter, setSystemFilter] = useState('all');

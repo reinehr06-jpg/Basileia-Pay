@@ -73,7 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'master.ratelimit' => \App\Http\Middleware\MasterRateLimiter::class,
             'ip.allowlist' => \App\Http\Middleware\IpAllowlist::class,
             'zero.trust' => \App\Http\Middleware\ZeroTrustMiddleware::class,
-            'scope.company' => \App\Http\Middleware\EnforceCompanyScope::class,
+            'scope.company' => \App\Http\Middleware\ResolveTenantFromSession::class,
             'anomaly.detect' => \App\Http\Middleware\AnomalyDetection::class,
             'jit' => \App\Http\Middleware\JitAccessMiddleware::class,
             'super.admin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,

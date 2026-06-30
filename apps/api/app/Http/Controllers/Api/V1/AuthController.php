@@ -39,7 +39,7 @@ class AuthController extends Controller
             }
 
             $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (!$user || $user->role !== 'super_admin') {
+            if (!$user || !$user->isSuperAdmin()) {
                 return response()->json([
                     'success' => false,
                     'error' => ['code' => 'invalid_credentials', 'message' => 'Email ou senha inválidos.']
@@ -120,13 +120,19 @@ class AuthController extends Controller
 
         $refreshTokenData = $this->issueRefreshToken($user, $tokenInstance->accessToken->id);
 
-        DB::table('user_sessions')->insert([
+        \App\Models\AuthSession::create([
             'user_id' => $user->id,
             'token_id' => $tokenInstance->accessToken->id,
             'ip_address' => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'created_at' => now(),
-            'updated_at' => now(),
+            'last_activity' => now(),
+            'expires_at' => now()->addMinutes(15),
+            'status' => 'active',
+        ]);
+
+        app(\App\Services\Audit\AuditService::class)->log('auth.login', $user, [
+            'token_name' => $tokenName,
+            'ip' => $request->ip(),
         ]);
 
         $response = response()->json([
@@ -139,8 +145,7 @@ class AuthController extends Controller
                     'id'    => $user->uuid,
                     'name'  => $user->name,
                     'email' => $user->email,
-                    'role'  => $user->role,
-                    'is_master' => $user->role === 'super_admin',
+                    'is_master' => $user->isSuperAdmin(),
                     'two_factor_enabled' => $user->two_factor_enabled,
                 ],
                 'needs_2fa_setup' => !$user->two_factor_enabled,
@@ -212,7 +217,7 @@ class AuthController extends Controller
                     'id'    => $user->uuid,
                     'name'  => $user->name,
                     'email' => $user->email,
-                    'role'  => $user->role,
+                    'is_master' => $user->isSuperAdmin(),
                     'company_id' => $user->company_id,
                 ],
             ]

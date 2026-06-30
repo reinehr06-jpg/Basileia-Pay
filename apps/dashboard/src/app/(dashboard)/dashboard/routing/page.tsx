@@ -3,11 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PageLayout } from '@/components/layout/PageLayout';
-import { 
-  MOCK_ROUTING_KPIS, 
-  MOCK_ROUTING_RULES, 
-  MOCK_SYSTEMS 
-} from './__mocks__/routing';
+
 import { apiFetch } from '@/lib/api';
 import { RoutingHeader } from '@/components/routing/RoutingHeader';
 import { RoutingKpiCards } from '@/components/routing/RoutingKpiCards';
@@ -67,7 +63,8 @@ export default function RoutingPage() {
     decisionsTodayDelta: 0,
     conflictsCount: 0
   });
-  const [showSimulator, setShowSimulator] = useState(true);
+  const [showSimulator, setShowSimulator] = useState(false);
+  const [showDocsModal, setShowDocsModal] = useState(false);
   const [showRuleForm, setShowRuleForm] = useState(false);
   const [editingRule, setEditingRule] = useState<RoutingRule | undefined>(undefined);
   const [userRole, setUserRole] = useState<'admin' | 'viewer'>('admin');
@@ -312,7 +309,7 @@ export default function RoutingPage() {
     const appliedStep = decisionChain.find(step => step.satisfied && step.rule.status === 'active');
 
     if (isHighRisk) {
-      const riskRule = rules.find(r => r.type === 'by_risk') || rules[2];
+      const riskRule = rules.find(r => r.type === 'by_risk');
       return {
         action: 'block_and_review',
         isFallback: false,
@@ -648,7 +645,7 @@ export default function RoutingPage() {
         <div className="flex-1 space-y-6 w-full">
           
           <RoutingHeader 
-            onOpenDoc={() => triggerFeedback("Abrindo documentação técnica do motor de roteamento...")}
+            onOpenDoc={() => setShowDocsModal(true)}
             onOpenSimulator={() => setShowSimulator(!showSimulator)}
             onNewRule={() => {
               if (activeTab === 'retries') {
@@ -730,8 +727,8 @@ export default function RoutingPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
                   { label: 'Regras de Retentativa', val: smartRetriesRules.length, color: 'text-brand' },
-                  { label: 'Taxa de Sucesso (Média)', val: '24.8%', sub: 'Recuperação direta', color: 'text-emerald-650' },
-                  { label: 'Falhas Inúteis Evitadas', val: '4,821', sub: 'Sem processamento extra', color: 'text-purple-650' },
+                  { label: 'Taxa de Sucesso (Média)', val: '0%', sub: 'Recuperação direta', color: 'text-emerald-650' },
+                  { label: 'Falhas Inúteis Evitadas', val: '0', sub: 'Sem processamento extra', color: 'text-purple-650' },
                   { label: 'Conflitos de Prioridade', val: '0', sub: 'Conformidade auditada', color: 'text-slate-400' }
                 ].map((kpi, idx) => (
                   <div key={idx} className="bg-white border border-[#E8DDFD]/65 rounded-2xl p-4.5 space-y-1">
@@ -1118,6 +1115,55 @@ class SmartRetryMiddleware
           onSave={handleSaveRule}
           initialRule={editingRule}
         />
+      )}
+
+      {/* Modal Docs */}
+      {showDocsModal && (
+        <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-[#E7E5EF] shadow-2xl p-6 max-w-2xl w-full animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div className="flex items-center gap-2 text-brand">
+                <BookOpen className="w-5 h-5 shrink-0" />
+                <h3 className="text-slate-950 font-black text-sm">Documentação: Roteamento Inteligente</h3>
+              </div>
+              <button onClick={() => setShowDocsModal(false)} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="space-y-4 text-xs text-slate-700 leading-relaxed font-semibold">
+              <p>
+                O módulo de Roteamento permite que você distribua suas transações entre diferentes adquirentes (gateways) com base em regras personalizadas de prioridade, valor, risco ou sistema de origem.
+              </p>
+              
+              <div className="bg-slate-50 border border-slate-100 rounded-xl p-3 space-y-2">
+                <strong className="text-slate-900 block uppercase tracking-wider text-[10px]">Smart Retries (Retentativas Inteligentes)</strong>
+                <p>
+                  Quando um pagamento é recusado, o sistema intercepta o código ISO de erro do adquirente e executa um comportamento automático:
+                </p>
+                <ul className="list-disc pl-4 space-y-1 text-slate-600">
+                  <li><span className="font-bold text-slate-800">Bloquear:</span> Impede novas tentativas para evitar taxas de transação em cartões roubados.</li>
+                  <li><span className="font-bold text-slate-800">Autenticar 3DS:</span> Força o comprador a verificar a transação com o banco.</li>
+                  <li><span className="font-bold text-slate-800">Reprocessar:</span> Tenta processar novamente em outro adquirente (failover).</li>
+                </ul>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-amber-800">
+                <strong className="block uppercase tracking-wider text-[10px] text-amber-900">Importante</strong>
+                <p className="mt-1 text-[11px]">As regras são avaliadas em ordem de prioridade. A primeira regra que satisfazer as condições da transação será aplicada.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 mt-5 pt-3 border-t border-slate-100">
+              <button
+                onClick={() => setShowDocsModal(false)}
+                className="px-4 py-1.5 bg-brand text-white hover:bg-brand-deep rounded-xl text-[10.5px] font-black uppercase h-[32px]"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
     </PageLayout>

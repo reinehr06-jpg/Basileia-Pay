@@ -153,10 +153,10 @@ export function OperationalSidePanel() {
 
         <div className="grid grid-cols-2 gap-2 mb-4">
           {[
-            { label: 'Uptime API', value: '99,95%', color: 'success' },
-            { label: 'Latência', value: '198ms', color: 'brand' },
-            { label: 'Erro P99', value: '0,02%', color: 'success' },
-            { label: 'Transações', value: '1.8k rpm', color: 'brand' },
+            { label: 'Uptime API', value: '100%', color: 'success' },
+            { label: 'Latência', value: '0ms', color: 'brand' },
+            { label: 'Erro P99', value: '0,00%', color: 'success' },
+            { label: 'Transações', value: '0 rpm', color: 'brand' },
           ].map((stat) => (
             <div key={stat.label} className="p-2.5 rounded-xl bg-surface border border-border/50">
               <p className="text-[7.5px] font-black uppercase tracking-widest text-slate/40 mb-0.5">{stat.label}</p>
@@ -176,7 +176,7 @@ export function OperationalSidePanel() {
            ].map((m) => (
              <div key={m.name} className="flex items-center justify-between p-1.5 rounded-lg bg-surface border border-border/20">
                <span className="text-[9.5px] font-bold text-ink opacity-80">{m.name}</span>
-               <div className="w-1 h-1 rounded-full bg-success shadow-[0_0_4px_rgba(22,163,74,0.3)]" />
+               <div className="w-1 h-1 rounded-full bg-slate-300" />
              </div>
            ))}
         </div>

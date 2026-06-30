@@ -28,11 +28,7 @@ export default function ApiKeysSettingsPage() {
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
 
   // Key storage state
-  const [keys, setKeys] = useState<ApiKey[]>([
-    { id: '1', name: 'Integração Site Principal', scopes: ['read_payments', 'write_payments'], environment: 'production', createdAt: '2025-05-10T12:00:00Z', lastUsedAt: '2025-05-19T10:45:00Z', status: 'active' },
-    { id: '2', name: 'Sandbox Checkout Test', scopes: ['read_payments', 'write_payments', 'refund_payments'], environment: 'sandbox', createdAt: '2025-05-12T14:30:00Z', lastUsedAt: '2025-05-19T11:15:00Z', status: 'active' },
-    { id: '3', name: 'Plugin WooCommerce', scopes: ['read_payments'], environment: 'production', createdAt: '2025-04-01T09:00:00Z', lastUsedAt: '2025-05-15T18:22:00Z', status: 'active' }
-  ]);
+  const [keys, setKeys] = useState<ApiKey[]>([]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -258,43 +254,49 @@ export default function ApiKeysSettingsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E7E5EF]/60 text-xs">
-              {keys.map((key) => (
-                <tr key={key.id} className="hover:bg-slate-50/40 transition">
-                  <td className="py-3 px-5 font-black text-slate-900">{key.name}</td>
-                  <td className="py-3 px-5">
-                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${key.environment === 'production' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
-                      {key.environment}
-                    </span>
-                  </td>
-                  <td className="py-3 px-5 font-mono text-[9px] text-slate-500">
-                    {key.scopes.join(', ')}
-                  </td>
-                  <td className="py-3 px-5 font-bold text-slate-500">
-                    {new Date(key.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="py-3 px-5 font-bold text-slate-500">
-                    {key.lastUsedAt.includes('Z') ? new Date(key.lastUsedAt).toLocaleDateString('pt-BR') : key.lastUsedAt}
-                  </td>
-                  <td className="py-3 px-5">
-                    <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${key.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-750'}`}>
-                      {key.status === 'active' ? 'Ativo' : 'Revogado'}
-                    </span>
-                  </td>
-                  <td className="py-3 px-5 text-right">
-                    {key.status === 'active' ? (
-                      <button
-                        onClick={() => handleRevokeKey(key.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 transition"
-                        title="Revogar chave de API"
-                      >
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <span className="text-[10px] font-semibold text-slate-400 italic">Inativa</span>
-                    )}
-                  </td>
+              {keys.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-8 text-center text-slate-400 font-bold">Nenhuma chave de API gerada.</td>
                 </tr>
-              ))}
+              ) : (
+                keys.map((key) => (
+                  <tr key={key.id} className="hover:bg-slate-50/40 transition">
+                    <td className="py-3 px-5 font-black text-slate-900">{key.name}</td>
+                    <td className="py-3 px-5">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase border ${key.environment === 'production' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-amber-50 text-amber-700 border-amber-200'}`}>
+                        {key.environment}
+                      </span>
+                    </td>
+                    <td className="py-3 px-5 font-mono text-[9px] text-slate-500">
+                      {key.scopes.join(', ')}
+                    </td>
+                    <td className="py-3 px-5 font-bold text-slate-500">
+                      {new Date(key.createdAt).toLocaleDateString('pt-BR')}
+                    </td>
+                    <td className="py-3 px-5 font-bold text-slate-500">
+                      {key.lastUsedAt.includes('Z') ? new Date(key.lastUsedAt).toLocaleDateString('pt-BR') : key.lastUsedAt}
+                    </td>
+                    <td className="py-3 px-5">
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${key.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-750'}`}>
+                        {key.status === 'active' ? 'Ativo' : 'Revogado'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-5 text-right">
+                      {key.status === 'active' ? (
+                        <button
+                          onClick={() => handleRevokeKey(key.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-500 rounded-lg hover:bg-slate-100 transition"
+                          title="Revogar chave de API"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-400 italic">Inativa</span>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

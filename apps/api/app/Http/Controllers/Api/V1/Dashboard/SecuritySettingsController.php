@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuthSession;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class SecuritySettingsController extends Controller
 {
@@ -14,9 +14,8 @@ class SecuritySettingsController extends Controller
      */
     public function sessions(Request $request): JsonResponse
     {
-        $sessions = DB::table('user_sessions')
-            ->where('user_id', $request->user()->id)
-            ->orderBy('last_active_at', 'desc')
+        $sessions = AuthSession::where('user_id', $request->user()->id)
+            ->orderBy('last_activity', 'desc')
             ->get();
 
         return response()->json([
@@ -30,8 +29,7 @@ class SecuritySettingsController extends Controller
      */
     public function revokeSession(string $tokenId, Request $request): JsonResponse
     {
-        $session = DB::table('user_sessions')
-            ->where('user_id', $request->user()->id)
+        $session = AuthSession::where('user_id', $request->user()->id)
             ->where('token_id', $tokenId)
             ->first();
 
@@ -39,7 +37,7 @@ class SecuritySettingsController extends Controller
             // Revogar token do Sanctum
             $request->user()->tokens()->where('id', $tokenId)->delete();
             // Remover registro de sessão
-            DB::table('user_sessions')->where('token_id', $tokenId)->delete();
+            $session->delete();
         }
 
         return response()->json(['success' => true]);

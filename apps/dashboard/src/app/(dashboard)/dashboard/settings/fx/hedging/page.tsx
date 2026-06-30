@@ -41,27 +41,13 @@ export default function HedgingSettingsPage() {
   const [showSimulateModal, setShowSimulateModal] = useState(false);
   
   // NOP & Exposure State
-  const [exposures, setExposures] = useState([
-    { pair: 'USD/BRL', exposure: 8450.00, threshold: 5000.00, risk: 'high', trend: 'up' },
-    { pair: 'EUR/BRL', exposure: 2150.00, threshold: 4000.00, risk: 'low', trend: 'down' },
-    { pair: 'GBP/BRL', exposure: 4200.00, threshold: 3000.00, risk: 'medium', trend: 'up' }
-  ]);
+  const [exposures, setExposures] = useState<any[]>([]);
 
   // Liquidity Providers live quotes state
-  const [providers, setProviders] = useState([
-    { name: 'StoneX Treasury', usdRate: 5.1265, eurRate: 5.5822, gbpRate: 6.5320, latency: '42ms', spread: '0.08%', status: 'active' },
-    { name: 'Citibank FX', usdRate: 5.1278, eurRate: 5.5841, gbpRate: 6.5342, latency: '35ms', spread: '0.09%', status: 'active' },
-    { name: 'Banco do Brasil', usdRate: 5.1295, eurRate: 5.5862, gbpRate: 6.5385, latency: '120ms', spread: '0.15%', status: 'standby' },
-    { name: 'Bexs / Ebanx', usdRate: 5.1258, eurRate: 5.5810, gbpRate: 6.5310, latency: '65ms', spread: '0.07%', status: 'active' }
-  ]);
+  const [providers, setProviders] = useState<any[]>([]);
 
   // Swap Deals / Hedging logs state
-  const [swapLogs, setSwapLogs] = useState([
-    { id: 'HDG-SWP-9021', pair: 'USD/BRL', amount: 12450.00, rate: 5.1265, spread: '0.08%', status: 'Liquidado', provider: 'StoneX Treasury', date: '19/05 15:42', hash: '0x8f2d...4a12' },
-    { id: 'HDG-SWP-9022', pair: 'EUR/BRL', amount: 8200.00, rate: 5.5841, spread: '0.09%', status: 'Liquidado', provider: 'Citibank FX', date: '19/05 14:10', hash: '0x7e4a...9b42' },
-    { id: 'HDG-SWP-9023', pair: 'GBP/BRL', amount: 6000.00, rate: 6.5320, spread: '0.08%', status: 'Liquidado', provider: 'StoneX Treasury', date: '19/05 11:25', hash: '0x3c9d...1f88' },
-    { id: 'HDG-SWP-9024', pair: 'USD/BRL', amount: 9500.00, rate: 5.1258, spread: '0.07%', status: 'Liquidado', provider: 'Bexs / Ebanx', date: '18/05 17:33', hash: '0x4d22...7c54' }
-  ]);
+  const [swapLogs, setSwapLogs] = useState<any[]>([]);
 
   // Simulation form states
   const [simPair, setSimPair] = useState('USD/BRL');

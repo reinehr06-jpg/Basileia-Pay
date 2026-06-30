@@ -1,28 +1,15 @@
-function getApiUrl(path: string) {
-  let base = '';
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('basileia_api_url');
-    if (saved) base = saved;
-  }
-  if (!base) {
-    base = 'http://localhost:8000';
-  }
-  return `${base}/api/v1${path}`;
-}
+import { getToken, getApiUrl } from './session';
 
 function getAuthHeaders(method: string = 'GET') {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
-  const token = localStorage.getItem('basileia_token');
+  const token = getToken();
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
-  const csrfToken = localStorage.getItem('basileia_csrf_token');
-  if (csrfToken && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase())) {
-    headers['X-XSRF-TOKEN'] = csrfToken;
-  }
+  // Remove CSRF since we use stateless token in iframe
   return headers;
 }
 
@@ -42,19 +29,21 @@ export interface CheckoutScene {
 export async function fetchCheckouts(): Promise<CheckoutScene[]> {
   const res = await fetch(getApiUrl('/checkouts'), {
     headers: getAuthHeaders('GET'),
-    credentials: 'include',
+    credentials: 'omit', // iframes generally omit credentials when using tokens
   });
+  if (!res.ok) return [];
   const data = await res.json();
-  return data.success ? data.data : [];
+  return Array.isArray(data) ? data : (data.data || []);
 }
 
 export async function fetchCheckout(id: string): Promise<CheckoutScene | null> {
   const res = await fetch(getApiUrl(`/checkouts/${id}`), {
     headers: getAuthHeaders('GET'),
-    credentials: 'include',
+    credentials: 'omit',
   });
+  if (!res.ok) return null;
   const data = await res.json();
-  return data.success ? data.data : null;
+  return data.id ? data : (data.data || null);
 }
 
 export async function saveCheckout(scene: CheckoutScene): Promise<CheckoutScene | null> {
@@ -63,28 +52,28 @@ export async function saveCheckout(scene: CheckoutScene): Promise<CheckoutScene 
   const res = await fetch(url, {
     method,
     headers: getAuthHeaders(method),
-    credentials: 'include',
+    credentials: 'omit',
     body: JSON.stringify({ name: scene.name, config: scene.config, system_id: scene.system_id }),
   });
+  if (!res.ok) return null;
   const data = await res.json();
-  return data.success ? data.data : null;
+  return data.id ? data : (data.data || null);
 }
 
 export async function publishCheckout(id: string): Promise<boolean> {
   const res = await fetch(getApiUrl(`/checkouts/${id}/publish`), {
     method: 'POST',
     headers: getAuthHeaders('POST'),
-    credentials: 'include',
+    credentials: 'omit',
   });
-  const data = await res.json();
-  return data.success === true;
+  return res.ok;
 }
 
 export async function deleteCheckout(id: string): Promise<boolean> {
   const res = await fetch(getApiUrl(`/checkouts/${id}`), {
     method: 'DELETE',
     headers: getAuthHeaders('DELETE'),
-    credentials: 'include',
+    credentials: 'omit',
   });
   return res.ok;
 }

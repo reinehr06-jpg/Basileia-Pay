@@ -56,7 +56,8 @@ export function RoutingSimulatorPanel({ onSimulate, isOpen, onClose, rules }: Ro
   if (!isOpen) return null;
 
   return (
-    <div className="w-full lg:w-[320px] bg-white border-t lg:border-t-0 lg:border-l border-[#E8DDFD]/60 p-5 shrink-0 flex flex-col justify-between overflow-y-auto no-scrollbar h-full text-left">
+    <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[60] flex justify-end animate-in fade-in duration-200">
+      <div className="w-full max-w-sm bg-white shadow-2xl h-full animate-in slide-in-from-right-full duration-300 p-5 shrink-0 flex flex-col overflow-y-auto no-scrollbar text-left border-l border-[#E8DDFD]/60 relative">
       <div className="space-y-5">
         
         {/* Header */}
@@ -69,7 +70,7 @@ export function RoutingSimulatorPanel({ onSimulate, isOpen, onClose, rules }: Ro
           </div>
           <button 
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer lg:hidden"
+            className="p-1 text-slate-400 hover:text-slate-700 cursor-pointer"
             aria-label="Fechar"
           >
             <X className="w-4 h-4" />
@@ -316,6 +317,7 @@ export function RoutingSimulatorPanel({ onSimulate, isOpen, onClose, rules }: Ro
           </div>
         )}
 
+      </div>
       </div>
     </div>
   );

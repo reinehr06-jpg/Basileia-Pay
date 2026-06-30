@@ -54,45 +54,22 @@ export default function AiSettingsPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
 
-  // IA Connected Providers initial mocks
-  const [providers, setProviders] = useState([
-    { id: 'openai', name: 'OpenAI', badge: 'Pago', model: 'gpt-4o', modelBadge: 'Ativo', cost: '$0.005 / 1K tokens', costSub: 'Entrada - $0.015 / 1K saída', status: 'Ativo', fallback: 'Anthropic Claude 3.5', endpoint: 'https://api.openai.com/v1', region: 'us-east-1', isPaid: true, key: 'sk-proj-47fa...a891', latency: '210ms' },
-    { id: 'anthropic', name: 'Anthropic', badge: 'Pago', model: 'claude-3-5-sonnet', modelBadge: 'Standby', cost: '$0.003 / 1K tokens', costSub: 'Entrada - $0.015 / 1K saída', status: 'Ativo', fallback: 'Google Gemini 1.5 Pro', endpoint: 'https://api.anthropic.com/v1', region: 'us-east-1', isPaid: true, key: 'sk-ant-18ba...c890', latency: '280ms' },
-    { id: 'google', name: 'Google AI', badge: 'Pago', model: 'gemini-1.5-pro', modelBadge: 'Backup', cost: '$0.00125 / 1K tokens', costSub: 'Entrada - $0.005 / 1K saída', status: 'Ativo', fallback: 'OpenAI GPT-3.5 Turbo', endpoint: 'https://generativelanguage.googleapis.com/v1', region: 'us-central1', isPaid: true, key: 'sk-gem-82bd...d712', latency: '190ms' },
-    { id: 'mistral', name: 'Mistral AI', badge: 'Gratuito', model: 'mistral-7b-instruct', modelBadge: 'Reserva', cost: 'Gratuito', costSub: 'Uso limitado', status: 'Ativo', fallback: '—', endpoint: 'https://api.mistral.ai/v1', region: 'eu-west-1', isPaid: false, key: 'sk-mis-129a...f412', latency: '150ms' },
-    { id: 'llama', name: 'Llama (Local)', badge: 'Gratuito', model: 'llama-3-8b-instruct', modelBadge: 'Reserva', cost: 'Gratuito', costSub: 'Self-hosted', status: 'Ativo', fallback: 'Mistral 7B Instruct', endpoint: 'http://10.0.0.45:11434/v1', region: 'local', isPaid: false, key: '—', latency: '45ms' }
-  ]);
+  // IA Connected Providers initial
+  const [providers, setProviders] = useState<any[]>([]);
 
   // Model assigned to features states
-  const [features, setFeatures] = useState([
-    { id: 'bci', name: 'BCI - Análises', desc: 'Gera análises, insights e relatórios inteligentes.', model: 'gpt-4o', modelBadge: 'Ativo', provider: 'OpenAI', cost: '$0.005 / 1K in, $0.015 / 1K out', fallback: 'Claude 3.5 Sonnet', icon: BrainCircuit },
-    { id: 'chat', name: 'Assistente - Chat', desc: 'Responde dúvidas e orienta usuários.', model: 'claude-3-5-sonnet', modelBadge: 'Ativo', provider: 'Anthropic', cost: '$0.003 / 1K in, $0.015 / 1K out', fallback: 'Gemini 1.5 Pro', icon: MessageSquare },
-    { id: 'resumo', name: 'Resumo de Transações', desc: 'Resume movimentações financeiras.', model: 'gemini-1.5-pro', modelBadge: 'Backup', provider: 'Google AI', cost: '$0.00125 / 1K in, $0.005 / 1K out', fallback: 'GPT-4o Mini', icon: FileText },
-    { id: 'fraude', name: 'Detecção de Fraudes', desc: 'Identifica padrões suspeitos e risco.', model: 'mistral-7b-instruct', modelBadge: 'Reserva', provider: 'Mistral AI', cost: 'Gratuito', fallback: 'Llama 3 8B Instruct', icon: ShieldAlert },
-    { id: 'conteudo', name: 'Geração de Conteúdo', desc: 'E-mails, descrições e textos automáticos.', model: 'gpt-3.5-turbo', modelBadge: 'Standby', provider: 'OpenAI', cost: '$0.0005 / 1K in, $0.0015 / 1K out', fallback: 'Mistral 7B Instruct', icon: Sparkles }
-  ]);
+  const [features, setFeatures] = useState<any[]>([]);
 
   // Rich Prompt Orchestrator Canvas states
-  const [canvasNodes, setCanvasNodes] = useState([
-    { id: 'input', label: 'Payload da Transação', type: 'Input', desc: 'Dados recebidos do checkout', x: 50, y: 160, model: '—', prompt: '', condition: '', url: '' },
-    { id: 'prompt_1', label: 'Análise Antifraude', type: 'System Prompt', desc: 'GPT-4o: Validar anomalias', x: 240, y: 60, model: 'gpt-4o', prompt: 'Analise o payload de transação recebido e classifique o risco de 0 a 100 com base em IP, dados cadastrais e histórico de chargeback.', condition: '', url: '' },
-    { id: 'cond', label: 'Score > 80?', type: 'Condicional', desc: 'Se sim, recusa imediata', x: 430, y: 160, model: '—', prompt: '', condition: 'risk_score > 80', url: '' },
-    { id: 'webhook', label: 'Disparar Webhook', type: 'Webhook', desc: 'Notifica painel de compliance', x: 620, y: 60, model: '—', prompt: '', condition: '', url: 'https://api.basileiapay.com/compliance/webhook' },
-    { id: 'output', label: 'Autorização Final', type: 'Output', desc: 'Transação aprovada / enviada', x: 620, y: 260, model: '—', prompt: '', condition: '', url: '' }
-  ]);
-  const [selectedNode, setSelectedNode] = useState<string | null>('prompt_1');
-  const [nodePromptText, setNodePromptText] = useState('Analise o payload de transação recebido e classifique o risco de 0 a 100 com base em IP, dados cadastrais e histórico de chargeback.');
-  const [nodeModel, setNodeModel] = useState('gpt-4o');
-  const [nodeCondition, setNodeCondition] = useState('risk_score > 80');
-  const [nodeUrl, setNodeUrl] = useState('https://api.basileiapay.com/compliance/webhook');
+  const [canvasNodes, setCanvasNodes] = useState<any[]>([]);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
+  const [nodePromptText, setNodePromptText] = useState('');
+  const [nodeModel, setNodeModel] = useState('');
+  const [nodeCondition, setNodeCondition] = useState('');
+  const [nodeUrl, setNodeUrl] = useState('');
 
   // Connections
-  const [connections, setConnections] = useState([
-    { from: 'input', to: 'prompt_1', label: '' },
-    { from: 'prompt_1', to: 'cond', label: '' },
-    { from: 'cond', to: 'webhook', label: 'Sim' },
-    { from: 'cond', to: 'output', label: 'Não' }
-  ]);
+  const [connections, setConnections] = useState<any[]>([]);
 
   // Node Drag and Drop states
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
@@ -112,17 +89,12 @@ export default function AiSettingsPage() {
   const [simRunning, setSimRunning] = useState(false);
 
   // Costs and Usage states
-  const [monthlyBudget, setMonthlyBudget] = useState(250);
+  const [monthlyBudget, setMonthlyBudget] = useState(0);
   const [semanticCaching, setSemanticCaching] = useState(true);
 
   // Live Audit Logs search & filters
   const [searchQuery, setSearchQuery] = useState('');
-  const auditLogs = [
-    { id: 'req_87321a', timestamp: '19/05 16:02:11', feature: 'Detecção de Fraudes', model: 'mistral-7b', status: '200 OK', tokens: '1,420 tkn', cost: '$0.0000', latency: '142ms' },
-    { id: 'req_87321b', timestamp: '19/05 15:58:45', feature: 'BCI - Análises', model: 'gpt-4o', status: '200 OK', tokens: '3,892 tkn', cost: '$0.0389', latency: '482ms' },
-    { id: 'req_87321c', timestamp: '19/05 15:42:10', feature: 'Assistente - Chat', model: 'claude-3-5', status: '200 OK', tokens: '890 tkn', cost: '$0.0134', latency: '310ms' },
-    { id: 'req_87321d', timestamp: '19/05 15:11:03', feature: 'Resumo de Transações', model: 'gemini-1.5-pro', status: '200 OK', tokens: '2,110 tkn', cost: '$0.0053', latency: '240ms' }
-  ];
+  const auditLogs: any[] = [];
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -1110,7 +1082,7 @@ export default function AiSettingsPage() {
                     </button>
                   </div>
                 )
-              }[canvasNodes.find(n => n.id === selectedNode)?.type || 'Input'] : (
+              }[(canvasNodes.find(n => n.id === selectedNode)?.type || 'Input') as 'Input' | 'Output' | 'System Prompt' | 'Condicional' | 'Webhook'] : (
                 <div className="text-center py-10 text-[10px] font-bold text-slate-400">
                   Nenhum nó selecionado no canvas.
                 </div>

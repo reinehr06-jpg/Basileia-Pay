@@ -441,6 +441,54 @@ export default function PaymentsPage() {
   const uniqueStatuses = useMemo(() => ['Todos', ...new Set(payments.map(p => p.status).filter(Boolean))], [payments]);
   const uniqueResults = useMemo(() => ['Todos', ...new Set(payments.map(p => p.resultado).filter(Boolean))], [payments]);
 
+  const handleExportPdf = async () => {
+    triggerSuccessAlert(`Preparando exportação em formato PDF...`);
+    try {
+      const { jsPDF } = await import('jspdf');
+      const autoTableModule = await import('jspdf-autotable');
+      const autoTable = autoTableModule.default;
+      
+      const doc = new jsPDF('landscape');
+      
+      doc.setFontSize(18);
+      doc.setTextColor(109, 40, 217);
+      doc.text('Basileia Pay - Relatório de Operações', 14, 22);
+      
+      doc.setFontSize(10);
+      doc.setTextColor(124, 58, 237);
+      doc.text(`Total: ${filteredPayments.length} registros | Exportado em: ${new Date().toLocaleString('pt-BR')}`, 14, 30);
+      
+      const tableColumn = ["ID", "Ref", "Venda", "Cliente", "Sistema", "Método", "Gateway", "Status", "Risco", "Valor"];
+      const tableRows = filteredPayments.map(p => [
+        p.id,
+        p.ref,
+        p.venda,
+        p.cliente,
+        p.sistema,
+        p.metodo,
+        p.gateway,
+        p.status,
+        p.risco,
+        `R$ ${p.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+      ]);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [tableColumn],
+        body: tableRows.length > 0 ? tableRows : [['Nenhum dado encontrado', '-', '-', '-', '-', '-', '-', '-', '-', '-']],
+        theme: 'grid',
+        headStyles: { fillColor: [250, 245, 255], textColor: [88, 28, 135] },
+        styles: { fontSize: 7 }
+      });
+
+      doc.save(`operacoes_${Date.now()}.pdf`);
+      triggerSuccessAlert("Download do PDF concluído com sucesso!");
+    } catch (err) {
+      console.error(err);
+      triggerSuccessAlert("Erro ao gerar PDF.");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 w-full select-none">
       
@@ -715,7 +763,7 @@ export default function PaymentsPage() {
           </button>
           
           <button 
-            onClick={() => triggerSuccessAlert('Dados de pagamentos exportados com sucesso!')}
+            onClick={handleExportPdf}
             className="flex items-center gap-1.5 px-4 py-1.5 bg-white border border-[#E8DDFD] rounded-xl text-[10px] 2xl:text-[11px] font-black text-slate-700 shadow-sm hover:bg-brand-soft transition-all uppercase tracking-tight h-[34px] 2xl:h-[36px]"
           >
             <Download className="w-3.5 h-3.5 text-slate-400" />

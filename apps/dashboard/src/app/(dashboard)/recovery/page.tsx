@@ -51,12 +51,12 @@ export default function RecoveryPage() {
 
   // KPI States
   const kpis = [
-    { label: 'Sessões abandonadas', val: '4.382', change: '+12,34%', color: 'text-violet-600', icon: ShoppingCart },
-    { label: 'Taxa de recuperação', val: '19,98%', change: '+2,18%', color: 'text-emerald-650', icon: Percent },
-    { label: 'Receita recuperada', val: 'R$ 86.591,22', change: '+18,67%', color: 'text-emerald-600', icon: DollarSign },
-    { label: 'Pedidos recuperados', val: '876', change: '+14,21%', color: 'text-indigo-600', icon: UserCheck },
-    { label: 'Ticket médio recuperado', val: 'R$ 98,84', change: '+3,42%', color: 'text-slate-700', icon: TrendingUp },
-    { label: 'ROI do recovery', val: '42,81x', change: '+5,33%', color: 'text-violet-750', icon: ArrowUpRight }
+    { label: 'Sessões abandonadas', val: '0', change: '0,00%', color: 'text-violet-600', icon: ShoppingCart },
+    { label: 'Taxa de recuperação', val: '0,00%', change: '0,00%', color: 'text-emerald-650', icon: Percent },
+    { label: 'Receita recuperada', val: 'R$ 0,00', change: '0,00%', color: 'text-emerald-600', icon: DollarSign },
+    { label: 'Pedidos recuperados', val: '0', change: '0,00%', color: 'text-indigo-600', icon: UserCheck },
+    { label: 'Ticket médio recuperado', val: 'R$ 0,00', change: '0,00%', color: 'text-slate-700', icon: TrendingUp },
+    { label: 'ROI do recovery', val: '0,00x', change: '0,00%', color: 'text-violet-750', icon: ArrowUpRight }
   ];
 
   const [sessions, setSessions] = useState<any[]>([]);
@@ -119,7 +119,7 @@ export default function RecoveryPage() {
 
       {/* Header Buttons exactly in position */}
       <div className="flex items-center justify-between w-full border-b border-slate-100 pb-3">
-        <span className="text-xs font-semibold text-slate-400">Visão analítica de campanhas, funis e conversões transfronteiriças.</span>
+        <span className="text-xs font-semibold text-slate-400">O módulo de Recovery resgata vendas perdidas através de campanhas automáticas de remarketing (e-mail, SMS, WhatsApp) para clientes que abandonaram o carrinho.</span>
         <div className="flex items-center gap-3">
           <button 
             onClick={() => {
@@ -402,33 +402,10 @@ export default function RecoveryPage() {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {[
-                  { name: 'Abandono Geral', trigger: 'Abandono de Carrinho', channel: 'E-mail', status: 'Ativa', sent: 3214 },
-                  { name: 'Pix Expirado High Ticket', trigger: 'Pix Expirado (> R$250)', channel: 'WhatsApp', status: 'Ativa', sent: 842 },
-                  { name: 'Falha no Cartão de Crédito', trigger: 'Erro 05 / 51 Gateway', channel: 'E-mail + SMS', status: 'Pausada', sent: 489 }
-                ].map((camp, idx) => (
-                  <div key={idx} className="border border-slate-50 hover:border-[#E8DDFD] rounded-xl p-4 bg-slate-50/10 space-y-3 transition-all text-left">
-                    <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                      <span className="text-xs font-black text-slate-850 block">{camp.name}</span>
-                      <span className={cn(
-                        "px-1.5 py-0.2 rounded font-mono text-[8px] font-black uppercase",
-                        camp.status === 'Ativa' ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-                      )}>{camp.status}</span>
-                    </div>
-                    <div className="text-[10px] text-slate-500 font-bold space-y-1.5">
-                      <div><span className="text-slate-400">Gatilho:</span> {camp.trigger}</div>
-                      <div><span className="text-slate-400">Canal:</span> {camp.channel}</div>
-                      <div><span className="text-slate-400">Mensagens enviadas:</span> {camp.sent}</div>
-                    </div>
-                    <button 
-                      onClick={() => triggerToast(`Editando campanha: ${camp.name}`)}
-                      className="w-full h-8 bg-slate-900 text-white rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-slate-800 transition-all cursor-pointer"
-                    >
-                      Configurar Sequência
-                    </button>
-                  </div>
-                ))}
+              <div className="py-12 bg-slate-50/50 border border-slate-100 rounded-xl flex flex-col items-center justify-center space-y-3">
+                <span className="text-3xl">📭</span>
+                <span className="text-xs font-black text-slate-800 uppercase tracking-wider">Nenhuma campanha encontrada</span>
+                <span className="text-[10px] text-slate-400 font-semibold text-center max-w-xs">Você ainda não tem nenhuma campanha de remarketing ativa. Clique em "Nova Campanha" para começar a recuperar vendas.</span>
               </div>
             </div>
           )}
@@ -542,13 +519,13 @@ export default function RecoveryPage() {
                 {/* Horizontal graph simulator */}
                 <div className="space-y-2 pt-1">
                   {[
-                    { day: '16/05 (Qui)', val: 503, percent: 70 },
-                    { day: '15/05 (Qua)', val: 594, percent: 80 },
-                    { day: '14/05 (Ter)', val: 712, percent: 95 },
-                    { day: '13/05 (Seg)', val: 728, percent: 100 },
-                    { day: '12/05 (Dom)', val: 645, percent: 88 },
-                    { day: '11/05 (Sáb)', val: 588, percent: 80 },
-                    { day: '10/05 (Sex)', val: 602, percent: 82 }
+                    { day: '16/05 (Qui)', val: 0, percent: 0 },
+                    { day: '15/05 (Qua)', val: 0, percent: 0 },
+                    { day: '14/05 (Ter)', val: 0, percent: 0 },
+                    { day: '13/05 (Seg)', val: 0, percent: 0 },
+                    { day: '12/05 (Dom)', val: 0, percent: 0 },
+                    { day: '11/05 (Sáb)', val: 0, percent: 0 },
+                    { day: '10/05 (Sex)', val: 0, percent: 0 }
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between gap-3 text-[10px] font-bold text-slate-500">
                       <span className="w-[70px] truncate shrink-0">{item.day}</span>
@@ -573,13 +550,13 @@ export default function RecoveryPage() {
                 {/* Horizontal graph simulator */}
                 <div className="space-y-2 pt-1">
                   {[
-                    { day: '16/05 (Qui)', val: 'R$ 9.123', percent: 68 },
-                    { day: '15/05 (Qua)', val: 'R$ 11.234', percent: 83 },
-                    { day: '14/05 (Ter)', val: 'R$ 13.456', percent: 100 },
-                    { day: '13/05 (Seg)', val: 'R$ 12.887', percent: 95 },
-                    { day: '12/05 (Dom)', val: 'R$ 10.234', percent: 76 },
-                    { day: '11/05 (Sáb)', val: 'R$ 7.802', percent: 58 },
-                    { day: '10/05 (Sex)', val: 'R$ 8.421', percent: 62 }
+                    { day: '16/05 (Qui)', val: 'R$ 0', percent: 0 },
+                    { day: '15/05 (Qua)', val: 'R$ 0', percent: 0 },
+                    { day: '14/05 (Ter)', val: 'R$ 0', percent: 0 },
+                    { day: '13/05 (Seg)', val: 'R$ 0', percent: 0 },
+                    { day: '12/05 (Dom)', val: 'R$ 0', percent: 0 },
+                    { day: '11/05 (Sáb)', val: 'R$ 0', percent: 0 },
+                    { day: '10/05 (Sex)', val: 'R$ 0', percent: 0 }
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-center justify-between gap-3 text-[10px] font-bold text-slate-500">
                       <span className="w-[70px] truncate shrink-0">{item.day}</span>
@@ -603,11 +580,7 @@ export default function RecoveryPage() {
               <div className="space-y-4">
                 <div className="space-y-3 pt-1">
                   {[
-                    { motive: 'Frete caro', percent: 35.42, color: 'bg-red-500' },
-                    { motive: 'Preço alto', percent: 28.16, color: 'bg-red-400' },
-                    { motive: 'Processo longo', percent: 18.93, color: 'bg-amber-450' },
-                    { motive: 'Não encontrou o que queria', percent: 9.21, color: 'bg-slate-400' },
-                    { motive: 'Método de pagamento limitado', percent: 8.28, color: 'bg-slate-350' }
+                    { motive: 'Sem dados suficientes', percent: 0, color: 'bg-slate-300' }
                   ].map((item, idx) => (
                     <div key={idx} className="space-y-1 text-[10.5px] font-semibold text-slate-650">
                       <div className="flex justify-between font-bold text-slate-700">
@@ -651,11 +624,11 @@ export default function RecoveryPage() {
 
             <div className="space-y-3.5">
               {[
-                { name: 'Carrinho iniciado', val: '12.842', percent: '100%' },
-                { name: 'Identificação', val: '8.731', percent: '68,0%' },
-                { name: 'Entrega', val: '6.215', percent: '48,4%' },
-                { name: 'Pagamento', val: '4.382', percent: '34,1%' },
-                { name: 'Recuperados', val: '876', percent: '19,98%' }
+                { name: 'Carrinho iniciado', val: '0', percent: '0%' },
+                { name: 'Identificação', val: '0', percent: '0%' },
+                { name: 'Entrega', val: '0', percent: '0%' },
+                { name: 'Pagamento', val: '0', percent: '0%' },
+                { name: 'Recuperados', val: '0', percent: '0%' }
               ].map((step, idx) => (
                 <div key={idx} className="flex items-center justify-between text-[11px] font-bold text-slate-500 border-b border-slate-50 pb-2">
                   <div>
@@ -717,10 +690,10 @@ export default function RecoveryPage() {
 
             <div className="space-y-3 pt-1">
               {[
-                { channel: 'E-mail', rate: '21,34%', percent: 21, color: 'bg-indigo-500' },
-                { channel: 'SMS', rate: '14,72%', percent: 14, color: 'bg-indigo-400' },
-                { channel: 'WhatsApp', rate: '26,18%', percent: 26, color: 'bg-violet-600' },
-                { channel: 'Push', rate: '8,91%', percent: 8, color: 'bg-slate-400' }
+                { channel: 'E-mail', rate: '0,00%', percent: 0, color: 'bg-indigo-500' },
+                { channel: 'SMS', rate: '0,00%', percent: 0, color: 'bg-indigo-400' },
+                { channel: 'WhatsApp', rate: '0,00%', percent: 0, color: 'bg-violet-600' },
+                { channel: 'Push', rate: '0,00%', percent: 0, color: 'bg-slate-400' }
               ].map((ch, idx) => (
                 <div key={idx} className="space-y-1 text-[10.5px] font-semibold text-slate-650">
                   <div className="flex justify-between font-bold text-slate-700">
@@ -795,14 +768,14 @@ export default function RecoveryPage() {
 
             <div className="space-y-2.5 pt-1 text-[11px] font-bold text-slate-350">
               {[
-                { label: 'Sessões abandonadas', val: '4.382' },
-                { label: 'Recuperadas', val: '876' },
-                { label: 'Taxa de recuperação', val: '19,98%', highlight: 'text-emerald-450' },
-                { label: 'Receita recuperada', val: 'R$ 86.591,22', highlight: 'text-emerald-400' },
-                { label: 'E-mails enviados', val: '3.214' },
-                { label: 'SMS enviados', val: '1.087' },
-                { label: 'Conversão por e-mail', val: '21,34%' },
-                { label: 'Conversão por SMS', val: '14,72%' }
+                { label: 'Sessões abandonadas', val: '0' },
+                { label: 'Recuperadas', val: '0' },
+                { label: 'Taxa de recuperação', val: '0,00%', highlight: 'text-emerald-450' },
+                { label: 'Receita', val: 'R$ 0,00', highlight: 'text-emerald-400' },
+                { label: 'Ticket médio recuperado', val: 'R$ 0,00' },
+                { label: 'SMS enviados', val: '0' },
+                { label: 'Conversão por e-mail', val: '0,00%' },
+                { label: 'Conversão por SMS', val: '0,00%' }
               ].map((item, idx) => (
                 <div key={idx} className="flex items-center justify-between border-b border-slate-800/40 pb-1.5">
                   <span>{item.label}</span>

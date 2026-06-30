@@ -54,6 +54,13 @@ class Company extends Model
         return $this->hasMany(User::class);
     }
 
+    public function members(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'user_companies')
+                    ->withPivot('status')
+                    ->withTimestamps();
+    }
+
     public function systems(): HasMany
     {
         return $this->hasMany(ConnectedSystem::class);

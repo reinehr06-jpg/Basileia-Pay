@@ -5,10 +5,10 @@ import { useAuth } from '@/lib/auth-context';
 import { Building2, ChevronDown, Check } from 'lucide-react';
 
 export function CompanySwitcher() {
-  const { isMaster, availableCompanies, switchCompany, activeCompanyId } = useAuth();
+  const { availableCompanies, switchCompany, activeCompanyId } = useAuth();
   const [open, setOpen] = useState(false);
 
-  if (!isMaster) return null;
+  if (!availableCompanies || availableCompanies.length === 0) return null;
 
   const activeCompany = availableCompanies.find((c) => c.id === activeCompanyId) || null;
 

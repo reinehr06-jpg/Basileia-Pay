@@ -1,122 +1,126 @@
-import { PageLayout } from '@/components/layout/PageLayout';
-import { Card } from '@/components/ui/card';
-import { Package, User, Clock, FileText, CheckCircle, Globe } from 'lucide-react';
+'use client';
 
-export default async function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params;
+import { useState, useEffect } from 'react';
+import { apiFetch } from '@/lib/api';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+
+export default function OrderDetailPage() {
+  const params = useParams();
+  const [order, setOrder] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [refundAmount, setRefundAmount] = useState('');
+  const [refundReason, setRefundReason] = useState('');
+
+  useEffect(() => {
+    fetchOrder();
+  }, []);
+
+  const fetchOrder = async () => {
+    try {
+      const res = await apiFetch(`/api/v1/dashboard/orders/${params.id}`);
+      setOrder(res.data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefund = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!confirm('Tem certeza que deseja solicitar o reembolso?')) return;
+    
+    try {
+      await apiFetch(`/api/v1/dashboard/orders/${params.id}/refunds`, {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: parseFloat(refundAmount) * 100, // converte pra centavos
+          reason: refundReason
+        })
+      });
+      alert('Estorno solicitado com sucesso!');
+      fetchOrder();
+    } catch (err: any) {
+      alert(`Erro: ${err.message}`);
+    }
+  };
+
+  if (loading) return <div className="text-center py-10 animate-pulse">Carregando...</div>;
+  if (!order) return <div className="text-center py-10 text-red-500">Pedido não encontrado.</div>;
+
   return (
-    <PageLayout title={`Venda #${resolvedParams.id}`} backHref="/orders">
-      
-      <div className="flex items-center gap-4 p-4 bg-success-muted/20 border border-success/30 rounded-lg mb-6">
-        <div className="p-3 bg-success rounded-full text-white">
-          <CheckCircle size={24} />
+    <div className="max-w-4xl mx-auto space-y-6">
+      <div className="flex items-center gap-4">
+        <Link href="/orders" className="p-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-ink">
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+        <h1 className="text-2xl font-bold text-ink">Pedido #{order.id}</h1>
+        <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+          order.status === 'paid' ? 'bg-green-100 text-green-800' :
+          order.status === 'refunded' ? 'bg-purple-100 text-purple-800' :
+          order.status === 'failed' ? 'bg-red-100 text-red-800' :
+          'bg-gray-100 text-gray-800'
+        }`}>
+          {order.status}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-xl border border-border">
+          <h2 className="font-bold text-lg mb-4 text-ink">Detalhes do Cliente</h2>
+          <div className="space-y-2 text-sm">
+            <p><span className="text-ink-light">Nome:</span> {order.customer_name || 'N/A'}</p>
+            <p><span className="text-ink-light">E-mail:</span> {order.customer_email || 'N/A'}</p>
+            <p><span className="text-ink-light">Documento:</span> {order.customer_document || 'N/A'}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="font-bold text-ink text-lg">Venda Aprovada</h2>
-          <p className="text-sm text-ink-muted">Aprovado em 15/05/2026 às 09:12 via PIX</p>
+
+        <div className="bg-white p-6 rounded-xl border border-border">
+          <h2 className="font-bold text-lg mb-4 text-ink">Financeiro</h2>
+          <div className="space-y-2 text-sm">
+            <p><span className="text-ink-light">Valor Total:</span> {(order.amount / 100).toLocaleString('pt-BR', { style: 'currency', currency: order.currency })}</p>
+            <p><span className="text-ink-light">Criado em:</span> {new Date(order.created_at).toLocaleString()}</p>
+            {order.checkout && (
+              <p><span className="text-ink-light">Checkout Origem:</span> {order.checkout.name}</p>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card title="Itens da Venda">
-            <div className="space-y-4">
-              <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-                <div className="flex gap-3">
-                  <div className="w-12 h-12 bg-surface-raised border border-border rounded flex items-center justify-center text-ink-subtle">
-                    <Package size={20} />
-                  </div>
-                  <div>
-                    <div className="font-medium text-ink">Curso Basileia Pay Pro</div>
-                    <div className="text-xs text-ink-muted">Acesso vitalício + Mentoria</div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-bold text-ink">R$ 197,00</div>
-                  <div className="text-xs text-ink-subtle">qtd: 1</div>
-                </div>
-              </div>
+      {(order.status === 'paid' || order.status === 'confirmed') && (
+        <div className="bg-red-50 p-6 rounded-xl border border-red-200">
+          <h2 className="font-bold text-lg mb-4 text-red-800">Estorno / Reembolso</h2>
+          <form onSubmit={handleRefund} className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-xs font-bold text-red-800 mb-1">Valor (R$)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                max={order.amount / 100}
+                required
+                className="w-full bg-white border border-red-300 rounded px-3 py-2 outline-none focus:border-red-500"
+                value={refundAmount}
+                onChange={e => setRefundAmount(e.target.value)}
+              />
             </div>
-            
-            <div className="mt-6 pt-6 border-t border-border space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-ink-muted">Subtotal</span>
-                <span className="text-ink">R$ 197,00</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-ink-muted">Desconto</span>
-                <span className="text-success">- R$ 0,00</span>
-              </div>
-              <div className="flex justify-between font-bold text-lg pt-2">
-                <span className="text-ink">Total</span>
-                <span className="text-brand">R$ 197,00</span>
-              </div>
+            <div className="flex-2 w-full">
+              <label className="block text-xs font-bold text-red-800 mb-1">Motivo</label>
+              <input 
+                type="text" 
+                required
+                className="w-full bg-white border border-red-300 rounded px-3 py-2 outline-none focus:border-red-500"
+                value={refundReason}
+                onChange={e => setRefundReason(e.target.value)}
+              />
             </div>
-          </Card>
-
-          <Card title="Timeline da Venda">
-             <div className="space-y-6 relative before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
-                {[
-                  { time: '09:12:05', event: 'Pagamento aprovado', desc: 'Gateway Asaas confirmou o recebimento do PIX', icon: '✅', color: 'success' },
-                  { time: '09:11:45', event: 'Checkout finalizado', desc: 'Cliente clicou em pagar e gerou o QR Code', icon: '⚡', color: 'brand' },
-                  { time: '09:10:30', event: 'Checkout iniciado', desc: 'Cliente visualizou a página de pagamento', icon: '👀', color: 'ink-subtle' },
-                  { time: '09:10:00', event: 'Venda criada', desc: 'Sessão de checkout gerada pelo sistema', icon: '📝', color: 'ink-subtle' },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-6 relative pl-8">
-                    <div className={`absolute left-0 w-5 h-5 rounded-full flex items-center justify-center text-[10px] bg-surface border border-border z-10`}>
-                      {item.icon}
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold text-ink">{item.event}</div>
-                      <div className="text-xs text-ink-muted mb-1">{item.desc}</div>
-                      <div className="text-[10px] text-ink-subtle font-mono uppercase">{item.time}</div>
-                    </div>
-                  </div>
-                ))}
-             </div>
-          </Card>
+            <button type="submit" className="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded transition">
+              Solicitar
+            </button>
+          </form>
         </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          <Card title="Cliente">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-surface-raised flex items-center justify-center border border-border">
-                  <User size={20} className="text-ink-subtle" />
-                </div>
-                <div>
-                  <div className="font-bold text-ink">Vinicius Reinehr</div>
-                  <div className="text-xs text-ink-muted">vinicius@reinehr.org</div>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-border space-y-3">
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] font-bold text-ink-subtle uppercase">Documento</span>
-                  <span className="text-sm text-ink">123.456.789-00</span>
-                </div>
-                <div className="flex flex-col gap-0.5">
-                  <span className="text-[10px] font-bold text-ink-subtle uppercase">Telefone</span>
-                  <span className="text-sm text-ink">+55 (47) 99999-9999</span>
-                </div>
-              </div>
-            </div>
-          </Card>
-
-          <Card title="Sistema Origem">
-             <div className="flex items-center gap-3">
-                <div className="p-2 bg-surface-raised rounded-md border border-border">
-                  <Globe size={18} className="text-ink-subtle" />
-                </div>
-                <div>
-                  <div className="font-bold text-ink">Site Principal</div>
-                  <div className="text-xs text-ink-muted">sys_8a9b2c</div>
-                </div>
-             </div>
-          </Card>
-        </div>
-      </div>
-    </PageLayout>
+      )}
+    </div>
   );
 }

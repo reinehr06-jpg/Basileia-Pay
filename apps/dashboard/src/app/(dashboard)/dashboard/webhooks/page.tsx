@@ -57,9 +57,7 @@ import {
   WebhookEnvironment 
 } from '@/types/webhook';
 
-import { 
-  MOCK_FLOW_POINTS 
-} from './__mocks__/webhooks';
+
 
 import { cn } from '@/lib/utils';
 import { apiFetch } from '@/lib/api';
@@ -1283,13 +1281,13 @@ export default function WebhooksPage() {
               <div className="flex justify-between items-center border-b border-slate-50 pb-2">
                 <div className="flex flex-col">
                   <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest leading-none">Fluxo de Eventos (24h)</span>
-                  <span className="text-[13px] font-black text-slate-900 mt-1">8.421 Disparos</span>
+                  <span className="text-[13px] font-black text-slate-900 mt-1">{deliveries.length} Disparos</span>
                 </div>
               </div>
               <div className="h-[120px]">
                 {mounted ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={MOCK_FLOW_POINTS}>
+                    <AreaChart data={[]}>
                       <XAxis dataKey="hour" stroke="#94A3B8" fontSize={7.5} tickLine={false} axisLine={false} />
                       <YAxis stroke="#94A3B8" fontSize={7.5} tickLine={false} axisLine={false} />
                       <Tooltip contentStyle={{ background: '#0F172A', color: '#fff', borderRadius: '12px', fontSize: '9px' }} />
@@ -1563,82 +1561,72 @@ export default function WebhooksPage() {
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-
           </div>
         </>
       )}
 
-      {/* Modal: Documentação e Schema */}
+      {/* Modal: Documentação de Webhooks */}
       {showDocsModal && (
         <div className="fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl border border-[#E7E5EF] shadow-2xl p-6 max-w-2xl w-full animate-in zoom-in-95 duration-200 text-left">
+          <div className="bg-white rounded-3xl border border-[#E7E5EF] shadow-2xl p-6 max-w-2xl w-full animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <div className="flex items-center gap-2 text-brand">
                 <FileText className="w-5 h-5 shrink-0" />
-                <h3 className="text-slate-950 font-black text-sm">Documentação de Webhooks</h3>
+                <h3 className="text-slate-950 font-black text-sm">Documentação de Integração - Webhooks</h3>
               </div>
               <button onClick={() => setShowDocsModal(false)} className="p-1 hover:bg-slate-50 rounded-lg text-slate-400">
                 <X className="w-4 h-4" />
               </button>
             </div>
-
-            <div className="space-y-4 text-xs">
-              <p className="text-slate-500 font-semibold leading-relaxed">
-                A Basileia Pay envia eventos via requisições HTTP POST contendo payloads no formato JSON.
-                Abaixo está o Schema Base para qualquer evento do nosso sistema.
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 text-xs text-slate-700 leading-relaxed font-semibold">
+              <p>
+                Os Webhooks do Basileia-Pay permitem que o seu sistema seja notificado em tempo real sobre eventos ocorridos na plataforma.
+                Para receber os webhooks, você precisa cadastrar um endpoint HTTP que possa receber requisições POST.
               </p>
+              
+              <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <h4 className="font-black text-slate-900 mb-2 uppercase tracking-wider text-[10px]">Autenticação via HMAC</h4>
+                <p className="mb-2 text-slate-600">
+                  Todas as requisições de webhook possuem um cabeçalho <code className="bg-slate-200 px-1 rounded">X-Basileia-Signature</code> com uma assinatura HMAC SHA-256 do corpo da requisição usando a sua chave secreta.
+                </p>
+                <p className="text-slate-600">
+                  Valide esta assinatura no seu backend para confirmar que a requisição veio de fato do Basileia-Pay.
+                </p>
+              </div>
 
               <div>
-                <span className="text-[10px] font-black text-brand uppercase tracking-wider block mb-2">Schema JSON Base</span>
-                <div className="bg-slate-950 p-4 rounded-xl overflow-x-auto no-scrollbar relative group">
-                  <button 
-                    onClick={() => handleCopy(`{\n  "event": "string",\n  "data": "object",\n  "environment": "string",\n  "timestamp": "iso8601"\n}`, 'schema')}
-                    className="absolute top-3 right-3 p-1.5 bg-slate-800/80 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors opacity-0 group-hover:opacity-100"
-                  >
-                    {copiedField === 'schema' ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                  <pre className="text-green-400 font-mono text-[11px] leading-relaxed">
+                <h4 className="font-black text-slate-900 mb-2 uppercase tracking-wider text-[10px]">Eventos Disponíveis</h4>
+                <ul className="list-disc pl-5 space-y-1 text-slate-600">
+                  <li><code className="text-brand">payment.approved</code> - Pagamento confirmado e saldo disponível.</li>
+                  <li><code className="text-brand">payment.failed</code> - Pagamento recusado ou falhou.</li>
+                  <li><code className="text-brand">subscription.renewed</code> - Assinatura renovada com sucesso.</li>
+                  <li><code className="text-brand">subscription.cancelled</code> - Assinatura cancelada.</li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="font-black text-slate-900 mb-2 uppercase tracking-wider text-[10px]">Exemplo de Payload</h4>
+                <pre className="bg-slate-900 text-green-400 font-mono text-[10px] p-3 rounded-xl overflow-x-auto">
 {`{
-  "id": "evt_abc123",               // UUID único do evento
-  "event": "payment.approved",      // Tipo do evento
-  "environment": "production",      // "production" ou "sandbox"
-  "created_at": "2026-05-19T10:00:00Z", // Data/hora (ISO-8601)
-  "data": {                         // Objeto flexível (Payload específico)
-    "transaction_id": "trx_...",
-    "amount": 10500,
-    "currency": "BRL"
+  "event": "payment.approved",
+  "id": "evt_01JTK8XA1D0829C",
+  "created_at": "2026-05-19T10:52:14Z",
+  "data": {
+    "payment_id": "pay_992381",
+    "amount": 29900,
+    "currency": "BRL",
+    "status": "approved"
   }
 }`}
-                  </pre>
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black text-brand uppercase tracking-wider block mb-2">Segurança (HMAC-SHA256)</span>
-                <p className="text-slate-500 font-semibold leading-relaxed mb-2 text-[11px]">
-                  Para validar que o evento foi originado pela Basileia Pay e não sofreu alterações (Man-in-the-Middle), assine o payload usando a chave secreta gerada na criação do endpoint.
-                </p>
-                <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-[10px] text-slate-700">
-                  <span className="font-bold text-slate-500">Header:</span> x-basileia-signature<br/>
-                  <span className="font-bold text-slate-500">Exemplo PHP:</span><br/>
-                  <span className="text-blue-600">$signature</span> = <span className="text-violet-600">hash_hmac</span>(<span className="text-green-700">'sha256'</span>, <span className="text-blue-600">$payload</span>, <span className="text-blue-600">$secret</span>);
-                </div>
-              </div>
-
-              <div>
-                <span className="text-[10px] font-black text-brand uppercase tracking-wider block mb-2">Tentativas de Entrega (Retries)</span>
-                <p className="text-slate-500 font-semibold leading-relaxed text-[11px]">
-                  Caso seu servidor responda com um código HTTP diferente de <span className="font-mono bg-slate-100 px-1 rounded">2xx</span>, ou a requisição atinja o timeout (padrão 30s), a Basileia Pay reenviará o evento automaticamente baseada na política de Retry configurada (ex: backoff exponencial).
-                </p>
+                </pre>
               </div>
             </div>
-
-            <div className="flex items-center justify-end gap-2 mt-6 pt-3 border-t border-slate-100">
+            <div className="flex justify-end pt-4 mt-4 border-t border-slate-100">
               <button
                 onClick={() => setShowDocsModal(false)}
-                className="px-4 py-1.5 bg-brand text-white hover:bg-brand-deep rounded-xl text-[10.5px] font-black uppercase h-[32px] transition-all"
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-black uppercase transition-colors"
               >
-                Fechar Documentação
+                Entendi
               </button>
             </div>
           </div>

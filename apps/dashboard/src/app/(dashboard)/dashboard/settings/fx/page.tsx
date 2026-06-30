@@ -49,78 +49,42 @@ export default function FxSettingsPage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   
   // Interactive Live Currency rates state
-  const [exchangeRates, setExchangeRates] = useState([
-    { code: 'USD', name: 'Dólar Americano', pair: 'USD/BRL', interbank: 5.1275, ourRate: 5.2520, markup: '2,43%', var24h: 0.42, lock: 'Sim', status: 'Ativa', flag: '🇺🇸', bid: 5.1260, ask: 5.1290 },
-    { code: 'EUR', name: 'Euro', pair: 'EUR/BRL', interbank: 5.5842, ourRate: 5.7200, markup: '2,43%', var24h: 0.31, lock: 'Não', status: 'Ativa', flag: '🇪🇺', bid: 5.5820, ask: 5.5864 },
-    { code: 'GBP', name: 'Libra Esterlina', pair: 'GBP/BRL', interbank: 6.5341, ourRate: 6.6950, markup: '2,46%', var24h: -0.12, lock: 'Sim', status: 'Ativa', flag: '🇬🇧', bid: 6.5312, ask: 6.5370 },
-    { code: 'CAD', name: 'Dólar Canadense', pair: 'CAD/BRL', interbank: 3.7221, ourRate: 3.8150, markup: '2,50%', var24h: 0.28, lock: 'Não', status: 'Ativa', flag: '🇨🇦', bid: 3.7201, ask: 3.7241 },
-    { code: 'AUD', name: 'Dólar Australiano', pair: 'AUD/BRL', interbank: 3.3684, ourRate: 3.4520, markup: '2,48%', var24h: 0.18, lock: 'Não', status: 'Ativa', flag: '🇦🇺', bid: 3.3660, ask: 3.3708 },
-    { code: 'JPY', name: 'Iene Japonês', pair: 'JPY/BRL', interbank: 0.03321, ourRate: 0.03400, markup: '2,38%', var24h: -0.09, lock: 'Não', status: 'Ativa', flag: '🇯🇵', bid: 0.03318, ask: 0.03324 },
-    { code: 'CHF', name: 'Franco Suíço', pair: 'CHF/BRL', interbank: 5.8223, ourRate: 5.9650, markup: '2,45%', var24h: 0.22, lock: 'Sim', status: 'Ativa', flag: '🇨🇭', bid: 5.8201, ask: 5.8245 },
-    { code: 'MXN', name: 'Peso Mexicano', pair: 'MXN/BRL', interbank: 0.2648, ourRate: 0.2710, markup: '2,34%', var24h: 0.35, lock: 'Não', status: 'Ativa', flag: '🇲🇽', bid: 0.2642, ask: 0.2654 },
-  ]);
+  const [exchangeRates, setExchangeRates] = useState<any[]>([]);
 
   // Quick Converter Input State
   const [convertAmount, setConvertAmount] = useState<number>(1000);
   const [selectedConvertCurrency, setSelectedConvertCurrency] = useState<string>('USD');
 
   // DCC and Hedging settings states
-  const [dccActive, setDccActive] = useState(true);
+  const [dccActive, setDccActive] = useState(false);
   const [dccWindow, setDccWindow] = useState('30m');
-  const [hedgingActive, setHedgingActive] = useState(true);
-  const [hedgingThreshold, setHedgingThreshold] = useState(5000);
-  const [hedgingLogs, setHedgingLogs] = useState([
-    { id: 'HDG-001', pair: 'USD/BRL', amount: '$12,450.00', rate: '5.1275', status: 'Executado', date: '19/05 15:42' },
-    { id: 'HDG-002', pair: 'EUR/BRL', amount: '€8,200.00', rate: '5.5842', status: 'Executado', date: '19/05 14:10' },
-    { id: 'HDG-003', pair: 'GBP/BRL', amount: '£6,000.00', rate: '6.5341', status: 'Executado', date: '19/05 11:25' }
-  ]);
+  const [hedgingActive, setHedgingActive] = useState(false);
+  const [hedgingThreshold, setHedgingThreshold] = useState(0);
+  const [hedgingLogs, setHedgingLogs] = useState<any[]>([]);
 
   // Whitelisted currencies list state
-  const [whitelistedCurrencies, setWhitelistedCurrencies] = useState([
-    { code: 'USD', name: 'Dólar Americano', enabled: true, min: '1.00', max: '10,000.00', flag: '🇺🇸' },
-    { code: 'EUR', name: 'Euro', enabled: true, min: '1.00', max: '10,000.00', flag: '🇪🇺' },
-    { code: 'GBP', name: 'Libra Esterlina', enabled: true, min: '5.00', max: '5,000.00', flag: '🇬🇧' },
-    { code: 'CAD', name: 'Dólar Canadense', enabled: true, min: '1.00', max: '8,000.00', flag: '🇨🇦' },
-    { code: 'AUD', name: 'Dólar Australiano', enabled: true, min: '1.00', max: '8,000.00', flag: '🇦🇺' },
-    { code: 'JPY', name: 'Iene Japonês', enabled: true, min: '100.00', max: '1,000,000.00', flag: '🇯🇵' },
-    { code: 'CHF', name: 'Franco Suíço', enabled: true, min: '5.00', max: '5,000.00', flag: '🇨🇭' },
-    { code: 'MXN', name: 'Peso Mexicano', enabled: true, min: '10.00', max: '50,000.00', flag: '🇲🇽' },
-    { code: 'CNY', name: 'Yuan Chinês', enabled: false, min: '10.00', max: '20,000.00', flag: '🇨🇳' },
-    { code: 'ARS', name: 'Peso Argentino', enabled: false, min: '100.00', max: '5,000,000.00', flag: '🇦🇷' }
-  ]);
+  const [whitelistedCurrencies, setWhitelistedCurrencies] = useState<any[]>([]);
 
   // Rounding and tax configs state
   const [roundingRule, setRoundingRule] = useState('.99');
-  const [embedIof, setEmbedIof] = useState(true);
+  const [embedIof, setEmbedIof] = useState(false);
   const [importTax, setImportTax] = useState(false);
 
   // Settlement accounts state
   const [settlementCurrency, setSettlementCurrency] = useState('BRL');
   const [settlementSchedule, setSettlementSchedule] = useState('D+2');
-  const [settlementAccount, setSettlementAccount] = useState('basileia_corp');
+  const [settlementAccount, setSettlementAccount] = useState('');
 
   // Checkout currency override state
-  const [checkoutOverrides, setCheckoutOverrides] = useState([
-    { id: 'chk-001', name: 'Checkout Principal', defaultCurrency: 'BRL', forceCurrency: false, customMarkup: '—' },
-    { id: 'chk-002', name: 'Checkout Internacional EUA', defaultCurrency: 'USD', forceCurrency: true, customMarkup: '2.10%' },
-    { id: 'chk-003', name: 'Checkout Europeu', defaultCurrency: 'EUR', forceCurrency: true, customMarkup: '2.20%' }
-  ]);
+  const [checkoutOverrides, setCheckoutOverrides] = useState<any[]>([]);
 
   // Live currency feed source
   const [feedSource, setFeedSource] = useState('reuters');
 
   // Disputas FX states
-  const [fxDisputes, setFxDisputes] = useState([
-    { id: 'dsp_0982', txId: 'tx_72819', currency: 'USD', amount: 150, rateCapture: 5.12, rateDispute: 5.28, variance: 24.00, status: 'Aguardando Conciliação', date: '19/05 16:10' },
-    { id: 'dsp_0983', txId: 'tx_72820', currency: 'EUR', amount: 82, rateCapture: 5.58, rateDispute: 5.72, variance: 11.48, status: 'Aguardando Conciliação', date: '19/05 15:45' },
-    { id: 'dsp_0984', txId: 'tx_72821', currency: 'GBP', amount: 60, rateCapture: 6.53, rateDispute: 6.69, variance: 9.60, status: 'Aguardando Conciliação', date: '19/05 11:20' },
-    { id: 'dsp_0985', txId: 'tx_72822', currency: 'USD', amount: 300, rateCapture: 5.12, rateDispute: 5.35, variance: 69.00, status: 'Aguardando Conciliação', date: '18/05 14:15' }
-  ]);
+  const [fxDisputes, setFxDisputes] = useState<any[]>([]);
 
-  const [fxAuditLogs, setFxAuditLogs] = useState([
-    { id: 'adj_001', user: 'Carlos Oliveira', disputeId: 'dsp_0981', variance: 14.20, date: '19/05 14:30', status: 'Sucesso' },
-    { id: 'adj_002', user: 'Carlos Oliveira', disputeId: 'dsp_0980', variance: -8.50, date: '19/05 10:15', status: 'Sucesso' }
-  ]);
+  const [fxAuditLogs, setFxAuditLogs] = useState<any[]>([]);
 
   const handleConciliateDispute = (id: string) => {
     setFxDisputes(prev => prev.map(d => {

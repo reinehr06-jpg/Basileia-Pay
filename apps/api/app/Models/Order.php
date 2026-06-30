@@ -18,10 +18,20 @@ class Order extends Model
         'company_id',
         'connected_system_id',
         'checkout_session_id',
+        'checkout_id',
+        'checkout_publication_id',
         'external_order_id',
         'amount',
         'currency',
         'status',
+        'customer_name',
+        'customer_email',
+        'customer_document',
+        'metadata',
+    ];
+
+    protected $casts = [
+        'metadata' => 'array',
     ];
 
     public function connectedSystem(): BelongsTo
@@ -37,5 +47,15 @@ class Order extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function checkout(): BelongsTo
+    {
+        return $this->belongsTo(Checkout::class);
+    }
+
+    public function checkoutPublication(): BelongsTo
+    {
+        return $this->belongsTo(CheckoutPublication::class);
     }
 }
