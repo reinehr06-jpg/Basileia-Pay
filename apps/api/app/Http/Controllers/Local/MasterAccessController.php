@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Local;
 
 use App\Http\Controllers\Controller;
-use App\Services\MasterAccess\MasterAccessService;
+use App\Services\Auth\MasterAccessService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 

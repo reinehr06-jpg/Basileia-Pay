@@ -29,7 +29,6 @@ class EnforceTwoFactorAuth
             'profile.2fa.*',
             'checkout.*',
             'evento.*',
-            'api.*',
             'pay.*',
         ];
 

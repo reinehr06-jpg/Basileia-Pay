@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\CheckoutSessionAnalytics;
 use App\Models\GeographicRiskSignal;
 use Illuminate\Bus\Queueable;
@@ -14,6 +16,12 @@ use Illuminate\Support\Facades\DB;
 class AggregateGeographicRiskJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'analytics';
+    public $tries = 2;
+    public $timeout = 120;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
 
     public $queue = 'analytics';
 
@@ -86,5 +94,13 @@ class AggregateGeographicRiskJob implements ShouldQueue
             $refusal >= 10 || $conversion < 25  => 'medium',
             default                              => 'low',
         };
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

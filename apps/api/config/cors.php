@@ -19,14 +19,14 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => [
-        env('APP_URL', 'http://localhost:8000'),
-        env('FRONTEND_URL', 'http://localhost:3000'),   // checkout
-        env('DASHBOARD_URL', 'http://localhost:3001'),  // dashboard
+    'allowed_origins' => array_values(array_filter([
+        env('APP_URL'),
+        env('FRONTEND_URL'),
+        env('DASHBOARD_URL'),
         'https://basileia.global',
         'https://secure.basileia.global',
         'https://checkout.basileia.global',
-    ],
+    ])),
 
     'allowed_origins_patterns' => [],
 

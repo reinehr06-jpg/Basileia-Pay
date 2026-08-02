@@ -2,55 +2,61 @@
 
 namespace App\Services\Vault;
 
-use Illuminate\Support\Facades\Crypt;
-use Illuminate\Contracts\Encryption\Encrypter;
-use Illuminate\Encryption\Encrypter as LaravelEncrypter;
+use Illuminate\Encryption\Encrypter;
+use Illuminate\Contracts\Encryption\Encrypter as EncrypterContract;
 
 class VaultService
 {
-    protected $keyManager;
+    protected EncryptionKeyManager $keyManager;
+    protected array $encrypters = [];
 
     public function __construct(EncryptionKeyManager $keyManager)
     {
         $this->keyManager = $keyManager;
     }
 
-    /**
-     * Criptografa um segredo usando a versão mais recente da chave.
-     */
     public function encrypt(string $value): array
     {
         $version = $this->keyManager->getCurrentVersion();
-        $key = $this->keyManager->getKeyForVersion($version);
-        
-        // Criar um encripter específico para a chave/versão se necessário
-        // Por simplicidade aqui usamos o Crypt padrão do Laravel que usa APP_KEY
-        // mas em produção o VaultService usaria chaves rotacionadas.
+        $encrypter = $this->getEncrypterForVersion($version);
         
         return [
-            'encrypted_value' => Crypt::encryptString($value),
+            'encrypted_value' => $encrypter->encryptString($value),
             'key_version' => $version,
-            'algorithm' => config('app.cipher'),
+            'algorithm' => 'AES-256-GCM',
         ];
     }
 
-    /**
-     * Descriptografa um segredo baseado na sua versão.
-     */
     public function decrypt(string $encryptedValue, string $version): string
     {
-        // Aqui buscaríamos a chave da versão específica
-        // $key = $this->keyManager->getKeyForVersion($version);
-        
-        return Crypt::decryptString($encryptedValue);
+        $encrypter = $this->getEncrypterForVersion($version);
+        return $encrypter->decryptString($encryptedValue);
     }
 
-    /**
-     * Retorna uma versão mascarada do segredo para exibição em dashboard.
-     */
     public function mask(string $value): string
     {
         if (strlen($value) <= 8) return '********';
         return '**** ' . substr($value, -4);
+    }
+
+    /**
+     * Resolve card token para dados do cartão (método estático para compatibilidade).
+     */
+    public static function resolveToken(int $companyId, string $cardToken): ?array
+    {
+        $service = app(self::class);
+        // Implementar lógica de resolução de token
+        // Por ora, retorna null (placeholder)
+        return null;
+    }
+
+    private function getEncrypterForVersion(string $version): Encrypter
+    {
+        if (!isset($this->encrypters[$version])) {
+            $key = $this->keyManager->getKeyForVersion($version);
+            $this->encrypters[$version] = new Encrypter($key, 'AES-256-GCM');
+        }
+        
+        return $this->encrypters[$version];
     }
 }

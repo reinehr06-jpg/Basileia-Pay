@@ -6,21 +6,35 @@ use Illuminate\Support\Facades\Crypt;
 
 class EncryptionKeyManager
 {
-    /**
-     * Obtém a versão atual da chave mestra do ambiente.
-     */
     public function getCurrentVersion(): string
     {
-        return config('vault.master_key_version', 'v1');
+        return (string) config('security.kek_version', 'v1');
     }
 
-    /**
-     * Retorna a chave de criptografia para uma versão específica.
-     * Em um cenário real, isso buscaria em um Secret Manager (AWS KMS, GCP Secret Manager).
-     */
     public function getKeyForVersion(string $version): string
     {
-        // Fallback para APP_KEY se não houver chaves específicas de vault
-        return config("vault.keys.{$version}", config('app.key'));
+        // Priorizar SECURITY_ENCRYPTION_KEY
+        $securityKey = config('security.encryption_key');
+        
+        if (!empty($securityKey)) {
+            // Remover prefixo "base64:" se presente
+            if (str_starts_with($securityKey, 'base64:')) {
+                $securityKey = substr($securityKey, 7);
+            }
+            return base64_decode($securityKey);
+        }
+        
+        // Em desenvolvimento, gerar chave determinística a partir de APP_KEY
+        if (app()->environment('local', 'testing')) {
+            $appKey = config('app.key');
+            if (str_starts_with($appKey, 'base64:')) {
+                $appKey = substr($appKey, 7);
+            }
+            return base64_decode($appKey);
+        }
+        
+        throw new \RuntimeException(
+            'SECURITY_ENCRYPTION_KEY não configurada. Gere com: php -r "echo \'base64:\' . base64_encode(random_bytes(32));"'
+        );
     }
 }

@@ -13,6 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Services\Gateway\GatewayResolver;
+use App\Services\Gateway\PagBankGateway;
 
 class CheckoutController extends Controller
 {
@@ -53,13 +55,18 @@ class CheckoutController extends Controller
      */
     public function process(Request $request, string $uuid): JsonResponse
     {
-        $session = CheckoutSession::with(['order', 'connectedSystem.defaultGateway', 'gatewayAccount'])
-            ->where('uuid', $uuid)
-            ->first();
+        DB::beginTransaction();
 
-        if (!$session || !in_array($session->status, ['open', 'processing'])) {
-            return response()->json(['message' => 'Checkout não encontrado ou expirado'], 400);
-        }
+        try {
+            $session = CheckoutSession::with(['order', 'connectedSystem'])
+                ->where('uuid', $uuid)
+                ->lockForUpdate()
+                ->first();
+
+            if (!$session || !in_array($session->status, ['open', 'processing'])) {
+                DB::rollBack();
+                return response()->json(['message' => 'Checkout não encontrado ou expirado'], 400);
+            }
 
         $data = $request->validate([
             'method'        => 'required|in:pix,creditcard,boleto',
@@ -76,23 +83,25 @@ class CheckoutController extends Controller
         ]);
 
         $method = $data['method'] === 'creditcard' ? 'credit_card' : $data['method'];
-        $gatewayAccount = $session->gatewayAccount ?? $session->connectedSystem->defaultGateway;
+        $resolver = app(GatewayResolver::class);
+        $gatewayAccount = $resolver->resolve(
+            $session->connectedSystem->company,
+            null, 
+            ['payment_method' => $method]
+        );
 
         if (!$gatewayAccount) {
-            return response()->json(['message' => 'Gateway não configurado para este sistema.'], 500);
-        }
-
-        if ($gatewayAccount->gateway_type !== 'asaas') {
-            return response()->json(['message' => 'Gateway não suportado.'], 500);
+            DB::rollBack();
+            return response()->json(['message' => 'Nenhum Gateway configurado para processar a transação.'], 500);
         }
 
         $order = $session->order;
         if (!$order) {
+            DB::rollBack();
             return response()->json(['message' => 'Ordem não encontrada.'], 500);
         }
 
-        DB::beginTransaction();
-        try {
+            // Já estamos dentro de uma transação.
             // Criar Payment
             $payment = Payment::create([
                 'uuid'                   => (string) Str::uuid(),
@@ -121,34 +130,45 @@ class CheckoutController extends Controller
             }
 
             $isSandbox = ($gatewayAccount->environment ?? 'production') === 'sandbox';
-            $asaas = new AsaasGateway(
-                $credentials['api_key'],
-                $isSandbox ? AsaasGateway::URL_SANDBOX : AsaasGateway::URL_PRODUCTION
-            );
+            
+            // Instanciar driver correto baseado no gateway_type
+            if ($gatewayAccount->gateway_type === 'asaas') {
+                $gatewayClient = new AsaasGateway(
+                    $credentials['api_key'],
+                    $isSandbox ? AsaasGateway::URL_SANDBOX : AsaasGateway::URL_PRODUCTION
+                );
+            } elseif ($gatewayAccount->gateway_type === 'pagbank') {
+                $gatewayClient = new PagBankGateway(
+                    $credentials['api_key'],
+                    $isSandbox ? PagBankGateway::URL_SANDBOX : PagBankGateway::URL_PRODUCTION
+                );
+            } else {
+                throw new \Exception("Gateway não suportado: " . $gatewayAccount->gateway_type);
+            }
 
             // Criar customer
             $customerId = '';
             try {
-                $customerId = $asaas->createCustomer([
+                $customerId = $gatewayClient->createCustomer([
                     'name'     => $data['name'],
                     'email'    => $data['email'],
                     'document' => $data['document'] ?? '',
                     'phone'    => $data['phone'] ?? '',
                 ]);
             } catch (\Exception $e) {
-                Log::warning('Falha ao criar customer Asaas', ['error' => $e->getMessage()]);
+                Log::warning('Falha ao criar customer no gateway', ['error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()]);
             }
 
             // Processar conforme método
             $gatewayResult = null;
 
             if ($method === 'pix') {
-                $gatewayResult = $asaas->chargeViaPix([
+                $gatewayResult = $gatewayClient->chargeViaPix([
                     'amountBRL' => $order->amount / 100,
                     'description' => "Pedido " . ($order->external_order_id ?? $order->uuid),
                 ], $customerId);
             } elseif ($method === 'credit_card') {
-                $gatewayResult = $asaas->charge([
+                $gatewayResult = $gatewayClient->charge([
                     'amountBRL' => $order->amount / 100,
                     'description' => "Pedido " . ($order->external_order_id ?? $order->uuid),
                     'cardToken' => $data['card_number'],
@@ -160,7 +180,7 @@ class CheckoutController extends Controller
                     'installments' => $data['installments'] ?? 1,
                 ], $customerId);
             } elseif ($method === 'boleto') {
-                $gatewayResult = $asaas->chargeViaBoleto([
+                $gatewayResult = $gatewayClient->chargeViaBoleto([
                     'amountBRL' => $order->amount / 100,
                     'description' => "Pedido " . ($order->external_order_id ?? $order->uuid),
                 ], $customerId);
@@ -221,16 +241,16 @@ class CheckoutController extends Controller
                 $attempt->update([
                     'status' => 'failed',
                     'error_code' => 'GATEWAY_ERROR',
-                    'error_message' => $e->getMessage(),
+                    'error_message' => app()->environment('production') ? 'Erro interno.' : $e->getMessage(),
                 ]);
             }
 
             Log::error('Pagamento falhou', [
                 'session_id' => $uuid,
-                'error' => $e->getMessage(),
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(),
             ]);
 
-            return response()->json(['message' => 'Falha ao processar pagamento: ' . $e->getMessage()], 500);
+            return response()->json(['message' => app()->environment('production') ? 'Falha ao processar pagamento: ' : 'Falha ao processar pagamento: ' . $e->getMessage()], 500);
         }
     }
 

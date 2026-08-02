@@ -114,7 +114,7 @@ async function refreshAccessToken(): Promise<string> {
 }
 
 // ── Main API fetch with auto-refresh ───────────────────────────────
-export function apiFetch<T = unknown>(
+export function apiFetch<T = any>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ success: boolean; data?: T; error?: { code: string; message: string } }> {

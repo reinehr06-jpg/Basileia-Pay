@@ -32,10 +32,18 @@ class ZeroTrustMiddleware
         }
 
         // 2. Session binding (IP + UA fingerprint)
-        $session = DB::table('user_sessions')
-            ->where('user_id', $user->id)
-            ->where('token_id', $token->id)
-            ->first();
+        $session = $request->attributes->get('zero_trust_session');
+
+        if (!$session) {
+            $session = DB::table('user_sessions')
+                ->where('user_id', $user->id)
+                ->where('token_id', $token->id)
+                ->first();
+                
+            if ($session) {
+                $request->attributes->set('zero_trust_session', $session);
+            }
+        }
 
         if (!$session) {
             DB::table('user_sessions')->insert([
@@ -95,6 +103,7 @@ class ZeroTrustMiddleware
             ->update(['last_active_at' => now(), 'updated_at' => now()]);
 
         $request->attributes->set('zero_trust_verified', true);
+        $request->attributes->set('zero_trust_session', $session);
 
         return $next($request);
     }

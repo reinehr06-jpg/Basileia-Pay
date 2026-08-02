@@ -79,7 +79,7 @@ class CheckoutController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()], 500);
         }
     }
 
@@ -136,7 +136,7 @@ class CheckoutController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()], 500);
         }
     }
 
@@ -179,7 +179,7 @@ class CheckoutController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'error' => $e->getMessage()], 500);
+            return response()->json(['success' => false, 'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()], 500);
         }
     }
 

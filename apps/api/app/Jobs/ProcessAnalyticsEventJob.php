@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -17,6 +19,12 @@ use App\Models\GeographicRiskSignal;
 class ProcessAnalyticsEventJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'analytics';
+    public $tries = 3;
+    public $timeout = 60;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
 
     protected array $payload;
 
@@ -129,5 +137,13 @@ class ProcessAnalyticsEventJob implements ShouldQueue
         if (preg_match('/(tablet|ipad|playbook)|(android(?!.*(mobi|opera mini)))/i', $userAgent)) return 'tablet';
         if (preg_match('/(up.browser|up.link|mmp|symbian|smartphone|midp|wap|phone|android|iemobile)/i', $userAgent)) return 'mobile';
         return 'desktop';
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

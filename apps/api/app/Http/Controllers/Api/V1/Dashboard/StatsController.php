@@ -110,44 +110,50 @@ class StatsController extends Controller
             ->count();
 
         // Chart data - volume por dia (ultimos 7 dias)
-        $volumeChart = [];
-        $revenueChart = [];
-        $approvalChart = [];
-        $failureChart = [];
-        $conversionChart = [];
+        $volumeChart = array_fill(0, 7, 0);
+        $revenueChart = array_fill(0, 7, 0);
+        $approvalChart = array_fill(0, 7, 0);
+        $failureChart = array_fill(0, 7, 0);
+        $conversionChart = array_fill(0, 7, 0);
 
+        $dateKeys = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i)->startOfDay();
-            $nextDate = (clone $date)->addDay();
+            $dateKeys[now()->subDays($i)->format('Y-m-d')] = 6 - $i;
+        }
 
-            $dayVolume = Payment::where('company_id', $companyId)
-                ->where('status', 'paid')
-                ->whereBetween('created_at', [$date, $nextDate])
-                ->sum('amount');
+        $paymentStats = Payment::where('company_id', $companyId)
+            ->where('created_at', '>=', $sevenDaysAgo->startOfDay())
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(CASE WHEN status = \'paid\' THEN amount ELSE 0 END) as volume'),
+                DB::raw('COUNT(id) as total_count'),
+                DB::raw('SUM(CASE WHEN status = \'paid\' THEN 1 ELSE 0 END) as approved_count'),
+                DB::raw('SUM(CASE WHEN status = \'failed\' THEN 1 ELSE 0 END) as failed_count')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->get();
+
+        $sessionStats = CheckoutSession::where('company_id', $companyId)
+            ->where('created_at', '>=', $sevenDaysAgo->startOfDay())
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(id) as total_count')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->get()->keyBy('date');
+
+        foreach ($paymentStats as $stat) {
+            $dateStr = $stat->date;
+            if (!isset($dateKeys[$dateStr])) continue;
+            $idx = $dateKeys[$dateStr];
             
-            $dayTotal = Payment::where('company_id', $companyId)
-                ->whereBetween('created_at', [$date, $nextDate])
-                ->count();
+            $volumeChart[$idx] = $stat->volume / 100;
+            $revenueChart[$idx] = $volumeChart[$idx];
+            $approvalChart[$idx] = $stat->total_count > 0 ? round(($stat->approved_count / $stat->total_count) * 100, 1) : 0;
+            $failureChart[$idx] = $stat->total_count > 0 ? round(($stat->failed_count / $stat->total_count) * 100, 2) : 0;
             
-            $dayApproved = Payment::where('company_id', $companyId)
-                ->where('status', 'paid')
-                ->whereBetween('created_at', [$date, $nextDate])
-                ->count();
-
-            $dayFailed = Payment::where('company_id', $companyId)
-                ->where('status', 'failed')
-                ->whereBetween('created_at', [$date, $nextDate])
-                ->count();
-
-            $daySessions = CheckoutSession::where('company_id', $companyId)
-                ->whereBetween('created_at', [$date, $nextDate])
-                ->count();
-
-            $volumeChart[] = $dayVolume / 100;
-            $revenueChart[] = ($dayVolume - $refunded) / 100;
-            $approvalChart[] = $dayTotal > 0 ? round(($dayApproved / $dayTotal) * 100, 1) : 0;
-            $failureChart[] = $dayTotal > 0 ? round(($dayFailed / $dayTotal) * 100, 2) : 0;
-            $conversionChart[] = $daySessions > 0 ? round(($dayApproved / $daySessions) * 100, 1) : 0;
+            $sessions = $sessionStats->has($dateStr) ? $sessionStats->get($dateStr)->total_count : 0;
+            $conversionChart[$idx] = $sessions > 0 ? round(($stat->approved_count / $sessions) * 100, 1) : 0;
         }
 
         // Pagamentos recentes
@@ -228,27 +234,48 @@ class StatsController extends Controller
         $conversionRate = $totalSessions > 0 ? round(($approvedPayments / $totalSessions) * 100, 2) : 0;
         $activeSystems = ConnectedSystem::where('status', 'active')->count();
 
-        $volumeChart = [];
-        $approvalChart = [];
-        $failureChart = [];
-        $conversionChart = [];
-        $revenueChart = [];
+        $volumeChart = array_fill(0, 7, 0);
+        $approvalChart = array_fill(0, 7, 0);
+        $failureChart = array_fill(0, 7, 0);
+        $conversionChart = array_fill(0, 7, 0);
+        $revenueChart = array_fill(0, 7, 0);
 
+        $dateKeys = [];
         for ($i = 6; $i >= 0; $i--) {
-            $date = now()->subDays($i)->startOfDay();
-            $nextDate = (clone $date)->addDay();
+            $dateKeys[now()->subDays($i)->format('Y-m-d')] = 6 - $i;
+        }
 
-            $dayVolume = Payment::where('status', 'paid')->whereBetween('created_at', [$date, $nextDate])->sum('amount');
-            $dayTotal = Payment::whereBetween('created_at', [$date, $nextDate])->count();
-            $dayApproved = Payment::where('status', 'paid')->whereBetween('created_at', [$date, $nextDate])->count();
-            $dayFailed = Payment::where('status', 'failed')->whereBetween('created_at', [$date, $nextDate])->count();
-            $daySessions = CheckoutSession::whereBetween('created_at', [$date, $nextDate])->count();
+        $paymentStats = Payment::where('created_at', '>=', $sevenDaysAgo->startOfDay())
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('SUM(CASE WHEN status = \'paid\' THEN amount ELSE 0 END) as volume'),
+                DB::raw('COUNT(id) as total_count'),
+                DB::raw('SUM(CASE WHEN status = \'paid\' THEN 1 ELSE 0 END) as approved_count'),
+                DB::raw('SUM(CASE WHEN status = \'failed\' THEN 1 ELSE 0 END) as failed_count')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->get();
 
-            $volumeChart[] = $dayVolume / 100;
-            $revenueChart[] = $dayVolume / 100;
-            $approvalChart[] = $dayTotal > 0 ? round(($dayApproved / $dayTotal) * 100, 1) : 0;
-            $failureChart[] = $dayTotal > 0 ? round(($dayFailed / $dayTotal) * 100, 2) : 0;
-            $conversionChart[] = $daySessions > 0 ? round(($dayApproved / $daySessions) * 100, 1) : 0;
+        $sessionStats = CheckoutSession::where('created_at', '>=', $sevenDaysAgo->startOfDay())
+            ->select(
+                DB::raw('DATE(created_at) as date'),
+                DB::raw('COUNT(id) as total_count')
+            )
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->get()->keyBy('date');
+
+        foreach ($paymentStats as $stat) {
+            $dateStr = $stat->date;
+            if (!isset($dateKeys[$dateStr])) continue;
+            $idx = $dateKeys[$dateStr];
+            
+            $volumeChart[$idx] = $stat->volume / 100;
+            $revenueChart[$idx] = $volumeChart[$idx];
+            $approvalChart[$idx] = $stat->total_count > 0 ? round(($stat->approved_count / $stat->total_count) * 100, 1) : 0;
+            $failureChart[$idx] = $stat->total_count > 0 ? round(($stat->failed_count / $stat->total_count) * 100, 2) : 0;
+            
+            $sessions = $sessionStats->has($dateStr) ? $sessionStats->get($dateStr)->total_count : 0;
+            $conversionChart[$idx] = $sessions > 0 ? round(($stat->approved_count / $sessions) * 100, 1) : 0;
         }
 
         $recentPayments = Payment::with('order')->latest()->limit(10)->get()->map(function ($p) {

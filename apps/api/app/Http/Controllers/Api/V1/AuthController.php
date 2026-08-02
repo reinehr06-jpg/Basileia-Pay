@@ -161,7 +161,7 @@ class AuthController extends Controller
             'Path=/',
             'Max-Age=900',
         ];
-        if ($isSecure) {
+        if (app()->environment('production') || $request->isSecure()) {
             $cookieParts[] = 'Secure';
         }
 

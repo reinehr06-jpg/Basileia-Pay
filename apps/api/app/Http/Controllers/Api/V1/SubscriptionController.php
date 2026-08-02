@@ -177,7 +177,7 @@ class SubscriptionController extends Controller
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("Subscription store error: " . $e->getMessage());
             return response()->json([
-                'error' => 'Gateway error: ' . $e->getMessage(),
+                'error' => app()->environment('production') ? 'Gateway error: ' : 'Gateway error: ' . $e->getMessage(),
                 'status' => 'failed'
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }

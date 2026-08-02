@@ -34,8 +34,10 @@ export function ComponentPalette({ targetParentId, dispatch }: ComponentPaletteP
             className="palette-item"
             onClick={() => addElement(item.component)}
             title={item.label}
+            aria-label={`Adicionar componente ${item.label}`}
+            tabIndex={0}
           >
-            <span className="palette-icon">{item.icon}</span>
+            <span className="palette-icon" aria-hidden="true">{item.icon}</span>
             <span className="palette-label">{item.label}</span>
           </button>
         ))}

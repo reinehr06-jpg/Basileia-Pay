@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Scene, Node, NodeProps, ElementNode, BreakpointId, ResponsiveValue } from '../core/types';
 import type { SceneAction } from '../core/sceneReducer';
 import type { TrustScore } from '../core/trustRadar';
+import { CONFIG } from '../config';
 
 interface PropsPanelProps {
   scene: Scene;
@@ -126,6 +127,8 @@ function LayoutSection({
   dispatch(a: SceneAction): void;
 }) {
   const update = (key: keyof NodeProps, value: string | number) => {
+    if (!validateValue(key, value)) return;
+
     const rv: ResponsiveValue<typeof value> = {
       ...((node.props[key] as ResponsiveValue<typeof value>) ?? { base: value }),
     };
@@ -198,6 +201,8 @@ function StyleSection({
   dispatch(a: SceneAction): void;
 }) {
   const update = (key: keyof NodeProps, value: string | number) => {
+    if (!validateValue(key, value)) return;
+
     const rv: ResponsiveValue<typeof value> = {
       ...((node.props[key] as ResponsiveValue<typeof value>) ?? { base: value }),
     };
@@ -238,6 +243,24 @@ function StyleSection({
       />
     </div>
   );
+}
+
+// ── Validation ────────────────────────────────────────────────────────────
+
+function validateValue(key: string, value: any): boolean {
+  if (key === 'fontSize') {
+    return typeof value === 'number' && value > 0 && value < 200;
+  }
+  if (key === 'borderRadius') {
+    return typeof value === 'number' && value >= 0 && value < 100;
+  }
+  if (key === 'opacity') {
+    return typeof value === 'number' && value >= 0 && value <= 1;
+  }
+  if (key === 'bgColor' || key === 'textColor') {
+    return /^#[0-9A-F]{6}$/i.test(value) || value.includes('gradient') || value === 'transparent' || value === '';
+  }
+  return true;
 }
 
 // ── Tiny form primitives ──────────────────────────────────────────────────
@@ -293,11 +316,7 @@ function PropColor({
   onChange(v: string): void;
 }) {
   const [open, setOpen] = useState(false);
-  const presets = [
-    '#020617', '#0f172a', '#1e1b4b', '#4f46e5', '#6366f1',
-    '#a78bfa', '#f97316', '#10b981', '#022c22', '#f1f5f9',
-    '#e5e7eb', '#94a3b8', '#64748b', '#334155', '#ffffff',
-  ];
+  const presets = CONFIG.COLOR_PRESETS;
 
   return (
     <label className="prop-field prop-color-field">

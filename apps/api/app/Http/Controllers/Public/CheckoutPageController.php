@@ -195,7 +195,7 @@ class CheckoutPageController extends Controller
             Log::error('Payment processing failed', [
                 'transaction_id' => $transaction->id,
                 'uuid' => $uuid,
-                'error' => $e->getMessage(),
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(),
                 'ip' => $request->ip(),
             ]);
 

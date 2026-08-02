@@ -24,11 +24,11 @@ class AsaasGateway implements GatewayInterface
     public const URL_PRODUCTION = 'https://api.asaas.com/v3';
 
     private const BLOCKED_HOLDER_EMAILS = [
-        'cupombasileia.global',
-        'contatobasileia.global',
-        'demobasileia.global',
-        'noreplybasileia.global',
-        'systembasileia.global',
+        'cupom@basileia.global',
+        'contato@basileia.global',
+        'demo@basileia.global',
+        'noreply@basileia.global',
+        'system@basileia.global',
     ];
 
     public function __construct(

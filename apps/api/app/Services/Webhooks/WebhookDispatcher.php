@@ -2,10 +2,9 @@
 
 namespace App\Services\Webhooks;
 
+use App\Jobs\DeliverWebhookJob;
 use App\Models\WebhookEndpoint;
 use App\Models\WebhookDelivery;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class WebhookDispatcher
@@ -53,26 +52,6 @@ class WebhookDispatcher
             'attempt_count'       => 1,
         ]);
 
-        try {
-            $response = Http::withHeaders([
-                'X-Basileia-Signature' => 'sha256=' . $signature,
-                'X-Basileia-Event' => $event,
-                'X-Basileia-Delivery-ID' => $deliveryId,
-                'Content-Type' => 'application/json',
-            ])->timeout(10)->post($endpoint->url, $payload);
-
-            $delivery->update([
-                'status' => $response->successful() ? 'success' : 'failed',
-                'response_status' => $response->status(),
-                'response_body' => $response->body(),
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error("Falha no envio de webhook [{$deliveryId}]: " . $e->getMessage());
-            $delivery->update([
-                'status' => 'failed',
-                'response_body' => $e->getMessage(),
-            ]);
-        }
+        DeliverWebhookJob::dispatch($delivery, $endpoint, $signature);
     }
 }

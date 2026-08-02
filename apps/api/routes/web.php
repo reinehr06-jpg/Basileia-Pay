@@ -22,7 +22,14 @@ Route::get('/login', function () {
 });
 
 // ── Prometheus-style metrics ──
-Route::get('/metrics', function () {
+Route::get('/metrics', function (\Illuminate\Http\Request $request) {
+    if (config('app.env') === 'production') {
+        $token = $request->bearerToken();
+        if ($token !== env('METRICS_TOKEN')) {
+            abort(401, 'Unauthorized');
+        }
+    }
+    
     $startTime = $_SERVER['REQUEST_TIME_FLOAT'] ?? microtime(true);
     $uptime = microtime(true) - $startTime;
 

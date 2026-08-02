@@ -66,14 +66,25 @@ class TwoFactorAuthService
             return false;
         }
 
-        $codes = json_decode(Crypt::decryptString($secretModel->recovery_codes), true);
+        $vaultData = json_decode($secretModel->recovery_codes, true);
+        if (is_array($vaultData) && isset($vaultData['encrypted_value'], $vaultData['key_version'])) {
+            $vault = app(\App\Services\Vault\VaultService::class);
+            $decrypted = $vault->decrypt($vaultData['encrypted_value'], $vaultData['key_version']);
+        } else {
+            $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($secretModel->recovery_codes);
+        }
+
+        $codes = json_decode($decrypted, true);
         $code = strtoupper(trim($code));
 
         foreach ($codes as $index => $storedCode) {
             if (strtoupper($storedCode) === $code) {
                 unset($codes[$index]);
+                
+                $vault = app(\App\Services\Vault\VaultService::class);
+                $newCodesJson = json_encode(array_values($codes));
                 $secretModel->update([
-                    'recovery_codes' => Crypt::encryptString(json_encode(array_values($codes)))
+                    'recovery_codes' => json_encode($vault->encrypt($newCodesJson))
                 ]);
                 return true;
             }
@@ -91,8 +102,10 @@ class TwoFactorAuthService
             
             $secretModel = $user->twoFactorSecretRel()->first();
             if ($secretModel) {
+                $vault = app(\App\Services\Vault\VaultService::class);
+                $newCodesJson = json_encode($this->generateBackupCodes());
                 $secretModel->update([
-                    'recovery_codes' => Crypt::encryptString(json_encode($this->generateBackupCodes())),
+                    'recovery_codes' => json_encode($vault->encrypt($newCodesJson)),
                     'confirmed_at' => now(),
                 ]);
             }

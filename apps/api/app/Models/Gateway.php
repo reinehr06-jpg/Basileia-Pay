@@ -87,7 +87,10 @@ class Gateway extends Model
 
     public function getConfig(string $key, mixed $default = null): mixed
     {
-        $config = $this->configs()->where('key', $key)->first();
+        if (!$this->relationLoaded('configs')) {
+            $this->load('configs');
+        }
+        $config = $this->configs->firstWhere('key', $key);
 
         return $config ? $config->value : $default;
     }

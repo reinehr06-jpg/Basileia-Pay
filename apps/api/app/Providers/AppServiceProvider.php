@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Owner bypasses all permission checks
         Gate::before(function (User $user, string $ability) {
-            if ($user->role === 'owner') {
+            if ($user->isSuperAdmin()) {
                 return true;
             }
         });

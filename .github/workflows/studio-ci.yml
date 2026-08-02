@@ -1,0 +1,42 @@
+name: Checkout Studio CI
+
+on:
+  push:
+    paths:
+      - 'checkout-studio/**'
+    branches:
+      - main
+  pull_request:
+    paths:
+      - 'checkout-studio/**'
+
+jobs:
+  build:
+    name: Build, Lint & Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./checkout-studio
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: './checkout-studio/package-lock.json'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run Vitest
+        run: npx vitest run --coverage
+
+      - name: Build Application (Dry Run)
+        run: npm run build

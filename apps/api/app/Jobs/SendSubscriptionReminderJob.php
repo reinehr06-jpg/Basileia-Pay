@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\PixSubscriptionCycle;
 use App\Models\PixSubscriptionEvent;
 use Illuminate\Bus\Queueable;
@@ -10,12 +12,18 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Mail;
+use App\Mail\SubscriptionReminderMail;
 
 class SendSubscriptionReminderJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $queue = 'notifications';
+    public $tries = 3;
+    public $timeout = 15;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
+
 
     public function handle(): void
     {
@@ -28,7 +36,7 @@ class SendSubscriptionReminderJob implements ShouldQueue
             $customer = $cycle->subscription->customer;
             if (!$customer?->email) continue;
 
-            // In a real scenario: Mail::to($customer->email)->send(new SubscriptionBillingReminderMail($cycle));
+            Mail::to($customer->email)->send(new SubscriptionReminderMail(['cycle' => $cycle]));
 
             PixSubscriptionEvent::create([
                 'subscription_id' => $cycle->subscription_id,
@@ -38,5 +46,13 @@ class SendSubscriptionReminderJob implements ShouldQueue
                 'occurred_at'     => now(),
             ]);
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

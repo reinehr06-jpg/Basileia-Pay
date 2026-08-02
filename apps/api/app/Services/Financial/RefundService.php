@@ -43,9 +43,16 @@ class RefundService
                 'after_state' => $refund->toArray(),
             ]);
 
-            // TODO: Integrar com GatewayDriver::refund()
-            // Simulação imediata de sucesso
-            $this->completeRefund($refund);
+            $registry = app(\App\Services\Gateway\GatewayDriverRegistry::class);
+            $gatewayAccount = $payment->gatewayAccount;
+            $driver = $registry->resolve($gatewayAccount);
+            $result = $driver->refund($payment->gateway_payment_id, $amount);
+
+            if ($result->success) {
+                $this->completeRefund($refund);
+            } else {
+                $refund->update(['status' => 'failed', 'metadata' => ['error' => $result->errorMessage]]);
+            }
 
             return $refund;
         });

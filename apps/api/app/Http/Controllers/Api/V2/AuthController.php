@@ -444,9 +444,21 @@ class AuthController extends Controller
             }
 
             $secretModel = $user->twoFactorSecretRel()->first();
-            $recoveryCodes = ($secretModel && $secretModel->recovery_codes)
-                ? json_decode(\Illuminate\Support\Facades\Crypt::decryptString($secretModel->recovery_codes))
-                : [];
+            $recoveryCodes = [];
+
+            if ($secretModel && $secretModel->recovery_codes) {
+                $vaultData = json_decode($secretModel->recovery_codes, true);
+                
+                if (is_array($vaultData) && isset($vaultData['encrypted_value'], $vaultData['key_version'])) {
+                    $vault = app(\App\Services\Vault\VaultService::class);
+                    $decrypted = $vault->decrypt($vaultData['encrypted_value'], $vaultData['key_version']);
+                    $recoveryCodes = json_decode($decrypted, true);
+                } else {
+                    // Fallback para dados antigos
+                    $decrypted = \Illuminate\Support\Facades\Crypt::decryptString($secretModel->recovery_codes);
+                    $recoveryCodes = json_decode($decrypted, true);
+                }
+            }
 
             return response()->json([
                 'success' => true,

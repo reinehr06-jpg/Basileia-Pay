@@ -25,24 +25,24 @@ class GatewayWebhookController extends Controller
         $rawBody = $request->getContent();
 
         // 1. Resolver gateway account
-        $gateway = null;
         if ($accountUuid) {
             $gateway = GatewayAccount::where('uuid', $accountUuid)->first();
-            if (!$gateway) {
-                Log::warning("Webhook {$provider}: conta não encontrada", ['uuid' => $accountUuid]);
-                return response()->json(['error' => 'Account not found'], 404);
-            }
+        }
+
+        if (!$gateway) {
+            Log::warning("Webhook {$provider}: gateway não resolvido, rejeitando");
+            return response()->json(['error' => 'Gateway account not found'], 404);
         }
 
         // 2. Verificar assinatura do webhook
-        if ($gateway) {
-            $verified = $this->verifySignature($request, $provider, $gateway, $rawBody);
-            if (!$verified) {
-                Log::warning("Webhook {$provider}: assinatura inválida", ['uuid' => $accountUuid]);
-                return response()->json(['error' => 'Invalid signature'], 401);
-            }
-        } else {
-            $this->verifyProviderToken($request, $provider);
+        $verified = $this->verifySignature($request, $provider, $gateway, $rawBody);
+        if (!$verified) {
+            Log::warning("Webhook {$provider}: assinatura inválida", ['uuid' => $accountUuid]);
+            return response()->json(['error' => 'Invalid signature'], 401);
+        }
+        
+        if (!$this->verifyProviderToken($request, $provider)) {
+            return response()->json(['error' => 'Invalid provider token'], 401);
         }
 
         try {
@@ -59,7 +59,7 @@ class GatewayWebhookController extends Controller
             // 5. Registrar evento
             $event = GatewayWebhookEvent::create([
                 'uuid'             => Str::uuid(),
-                'company_id'       => $gateway?->company_id ?? 1,
+                'company_id'       => $gateway->company_id,
                 'gateway'          => $provider,
                 'gateway_event_id' => $gatewayEventId,
                 'event_type'       => $normalized['event_type'],
@@ -98,16 +98,8 @@ class GatewayWebhookController extends Controller
 
     private function verifyStripeSignature(Request $request, string $secret, string $rawBody): bool
     {
-        $sigHeader = $request->header('Stripe-Signature');
-        if (!$sigHeader) return false;
-
-        try {
-            \Stripe\Webhook::constructEvent($rawBody, $sigHeader, $secret);
-            return true;
-        } catch (\Exception $e) {
-            Log::warning('Stripe webhook signature verification failed', ['error' => $e->getMessage()]);
-            return false;
-        }
+        Log::warning('Stripe webhook support is disabled due to missing library');
+        return false;
     }
 
     private function verifyAsaasSignature(Request $request, string $secret): bool
@@ -130,14 +122,16 @@ class GatewayWebhookController extends Controller
         return hash_equals($expected, $signature);
     }
 
-    private function verifyProviderToken(Request $request, string $provider): void
+    private function verifyProviderToken(Request $request, string $provider): bool
     {
         if ($provider === 'asaas') {
             $token = $request->header('asaas-access-token');
             if (!$token) {
-                Log::warning("Webhook Asaas recebido sem token de acesso.");
+                Log::warning("Webhook Asaas rejeitado: sem token de acesso.");
+                return false;
             }
         }
+        return true;
     }
 
     private function getWebhookSecret(GatewayAccount $gateway): ?string

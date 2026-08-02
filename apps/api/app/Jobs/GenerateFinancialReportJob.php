@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\Payment;
 use App\Models\Transaction;
 use Illuminate\Bus\Queueable;
@@ -13,6 +15,12 @@ use Illuminate\Queue\SerializesModels;
 class GenerateFinancialReportJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'default';
+    public $tries = 2;
+    public $timeout = 300;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
 
     public int $tries = 3;
     public int $timeout = 120;
@@ -65,5 +73,13 @@ class GenerateFinancialReportJob implements ShouldQueue
             encrypt($report),
             now()->addHours(24)
         );
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

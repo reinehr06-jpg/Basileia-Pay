@@ -15,13 +15,12 @@ class PaymentService
 
     public function createPayment(Order $order, string $method, string $idempotencyKey, ?GatewayAccount $gatewayAccount = null): Payment
     {
-        // Check idempotency
-        $existing = Payment::where('idempotency_key', $idempotencyKey)->first();
-        if ($existing) {
-            return $existing;
-        }
-
         return DB::transaction(function () use ($order, $method, $idempotencyKey, $gatewayAccount) {
+            $existing = Payment::where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+            if ($existing) {
+                return $existing;
+            }
+
             // Se o gatewayAccount não for fornecido, resolve o padrão da company
             if (!$gatewayAccount) {
                 $gatewayAccount = GatewayAccount::where('company_id', $order->company_id)->firstOrFail();

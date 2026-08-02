@@ -33,11 +33,10 @@ class LogAuditOnPaymentStatusChange
 
         AuditLog::create([
             'company_id' => $transaction->company_id,
-            'event_type' => $eventType,
-            'auditable_type' => 'App\Models\Payment',
-            'auditable_id' => $payment->id,
-            'transaction_uuid' => $transaction->uuid,
-            'data' => [
+            'event' => $eventType,
+            'entity_type' => 'App\Models\Payment',
+            'entity_id' => $payment->id,
+            'metadata' => [
                 'payment_uuid' => $payment->uuid,
                 'gateway_payment_id' => $payment->gateway_payment_id,
                 'amount' => $payment->amount,

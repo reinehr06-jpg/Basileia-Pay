@@ -72,7 +72,7 @@ class PublicOrderController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()
             ], 422);
         }
     }

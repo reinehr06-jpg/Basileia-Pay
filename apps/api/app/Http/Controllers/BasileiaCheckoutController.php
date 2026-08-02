@@ -285,13 +285,13 @@ class BasileiaCheckoutController extends Controller
 
         } catch (\Exception $e) {
             Log::error('BasileiaCheckout: Payment processing failed', [
-                'error' => $e->getMessage(),
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(),
             ]);
 
             return response()->json([
                 'ok' => false,
                 'status' => 'error',
-                'error' => 'Erro ao processar pagamento: ' . $e->getMessage(),
+                'error' => app()->environment('production') ? 'Erro ao processar pagamento: ' : 'Erro ao processar pagamento: ' . $e->getMessage(),
             ], 400);
         }
     }

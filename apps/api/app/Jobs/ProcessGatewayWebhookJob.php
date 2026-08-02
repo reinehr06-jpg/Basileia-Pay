@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\GatewayWebhookEvent;
 use App\Models\PaymentAttempt;
 use App\Domain\Payment\StateMachine\PaymentStateMachine;
@@ -19,6 +21,12 @@ use Illuminate\Support\Facades\DB;
 class ProcessGatewayWebhookJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'webhooks';
+    public $tries = 3;
+    public $timeout = 30;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
 
     public $queue = 'webhooks';
 
@@ -94,5 +102,13 @@ class ProcessGatewayWebhookJob implements ShouldQueue
         $audit->log('payment.approved', $payment->company_id, null, 'Payment', $payment->id);
 
         $event->update(['status' => 'processed', 'processed_at' => now()]);
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

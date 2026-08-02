@@ -1,24 +1,24 @@
 {
   "name": "basileia-pay",
   "private": true,
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
     "docker:restart": "docker compose restart",
-    "docker:ps": "docker compose ps",
-    "docker:build:api": "docker compose build api",
-    "docker:build:dashboard": "docker compose build dashboard",
-    "docker:build:checkout": "docker compose build checkout",
-    "docker:build:developers": "docker compose build developers",
-    "docker:migrate": "docker compose exec api php artisan migrate --force",
-    "docker:queue": "docker compose exec api php artisan queue:work --daemon",
-    "docker:shell:api": "docker compose exec api sh",
-    "docker:shell:db": "docker compose exec postgres psql -U basileia basileia",
-    "dev:api": "cd apps/api && php artisan serve",
-    "dev:dashboard": "cd apps/dashboard && npm run dev",
-    "dev:checkout": "cd apps/checkout && npm run dev",
-    "dev:developers": "cd apps/developers && npm run dev"
+    "docker:ps": "docker compose ps"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
   }
 }

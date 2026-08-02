@@ -58,27 +58,29 @@ class SubscriptionService
                 return;
             }
 
-            // 2. Create a new transaction/payment for the renewal
-            $transaction = $sub->company->transactions()->create([
-                'customer_id' => $sub->customer_id,
-                'gateway_id' => $sub->gateway_id,
-                'amount' => $sub->amount,
-                'currency' => $sub->currency,
-                'status' => 'pending',
-                'description' => "Renovação - {$sub->plan_name}",
-            ]);
+            \Illuminate\Support\Facades\DB::transaction(function () use ($sub, $lastPayment) {
+                // 2. Create a new transaction/payment for the renewal
+                $transaction = $sub->company->transactions()->create([
+                    'customer_id' => $sub->customer_id,
+                    'gateway_id' => $sub->gateway_id,
+                    'amount' => $sub->amount,
+                    'currency' => $sub->currency,
+                    'status' => 'pending',
+                    'description' => "Renovação - {$sub->plan_name}",
+                ]);
 
-            // 3. Attempt charge with token
-            $response = $this->gateway->processCardTokenPayment(
-                $transaction->gateway_transaction_id ?? $transaction->uuid,
-                $lastPayment->gateway_token
-            );
+                // 3. Attempt charge with token
+                $response = $this->gateway->processCardTokenPayment(
+                    $transaction->gateway_transaction_id ?? $transaction->uuid,
+                    $lastPayment->gateway_token
+                );
 
-            if ($response['status'] === 'CONFIRMED' || $response['status'] === 'RECEIVED') {
-                $this->handleSuccess($sub, $transaction);
-            } else {
-                $this->handleFailure($sub, $response['lastError'] ?? 'Payment declined');
-            }
+                if ($response['status'] === 'CONFIRMED' || $response['status'] === 'RECEIVED') {
+                    $this->handleSuccess($sub, $transaction);
+                } else {
+                    $this->handleFailure($sub, $response['lastError'] ?? 'Payment declined');
+                }
+            });
 
         } catch (\Exception $e) {
             $this->handleFailure($sub, $e->getMessage());

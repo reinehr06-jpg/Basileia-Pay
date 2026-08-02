@@ -1,6 +1,7 @@
-import { useRef, useState, type PointerEventHandler } from 'react';
+import React, { useRef, useState, type PointerEventHandler } from 'react';
 import type { Scene, Node, BreakpointId, ElementNode } from '../core/types';
 import { propsToStyle } from '../core/layoutEngine';
+import { trackEvent } from '../core/analytics';
 
 interface CanvasProps {
   scene: Scene;
@@ -41,7 +42,7 @@ interface NodeViewProps {
   depth: number;
 }
 
-function NodeView({ node, scene, breakpoint, selectedId, onSelect, onMove, depth }: NodeViewProps) {
+const NodeView = React.memo(function NodeView({ node, scene, breakpoint, selectedId, onSelect, onMove, depth }: NodeViewProps) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -74,6 +75,31 @@ function NodeView({ node, scene, breakpoint, selectedId, onSelect, onMove, depth
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
   };
 
+  const onDragStart: React.DragEventHandler<HTMLDivElement> = (e) => {
+    if (isElement && !node.locked) {
+      e.dataTransfer.setData('text/plain', node.id);
+      e.stopPropagation();
+    }
+  };
+
+  const onDragOver: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const onDrop: React.DragEventHandler<HTMLDivElement> = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if (!draggedId || draggedId === node.id) return;
+    
+    const newParentId = isElement ? node.parentId : node.id;
+    if (newParentId) {
+      onMove(draggedId, newParentId);
+      trackEvent('studio_element_dropped', { draggedId, targetId: newParentId });
+    }
+  };
+
   const borderStyle = isPage
     ? 'none'
     : isSelected
@@ -90,6 +116,10 @@ function NodeView({ node, scene, breakpoint, selectedId, onSelect, onMove, depth
       className={`canvas-node ${hoverClass} ${isDragging ? 'canvas-node-dragging' : ''}`}
       data-node-id={node.id}
       data-kind={node.kind}
+      draggable={isElement && !node.locked}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
       style={{
         ...style,
         border: borderStyle,
@@ -132,7 +162,7 @@ function NodeView({ node, scene, breakpoint, selectedId, onSelect, onMove, depth
       })}
     </div>
   );
-}
+});
 
 function renderInner(node: Node) {
   if (node.kind !== 'element') return null;

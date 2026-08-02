@@ -87,14 +87,21 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withSchedule(function (\Illuminate\Console\Scheduling\Schedule $schedule) {
         $schedule->command('tokens:purge')->hourly();
+        $schedule->command('webhooks:retry-failed')->everyFiveMinutes();
+        $schedule->command('payments:sync-pending')->everyTenMinutes();
+        $schedule->command('reports:generate-daily')->dailyAt('02:00');
+        $schedule->command('logs:cleanup')->weekly();
+        $schedule->command('payments:check-health')->everyFiveMinutes();
+        $schedule->command('gateway:check-health')->everyFifteenMinutes();
+        $schedule->command('billing:charge')->dailyAt('06:00');
+        $schedule->command('security:deadman-switch')->hourly();
+        $schedule->command('checkout:calculate-scores')->everyFifteenMinutes();
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Todas as exceções retornam JSON (não mais páginas Blade de erro)
         $exceptions->shouldRenderJsonWhen(fn($request) => true);
 
         // Impede redirect em AuthenticationException — retorna 401 JSON diretamente
-        // Sem isso, o Laravel redireciona para /login (GET), transformando
-        // qualquer POST em GET e causando erro "method not supported"
         $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, Request $request) {
             return response()->json([
                 'success' => false,
@@ -103,5 +110,44 @@ return Application::configure(basePath: dirname(__DIR__))
                     'message' => 'Não autenticado. Faça login novamente.',
                 ],
             ], 401);
+        });
+
+        $exceptions->render(function (\Illuminate\Auth\Access\AuthorizationException $e, Request $request) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'forbidden', 'message' => 'Acesso negado.'],
+            ], 403);
+        });
+
+        $exceptions->render(function (\Illuminate\Validation\ValidationException $e, Request $request) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'validation_error', 'message' => 'Dados inválidos.', 'fields' => $e->errors()],
+            ], 422);
+        });
+
+        $exceptions->render(function (\Illuminate\Database\Eloquent\ModelNotFoundException $e, Request $request) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'not_found', 'message' => 'Recurso não encontrado.'],
+            ], 404);
+        });
+
+        // NÃO vazar stack traces em produção
+        $exceptions->render(function (\Throwable $e, Request $request) {
+            if (app()->environment('production')) {
+                \Illuminate\Support\Facades\Log::error('Unhandled exception', ['error' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+                return response()->json([
+                    'success' => false,
+                    'error' => ['code' => 'server_error', 'message' => 'Erro interno.'],
+                ], 500);
+            }
+        });
+
+        // Integrar com Sentry
+        $exceptions->reportable(function (\Throwable $e) {
+            if (app()->bound('sentry') && app()->environment('production')) {
+                app('sentry')->captureException($e);
+            }
         });
     })->create();

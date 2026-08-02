@@ -3,6 +3,8 @@ import { useReducer, useCallback } from 'react';
 import type { Scene } from './types';
 import { sceneReducer, type SceneAction, genId } from './sceneReducer';
 
+import { CONFIG } from '../config';
+
 interface HistoryState {
   past: Scene[];
   present: Scene;
@@ -22,7 +24,7 @@ function historyReducer(state: HistoryState, action: HistoryAction): HistoryStat
     case 'DO': {
       const newPresent = sceneReducer(state.present, action.action);
       if (newPresent === state.present) return state;
-      return { past: [...state.past.slice(-49), state.present], present: newPresent, future: [] };
+      return { past: [...state.past.slice(-(CONFIG.UNDO_LIMIT - 1)), state.present], present: newPresent, future: [] };
     }
     case 'UNDO': {
       if (state.past.length === 0) return state;

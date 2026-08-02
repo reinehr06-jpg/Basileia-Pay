@@ -804,3 +804,48 @@ body, html {
 .props-trust-issue.warning .props-issue-severity { color: #f59e0b; }
 .props-issue-msg { color: #94a3b8; line-height: 1.3; }
 .props-trust-more { font-size: 10px; color: #64748b; }
+
+/* ── Media Queries (Responsividade do Editor) ──────────────── */
+@media (max-width: 768px) {
+  .studio-sidebar-left {
+    width: 60px;
+    transition: width 0.3s;
+    overflow-x: hidden;
+  }
+  .studio-sidebar-left:hover {
+    width: 260px;
+    position: absolute;
+    height: calc(100vh - 56px);
+    z-index: 100;
+  }
+  .layer-label, .palette-label, .layers-title {
+    display: none;
+  }
+  .studio-sidebar-left:hover .layer-label, 
+  .studio-sidebar-left:hover .palette-label, 
+  .studio-sidebar-left:hover .layers-title {
+    display: block;
+  }
+  .props-panel {
+    position: absolute;
+    right: 0;
+    height: calc(100vh - 56px);
+    z-index: 100;
+  }
+  .studio-toolbar {
+    padding: 0 8px;
+  }
+  .toolbar-center {
+    position: static;
+    transform: none;
+    margin-left: auto;
+  }
+  .logo-text, .undo-redo {
+    display: none;
+  }
+}
+@media (max-width: 480px) {
+  .mode-switcher, .breakpoint-switcher {
+    display: none;
+  }
+}

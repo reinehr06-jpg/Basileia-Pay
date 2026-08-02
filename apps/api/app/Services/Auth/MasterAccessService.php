@@ -11,7 +11,20 @@ class MasterAccessService
 
     public function __construct(?string $seed = null)
     {
-        $this->seed = $seed ?? config('master.totp_seed') ?? 'fallback_default_master_totp_seed_hash_value_999999';
+        $configSeed = config('master.totp_seed');
+        
+        $this->seed = $seed ?? $configSeed ?? $this->resolveSeed();
+    }
+
+    private function resolveSeed(): string
+    {
+        if (app()->environment('production')) {
+            throw new \RuntimeException(
+                'MASTER_TOTP_SEED não configurado. Gere com: php artisan master:generate-seed'
+            );
+        }
+        
+        return 'dev_only_seed_do_not_use_in_production';
     }
 
     public function generateCode(): string

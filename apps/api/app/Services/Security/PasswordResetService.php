@@ -26,6 +26,9 @@ class PasswordResetService
             ]
         );
 
+        $resetUrl = config('app.url') . '/reset-password?token=' . $token . '&email=' . urlencode($user->email);
+        \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\PasswordResetMail(['url' => $resetUrl, 'user' => $user]));
+
         return $token;
     }
 

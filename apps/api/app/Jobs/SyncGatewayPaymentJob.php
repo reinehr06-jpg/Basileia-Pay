@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\Payment;
 use App\Services\GatewayService;
 use Illuminate\Bus\Queueable;
@@ -13,6 +15,12 @@ use Illuminate\Queue\SerializesModels;
 class SyncGatewayPaymentJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'default';
+    public $tries = 3;
+    public $timeout = 60;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
 
     public int $tries = 3;
     public int $timeout = 60;
@@ -45,5 +53,13 @@ class SyncGatewayPaymentJob implements ShouldQueue
                 default => null,
             };
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

@@ -46,7 +46,7 @@ class AiCheckoutController extends Controller
                 'success' => false,
                 'error'   => [
                     'code'    => 'ai_validation_error',
-                    'message' => $e->getMessage(),
+                    'message' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(),
                 ],
             ], 422);
         }

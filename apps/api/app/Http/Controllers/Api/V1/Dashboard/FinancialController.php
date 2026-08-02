@@ -64,7 +64,7 @@ class FinancialController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => $e->getMessage()
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()
             ], 422);
         }
     }
@@ -87,9 +87,11 @@ class FinancialController extends Controller
         return response()->json(['success' => true, 'message' => 'Resync scheduled']);
     }
 
-    public function getAuditLogs()
+    public function getAuditLogs(Request $request)
     {
-        $logs = FinancialAuditLog::orderBy('created_at', 'desc')->paginate(50);
+        $companyId = $request->attributes->get('company_id') ?? $request->attributes->get('company')?->id;
+        $logs = FinancialAuditLog::where('company_id', $companyId)
+            ->orderBy('created_at', 'desc')->paginate(50);
         return response()->json(['success' => true, 'data' => $logs]);
     }
 }

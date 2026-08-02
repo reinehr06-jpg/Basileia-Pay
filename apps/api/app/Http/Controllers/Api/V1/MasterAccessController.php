@@ -88,9 +88,9 @@ class MasterAccessController extends Controller
         } catch (\RuntimeException $e) {
             $this->audit->log('master.webauthn.register.failed', null, [
                 'ip' => $request->ip(),
-                'error' => $e->getMessage(),
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(),
             ]);
-            return response()->json(['error' => $e->getMessage()], 400);
+            return response()->json(['error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()], 400);
         }
 
         WebAuthnCredential::create([

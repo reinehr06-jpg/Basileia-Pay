@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\CheckoutSession;
 use App\Models\CheckoutRecovery;
 use Illuminate\Bus\Queueable;
@@ -11,13 +13,19 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
-// use App\Mail\CheckoutRecoveryMail; // Implement mail later if needed
+use App\Mail\CheckoutRecoveryMail;
 
 class SendRecoveryEmailJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public $queue = 'notifications';
+    public $tries = 3;
+    public $timeout = 15;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
+
+
 
     public function __construct(public int $sessionId)
     {}
@@ -47,10 +55,15 @@ class SendRecoveryEmailJob implements ShouldQueue
 
         $recoveryUrl = config('basileia.checkout_url') . '/pay/' . $session->session_token . '?recover=' . $rawToken;
 
-        // Mock mail sending for now, or just log
-        \Illuminate\Support\Facades\Log::info("E-mail de recuperação simulado para {$session->customer->email}: {$recoveryUrl}");
-        
-        // Mail::to($session->customer->email)
-        //     ->send(new CheckoutRecoveryMail($session, $recoveryUrl));
+        Mail::to($session->customer->email)
+            ->send(new CheckoutRecoveryMail(['session' => $session, 'url' => $recoveryUrl]));
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

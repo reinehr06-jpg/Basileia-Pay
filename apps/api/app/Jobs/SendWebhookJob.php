@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use Illuminate\Support\Facades\Log;
+
 use App\Models\WebhookDelivery;
 use App\Models\WebhookEndpoint;
 use App\Services\WebhookService;
@@ -14,6 +16,12 @@ use Illuminate\Queue\SerializesModels;
 class SendWebhookJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public $queue = 'default';
+    public $tries = 5;
+    public $timeout = 30;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
 
     public int $tries = 5;
     public int $timeout = 30;
@@ -48,5 +56,13 @@ class SendWebhookJob implements ShouldQueue
 
             $webhookService->deliver($delivery);
         }
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

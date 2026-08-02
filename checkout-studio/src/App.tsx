@@ -14,6 +14,9 @@ import { PropsPanel } from './editor/PropsPanel';
 import { LayersPanel } from './editor/LayersPanel';
 import { ComponentPalette } from './editor/ComponentPalette';
 import { CheckoutRuntime } from './runtime/CheckoutRuntime';
+import { ErrorBoundary } from './ErrorBoundary';
+import { CONFIG } from './config';
+import { trackEvent } from './core/analytics';
 import './App.css';
 
 type StudioMode = 'builder' | 'preview' | 'split';
@@ -111,7 +114,7 @@ export default function App() {
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+    setTimeout(() => setToast(null), CONFIG.TOAST_DURATION);
   }, []);
 
   const handleSave = useCallback(async (): Promise<string | null> => {
@@ -124,6 +127,7 @@ export default function App() {
       setCurrentCheckoutId(result.id ?? null);
       showToast('Checkout salvo com sucesso!');
       fetchCheckouts().then(setSavedCheckouts);
+      trackEvent('studio_checkout_saved', { checkoutId: result.id, elementsCount: Object.keys(scene.nodes).length });
       window.parent.postMessage({ type: 'STUDIO_SAVED', payload: { id: result.id } }, '*');
       return result.id ?? null;
     } else {
@@ -146,6 +150,7 @@ export default function App() {
     setPublishing(false);
     if (result) {
       showToast('Checkout publicado!');
+      trackEvent('studio_checkout_published', { checkoutId: id });
       window.parent.postMessage({ type: 'STUDIO_PUBLISHED', payload: { id } }, '*');
     } else {
       showToast('Erro ao publicar.');
@@ -168,6 +173,7 @@ export default function App() {
       setCheckoutName(data.name);
       setCurrentCheckoutId(data.id ?? id);
       showToast(`Checkout "${data.name}" carregado`);
+      trackEvent('studio_loaded', { checkoutId: data.id ?? id, isNew: false });
     } else {
       showToast('Erro ao carregar checkout.');
     }
@@ -176,6 +182,86 @@ export default function App() {
   // Wire refs for postMessage
   useEffect(() => { loadCheckoutRef.current = handleLoadCheckout; }, [handleLoadCheckout]);
   useEffect(() => { undoRef.current = undo; }, [undo]);
+
+  // Keyboard Shortcuts and Copy/Paste
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (cmdOrCtrl && !e.shiftKey && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        undo();
+      } else if (cmdOrCtrl && (e.key.toLowerCase() === 'y' || (e.shiftKey && e.key.toLowerCase() === 'z'))) {
+        e.preventDefault();
+        redo();
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedId) {
+          e.preventDefault();
+          dispatch({ type: 'DELETE_NODE', nodeId: selectedId });
+          setSelectedId(undefined);
+        }
+      } else if (cmdOrCtrl && e.key.toLowerCase() === 'c') {
+        if (selectedId) {
+          const buildTree = (id: string): any => {
+            const n = scene.nodes[id];
+            if (!n) return null;
+            return { ...n, _childrenNodes: n.children.map(buildTree).filter(Boolean) };
+          };
+          const tree = buildTree(selectedId);
+          if (tree && tree.kind !== 'page') {
+            e.preventDefault();
+            await navigator.clipboard.writeText(JSON.stringify({ __type: 'STUDIO_NODE', tree }));
+            showToast('Componente copiado!');
+          }
+        }
+      } else if (cmdOrCtrl && e.key.toLowerCase() === 'v') {
+        try {
+          const text = await navigator.clipboard.readText();
+          const data = JSON.parse(text);
+          if (data.__type === 'STUDIO_NODE' && data.tree) {
+            e.preventDefault();
+            
+            const nodesToAdd: any[] = [];
+            const restoreTree = (n: any, parentId?: string): string => {
+              const newId = genId(n.kind[0]);
+              const newChildrenIds = (n._childrenNodes || []).map((child: any) => restoreTree(child, newId));
+              const node = { ...n, id: newId, parentId, children: newChildrenIds };
+              delete node._childrenNodes;
+              nodesToAdd.push(node);
+              return newId;
+            };
+
+            const parentTarget = selectedId 
+              ? (scene.nodes[selectedId]?.kind === 'element' ? scene.nodes[selectedId]?.parentId : selectedId) 
+              : scene.rootId;
+            
+            if (parentTarget) {
+              const newRootId = restoreTree(data.tree, parentTarget);
+              const parentNode = scene.nodes[parentTarget];
+              
+              if (parentNode) {
+                const newNodes = { ...scene.nodes };
+                nodesToAdd.forEach(n => { newNodes[n.id] = n; });
+                newNodes[parentTarget] = {
+                  ...parentNode,
+                  children: [...parentNode.children, newRootId]
+                };
+                dispatch({ type: 'LOAD_SCENE', scene: { ...scene, nodes: newNodes } });
+                showToast('Componente colado!');
+              }
+            }
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedId, scene, undo, redo, dispatch, showToast]);
 
   const handleExportJSON = useCallback(() => {
     const blob = new Blob([JSON.stringify(scene, null, 2)], { type: 'application/json' });
@@ -214,114 +300,116 @@ export default function App() {
   }
 
   return (
-    <div className="studio-app">
-      {toast && <div className="studio-toast">{toast}</div>}
+    <ErrorBoundary>
+      <div className="studio-app">
+        {toast && <div className="studio-toast">{toast}</div>}
 
-      <Toolbar
-        mode={mode}
-        onModeChange={setMode}
-        breakpoint={breakpoint}
-        onBreakpointChange={setBreakpoint}
-        onExportJSON={handleExportJSON}
-        onUndo={undo}
-        onRedo={redo}
-        canUndo={canUndo}
-        canRedo={canRedo}
-      />
+        <Toolbar
+          mode={mode}
+          onModeChange={setMode}
+          breakpoint={breakpoint}
+          onBreakpointChange={setBreakpoint}
+          onExportJSON={handleExportJSON}
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+        />
 
-      <div className="studio-body">
-        {/* Left sidebar */}
-        {showCanvas && (
-          <div className="studio-sidebar-left">
-            <div className="sidebar-tabs">
-              <button className={sidePanel === 'layers' ? 'active' : ''} onClick={() => setSidePanel('layers')}>Layers</button>
-              <button className={sidePanel === 'templates' ? 'active' : ''} onClick={() => setSidePanel('templates')}>Templates</button>
-              <button className={sidePanel === 'trust' ? 'active' : ''} onClick={() => setSidePanel('trust')}>Trust</button>
-              <button className={sidePanel === 'saved' ? 'active' : ''} onClick={() => setSidePanel('saved')}>Saved</button>
-            </div>
+        <div className="studio-body">
+          {/* Left sidebar */}
+          {showCanvas && (
+            <div className="studio-sidebar-left">
+              <div className="sidebar-tabs">
+                <button className={sidePanel === 'layers' ? 'active' : ''} onClick={() => setSidePanel('layers')}>Layers</button>
+                <button className={sidePanel === 'templates' ? 'active' : ''} onClick={() => setSidePanel('templates')}>Templates</button>
+                <button className={sidePanel === 'trust' ? 'active' : ''} onClick={() => setSidePanel('trust')}>Trust</button>
+                <button className={sidePanel === 'saved' ? 'active' : ''} onClick={() => setSidePanel('saved')}>Saved</button>
+              </div>
 
-            {sidePanel === 'layers' && <LayersPanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} dispatch={dispatch} />}
-            {sidePanel === 'templates' && (
-              <div className="templates-panel">
-                <h4 className="palette-title">Templates</h4>
-                <div className="templates-grid">
-                  {templates.map(t => (
-                    <button key={t.id} className="template-card" onClick={() => handleLoadTemplate(t)}>
-                      <span className="template-icon">{t.category === 'pix' ? 'QR' : t.category === 'card' ? 'CC' : 'SUB'}</span>
-                      <span className="template-name">{t.name}</span>
-                      <span className="template-desc">{t.description}</span>
+              {sidePanel === 'layers' && <LayersPanel scene={scene} selectedId={selectedId} onSelect={setSelectedId} dispatch={dispatch} />}
+              {sidePanel === 'templates' && (
+                <div className="templates-panel">
+                  <h4 className="palette-title">Templates</h4>
+                  <div className="templates-grid">
+                    {templates.map(t => (
+                      <button key={t.id} className="template-card" onClick={() => handleLoadTemplate(t)}>
+                        <span className="template-icon">{t.category === 'pix' ? 'QR' : t.category === 'card' ? 'CC' : 'SUB'}</span>
+                        <span className="template-name">{t.name}</span>
+                        <span className="template-desc">{t.description}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sidePanel === 'trust' && trustScore && (
+                <div className="trust-panel">
+                  <h4 className="palette-title">Trust Radar</h4>
+                  <div className="trust-score-display">
+                    <div className="trust-circle" style={{ background: `conic-gradient(${trustScore.score > 70 ? '#10b981' : trustScore.score > 40 ? '#f59e0b' : '#ef4444'} ${trustScore.score * 3.6}deg, #1e293b 0deg)` }}>
+                      <span className="trust-value">{trustScore.score}</span>
+                    </div>
+                    <span className="trust-label">/ 100</span>
+                  </div>
+                  {trustScore.issues.map(issue => (
+                    <div key={issue.id} className={`trust-issue ${issue.severity}`}>
+                      <span className="issue-severity">{issue.severity === 'critical' ? 'CRIT' : issue.severity === 'warning' ? 'WARN' : 'INFO'}</span>
+                      <div>
+                        <strong>{issue.message}</strong>
+                        <p>{issue.suggestion}</p>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="trust-breakdown">
+                    {Object.entries(trustScore.breakdown).map(([key, val]) => (
+                      <div key={key} className="trust-bar">
+                        <span>{key}</span>
+                        <div className="bar-bg"><div className="bar-fill" style={{ width: `${val * 10}%` }} /></div>
+                        <span>{val}/15</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {sidePanel === 'saved' && (
+                <div className="saved-panel">
+                  <h4 className="palette-title">Checkouts Salvos</h4>
+                  {loading ? <p className="loading-text">Carregando...</p> : savedCheckouts.length === 0 ? <p className="empty-text">Nenhum checkout salvo</p> : savedCheckouts.map(sc => (
+                    <button key={sc.id || sc.name} className="saved-item" onClick={() => handleLoadCheckout(sc.id || '')}>
+                      <span>{sc.name}</span>
+                      <span className="saved-status">{sc.status}</span>
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-            {sidePanel === 'trust' && trustScore && (
-              <div className="trust-panel">
-                <h4 className="palette-title">Trust Radar</h4>
-                <div className="trust-score-display">
-                  <div className="trust-circle" style={{ background: `conic-gradient(${trustScore.score > 70 ? '#10b981' : trustScore.score > 40 ? '#f59e0b' : '#ef4444'} ${trustScore.score * 3.6}deg, #1e293b 0deg)` }}>
-                    <span className="trust-value">{trustScore.score}</span>
-                  </div>
-                  <span className="trust-label">/ 100</span>
-                </div>
-                {trustScore.issues.map(issue => (
-                  <div key={issue.id} className={`trust-issue ${issue.severity}`}>
-                    <span className="issue-severity">{issue.severity === 'critical' ? 'CRIT' : issue.severity === 'warning' ? 'WARN' : 'INFO'}</span>
-                    <div>
-                      <strong>{issue.message}</strong>
-                      <p>{issue.suggestion}</p>
-                    </div>
-                  </div>
-                ))}
-                <div className="trust-breakdown">
-                  {Object.entries(trustScore.breakdown).map(([key, val]) => (
-                    <div key={key} className="trust-bar">
-                      <span>{key}</span>
-                      <div className="bar-bg"><div className="bar-fill" style={{ width: `${val * 10}%` }} /></div>
-                      <span>{val}/15</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-            {sidePanel === 'saved' && (
-              <div className="saved-panel">
-                <h4 className="palette-title">Checkouts Salvos</h4>
-                {loading ? <p className="loading-text">Carregando...</p> : savedCheckouts.length === 0 ? <p className="empty-text">Nenhum checkout salvo</p> : savedCheckouts.map(sc => (
-                  <button key={sc.id || sc.name} className="saved-item" onClick={() => handleLoadCheckout(sc.id || '')}>
-                    <span>{sc.name}</span>
-                    <span className="saved-status">{sc.status}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <ComponentPalette targetParentId={addTarget} dispatch={dispatch} />
-          </div>
-        )}
-
-        {/* Main canvas / preview */}
-        <main className={`studio-main ${mode === 'split' ? 'studio-main-split' : ''}`}>
-          {showCanvas && (
-            <div className={mode === 'split' ? 'studio-half' : 'studio-full'}>
-              <div className="checkout-name-bar">
-                <input className="checkout-name-input" value={checkoutName} onChange={e => setCheckoutName(e.target.value)} placeholder="Nome do checkout" />
-                <button className="btn-save" onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
-                <button className="btn-publish" onClick={handlePublish} disabled={publishing}>{publishing ? 'Publicando...' : 'Publicar'}</button>
-              </div>
-              <Canvas scene={scene} breakpoint={breakpoint} selectedId={selectedId} onSelect={setSelectedId} onMove={handleMove} />
+              )}
+              <ComponentPalette targetParentId={addTarget} dispatch={dispatch} />
             </div>
           )}
-          {showPreview && (
-            <div className={mode === 'split' ? 'studio-half' : 'studio-full'}>
-              <div className="preview-badge">PREVIEW</div>
-              <CheckoutRuntime scene={scene} breakpoint={breakpoint} state={{ step: 'payment', method: 'pix' }} onPixPay={() => showToast('Pix gerado!')} onCardPay={() => showToast('Cartao processado!')} />
-            </div>
-          )}
-        </main>
 
-        {/* Right sidebar: Props */}
-        {showCanvas && <PropsPanel scene={scene} selectedId={selectedId} breakpoint={breakpoint} dispatch={dispatch} trustScore={trustScore} />}
+          {/* Main canvas / preview */}
+          <main className={`studio-main ${mode === 'split' ? 'studio-main-split' : ''}`}>
+            {showCanvas && (
+              <div className={mode === 'split' ? 'studio-half' : 'studio-full'}>
+                <div className="checkout-name-bar">
+                  <input className="checkout-name-input" value={checkoutName} onChange={e => setCheckoutName(e.target.value)} placeholder="Nome do checkout" />
+                  <button className="btn-save" onClick={handleSave} disabled={saving}>{saving ? 'Salvando...' : 'Salvar'}</button>
+                  <button className="btn-publish" onClick={handlePublish} disabled={publishing}>{publishing ? 'Publicando...' : 'Publicar'}</button>
+                </div>
+                <Canvas scene={scene} breakpoint={breakpoint} selectedId={selectedId} onSelect={setSelectedId} onMove={handleMove} />
+              </div>
+            )}
+            {showPreview && (
+              <div className={mode === 'split' ? 'studio-half' : 'studio-full'}>
+                <div className="preview-badge">PREVIEW</div>
+                <CheckoutRuntime scene={scene} breakpoint={breakpoint} state={{ step: 'payment', method: 'pix' }} onPixPay={() => showToast('Pix gerado!')} onCardPay={() => showToast('Cartao processado!')} />
+              </div>
+            )}
+          </main>
+
+          {/* Right sidebar: Props */}
+          {showCanvas && <PropsPanel scene={scene} selectedId={selectedId} breakpoint={breakpoint} dispatch={dispatch} trustScore={trustScore} />}
+        </div>
       </div>
-    </div>
+    </ErrorBoundary>
   );
 }

@@ -48,14 +48,31 @@ class DashboardController extends Controller
 
         // Gráfico 7 dias
         $dailyLabels  = [];
-        $dailyVolumes = [];
+        $dailyVolumes = array_fill(0, 7, 0);
+        $dateKeys = [];
+
         for ($i = 6; $i >= 0; $i--) {
             $day = now()->subDays($i);
-            $dailyLabels[]  = $day->format('d/m');
-            $dailyVolumes[] = (float) (clone $base)
-                ->whereDate('created_at', $day->toDateString())
-                ->where('status', 'approved')
-                ->sum('amount');
+            $dailyLabels[] = $day->format('d/m');
+            $dateKeys[$day->toDateString()] = 6 - $i;
+        }
+
+        $chartData = (clone $base)
+            ->where('created_at', '>=', now()->subDays(6)->startOfDay())
+            ->where('status', 'approved')
+            ->select(
+                \Illuminate\Support\Facades\DB::raw('DATE(created_at) as date'),
+                \Illuminate\Support\Facades\DB::raw('SUM(amount) as volume')
+            )
+            ->groupBy(\Illuminate\Support\Facades\DB::raw('DATE(created_at)'))
+            ->get();
+
+        foreach ($chartData as $stat) {
+            $dateStr = $stat->date;
+            if (isset($dateKeys[$dateStr])) {
+                $idx = $dateKeys[$dateStr];
+                $dailyVolumes[$idx] = (float) $stat->volume;
+            }
         }
 
         // Conexões

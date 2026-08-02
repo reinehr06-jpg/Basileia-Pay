@@ -17,6 +17,12 @@ class ProcessAsaasWebhookJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $queue = 'default';
+    public $tries = 3;
+    public $timeout = 30;
+    public $backoff = [10, 60, 300, 1800, 3600];
+
+
     protected $payload;
     protected $gatewayAccount;
 
@@ -100,5 +106,13 @@ class ProcessAsaasWebhookJob implements ShouldQueue
         ];
 
         return $events[$status] ?? 'payment.updated';
+    }
+
+    public function failed(?\Throwable $exception): void
+    {
+        Log::error('Job failed permanently', [
+            'job' => static::class,
+            'error' => $exception?->getMessage(),
+        ]);
     }
 }

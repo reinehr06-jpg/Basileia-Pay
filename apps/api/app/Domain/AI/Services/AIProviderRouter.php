@@ -28,11 +28,20 @@ class AIProviderRouter
 
     public function encryptKey(string $key): string
     {
-        return Crypt::encryptString($key);
+        $vault = app(\App\Services\Vault\VaultService::class);
+        return json_encode($vault->encrypt($key));
     }
 
     public function decryptKey(string $encrypted): string
     {
-        return Crypt::decryptString($encrypted);
+        $data = json_decode($encrypted, true);
+        
+        if (is_array($data) && isset($data['encrypted_value'], $data['key_version'])) {
+            $vault = app(\App\Services\Vault\VaultService::class);
+            return $vault->decrypt($data['encrypted_value'], $data['key_version']);
+        }
+        
+        // Fallback para senhas antigas usando a APP_KEY normal
+        return \Illuminate\Support\Facades\Crypt::decryptString($encrypted);
     }
 }

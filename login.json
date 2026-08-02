@@ -1,1 +1,0 @@
-{"success":true,"data":{"token":"2|jljkR23cDBaT5yIsdsFocRDe0tqX0J4cAYAvw1fl7be42a39","refresh_token":"1c4ce9c2522d0a925bf3973c744c27a991c4224ceaf67fabec577ecab8fc6317","expires_in":900,"user":{"id":"81739eaa-bf48-441d-99de-70345f64874e","name":"Test User","email":"test@example.com","role":"admin","is_master":false,"two_factor_enabled":false},"needs_2fa_setup":true}}

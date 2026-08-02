@@ -63,7 +63,7 @@ class PaymentApiController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 400);
+            return response()->json(['error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage()], 400);
         }
     }
 }

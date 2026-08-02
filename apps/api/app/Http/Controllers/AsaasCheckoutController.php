@@ -127,11 +127,11 @@ class AsaasCheckoutController extends Controller
         } catch (\Exception $e) {
             Log::error('AsaasCheckout: Payment processing failed', [
                 'asaas_payment_id' => $asaasPaymentId,
-                'error' => $e->getMessage(),
+                'error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(),
             ]);
 
             return back()->withErrors([
-                'payment' => 'Erro ao processar pagamento: ' . $e->getMessage(),
+                'payment' => app()->environment('production') ? 'Erro ao processar pagamento: ' : 'Erro ao processar pagamento: ' . $e->getMessage(),
             ])->withInput();
         }
     }

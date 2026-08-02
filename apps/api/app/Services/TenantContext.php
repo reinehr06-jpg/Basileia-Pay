@@ -8,46 +8,41 @@ use App\Models\ApiKey;
 
 class TenantContext
 {
-    protected static ?Company $company = null;
-    protected static ?ConnectedSystem $connectedSystem = null;
-    protected static ?ApiKey $apiKey = null;
-    protected static ?string $environment = null;
-
-    public static function set(Company $company, ?ConnectedSystem $connectedSystem = null, ?ApiKey $apiKey = null, ?string $environment = null): void
+    public static function set(Company $company, ?ConnectedSystem $system = null, ?ApiKey $key = null, ?string $env = null): void
     {
-        self::$company = $company;
-        self::$connectedSystem = $connectedSystem;
-        self::$apiKey = $apiKey;
-        self::$environment = $environment;
+        app()->instance('tenant.company', $company);
+        app()->instance('tenant.system', $system);
+        app()->instance('tenant.apikey', $key);
+        app()->instance('tenant.environment', $env ?? 'production');
     }
 
     public static function company(): ?Company
     {
-        return self::$company;
+        return app()->bound('tenant.company') ? app('tenant.company') : null;
     }
 
     public static function connectedSystem(): ?ConnectedSystem
     {
-        return self::$connectedSystem;
+        return app()->bound('tenant.system') ? app('tenant.system') : null;
     }
 
     public static function apiKey(): ?ApiKey
     {
-        return self::$apiKey;
+        return app()->bound('tenant.apikey') ? app('tenant.apikey') : null;
     }
 
     public static function environment(): string
     {
-        return self::$environment ?? 'production';
+        return app()->bound('tenant.environment') ? app('tenant.environment') : 'production';
     }
 
     public static function companyId(): ?int
     {
-        return self::$company?->id;
+        return static::company()?->id;
     }
 
     public static function connectedSystemId(): ?int
     {
-        return self::$connectedSystem?->id;
+        return static::connectedSystem()?->id;
     }
 }

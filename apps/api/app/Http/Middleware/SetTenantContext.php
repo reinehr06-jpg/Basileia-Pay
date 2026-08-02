@@ -39,10 +39,7 @@ class SetTenantContext
             $company = Company::find($user->company_id);
         }
 
-        // 4. Fallback for super_admin if no company resolved yet
-        if (!$company && $user->role === 'super_admin') {
-            $company = Company::first();
-        }
+        // Removed fallback for super_admin to prevent cross-tenant leak
 
         if ($company) {
             // Set TenantContext details

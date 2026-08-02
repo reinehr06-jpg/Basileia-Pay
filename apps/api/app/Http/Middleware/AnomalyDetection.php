@@ -23,10 +23,13 @@ class AnomalyDetection
             return $next($request);
         }
 
-        $session = DB::table('user_sessions')
-            ->where('user_id', $user->id)
-            ->where('token_id', $token->id)
-            ->first();
+        $session = $request->attributes->get('zero_trust_session');
+        if (!$session) {
+            $session = DB::table('user_sessions')
+                ->where('user_id', $user->id)
+                ->where('token_id', $token->id)
+                ->first();
+        }
 
         if (!$session) {
             return $next($request);

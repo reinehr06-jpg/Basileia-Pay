@@ -90,7 +90,7 @@ class EventCheckoutController extends Controller
 
             return redirect(route('evento.success', ['slug' => $slug]));
         } catch (\Throwable $e) {
-            Log::error('EventCheckoutController: erro', ['error' => $e->getMessage(), 'slug' => $slug]);
+            Log::error('EventCheckoutController: erro', ['error' => app()->environment('production') ? 'Erro interno do servidor.' : $e->getMessage(), 'slug' => $slug]);
             return back()->withErrors(['payment' => 'Erro ao processar pagamento.'])->withInput();
         }
     }

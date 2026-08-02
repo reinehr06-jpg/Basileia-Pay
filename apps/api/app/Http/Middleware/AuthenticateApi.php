@@ -50,7 +50,11 @@ class AuthenticateApi
         // NUNCA em config() global — causaria race condition entre requests concorrentes
         $this->loadGatewayConfig($request, $integration->company);
 
-        $integration->update(['last_used_at' => now()]);
+        $cacheKey = "integration_last_used:{$integration->id}";
+        if (!\Illuminate\Support\Facades\Cache::has($cacheKey)) {
+            $integration->update(['last_used_at' => now()]);
+            \Illuminate\Support\Facades\Cache::put($cacheKey, true, 300); // atualiza no máximo a cada 5 min
+        }
 
         $request->attributes->set('integration', $integration);
         $request->attributes->set('company', $integration->company);
