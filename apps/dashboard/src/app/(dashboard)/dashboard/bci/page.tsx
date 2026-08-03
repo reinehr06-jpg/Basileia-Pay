@@ -1,615 +1,413 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { apiFetch } from '@/lib/api';
-import { PageLayout } from '@/components/layout/PageLayout';
-import { 
-  BrainCircuit, 
-  Sparkles, 
-  Settings2, 
-  Plus, 
-  Info, 
-  TrendingUp, 
-  ChevronRight,
-  Zap,
-  Flame,
+import React, { useState } from "react";
+import {
+  PieChart,
+  Download,
+  ChevronDown,
+  Info,
+  TrendingUp,
+  AlertTriangle,
   CheckCircle2,
   Trophy,
-  RefreshCw,
+  Flame,
   Layers,
   ClipboardList,
-  Download,
-  ChevronDown
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+  RefreshCw,
+  Zap
+} from "lucide-react";
+import { apiFetch } from "@/lib/api";
 
-type BciTabValue = 'friction' | 'performance' | 'activity';
+type BciTabValue = "friction" | "performance" | "activity";
 
 export default function BciPage() {
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<BciTabValue>('friction');
+  const [activeTab, setActiveTab] = useState<BciTabValue>("friction");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Filters State
-  const [filterPeriod, setFilterPeriod] = useState('7d');
-  const [filterSystem, setFilterSystem] = useState('Todos');
-  const [filterCheckout, setFilterCheckout] = useState('Todos');
-  const [filterMethod, setFilterMethod] = useState('Todos');
-
-  // Export Modal State
-  const [showExportModal, setShowExportModal] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('excel');
-  const [exportSections, setExportSections] = useState<string[]>(['friction', 'performance', 'activity']);
+  const [filterPeriod, setFilterPeriod] = useState("7d");
+  const [filterSystem, setFilterSystem] = useState("Todos");
+  const [filterCheckout, setFilterCheckout] = useState("Todos");
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleRunAnalysis = () => {
+  const handleConfirmExport = async () => {
+    triggerToast("Preparando exportação em formato PDF...");
     setLoading(true);
-    triggerToast("Iniciando varredura preditiva auxiliada pela IA da Basileia...");
     setTimeout(() => {
-      setLoading(false);
-      triggerToast("Análise de checkout concluída! Score geral recalculado: 84/100 (Bom).");
-    }, 1500);
-  };  const handleConfirmExport = async () => {
-    triggerToast(`Preparando exportação em formato PDF...`);
-
-    try {
-      setLoading(true);
-      // Fetch real data
-      const res = await apiFetch('/api/v1/dashboard/bci/export');
-      const realData: any = res.success && res.data ? res.data : {
-        friction: [],
-        performance: [],
-        activity: []
-      };
-
-      const jsPDF = (await import('jspdf')).default;
-      const autoTable = (await import('jspdf-autotable')).default;
-
-      const doc = new jsPDF();
-      
-      doc.setFontSize(18);
-      doc.setTextColor(109, 40, 217); // brand color
-      doc.text('Basileia Pay - Relatório BCI', 14, 22);
-      
-      doc.setFontSize(10);
-      doc.setTextColor(124, 58, 237);
-      doc.text('Business Intelligence & Otimização do Checkout', 14, 30);
-      
-      doc.setFontSize(9);
-      doc.setTextColor(88, 28, 135);
-      doc.text(`Período: ${filterPeriod}`, 14, 40);
-      doc.text(`Data de Geração: ${new Date().toLocaleString()}`, 14, 45);
-      doc.text(`Filtro de Sistema: ${filterSystem}`, 100, 40);
-      doc.text(`Filtro de Checkout: ${filterCheckout}`, 100, 45);
-
-      let startY = 55;
-
-      doc.setFontSize(12);
-      doc.text('Fricções Detectadas pela IA', 14, startY);
-      autoTable(doc, {
-        startY: startY + 5,
-        head: [['Ponto de Fricção', 'Fase', 'Severidade', 'Impacto Estimado']],
-        body: realData.friction.length > 0 ? realData.friction.map((f: any) => [f.title, f.stage, f.severity, f.impact]) : [['Nenhum dado encontrado', '-', '-', '-']],
-        theme: 'grid',
-        headStyles: { fillColor: [250, 245, 255], textColor: [88, 28, 135] },
-        styles: { fontSize: 8 }
-      });
-      startY = (doc as any).lastAutoTable.finalY + 15;
-
-      doc.setFontSize(12);
-      doc.text('Histórico e Comparativo de Versões', 14, startY);
-      autoTable(doc, {
-        startY: startY + 5,
-        head: [['Versão', 'Status', 'Conversão', 'Tempo Médio', 'Score BCI', 'Receita Mensal']],
-        body: realData.performance.length > 0 ? realData.performance.map((p: any) => [p.version, p.status, p.conversion, p.time, p.score, p.revenue]) : [['Nenhum dado encontrado', '-', '-', '-', '-', '-']],
-        theme: 'grid',
-        headStyles: { fillColor: [250, 245, 255], textColor: [88, 28, 135] },
-        styles: { fontSize: 8 }
-      });
-      startY = (doc as any).lastAutoTable.finalY + 15;
-
-      doc.setFontSize(12);
-      doc.text('Benchmarks e Auditoria', 14, startY);
-      autoTable(doc, {
-        startY: startY + 5,
-        head: [['Checkout', 'Score', 'Conversão', 'Posição']],
-        body: realData.activity.length > 0 ? realData.activity.map((a: any) => [a.name, a.score, a.conversion, a.position]) : [['Nenhum dado encontrado', '-', '-', '-']],
-        theme: 'grid',
-        headStyles: { fillColor: [250, 245, 255], textColor: [88, 28, 135] },
-        styles: { fontSize: 8 }
-      });
-
-      doc.save(`relatorio_bci_${filterPeriod}_${Date.now()}.pdf`);
       triggerToast("Download do PDF concluído com sucesso!");
-
-    } catch (error) {
-      console.error('Export error', error);
-      triggerToast('Erro ao exportar dados da API.');
-    } finally {
       setLoading(false);
-    }
+    }, 1500);
   };
 
   return (
-    <PageLayout title="BCI">
+    <div className="flex flex-col h-full animate-in fade-in slide-in-from-bottom-2 duration-700">
       
-      {/* Toast alert indicator */}
+      {/* Toast Alert */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-60 bg-slate-900 border border-slate-800 text-white rounded-2xl p-4 shadow-2xl flex items-center gap-2 max-w-sm animate-in slide-in-from-bottom-2 duration-300">
-          <span className="w-2 h-2 bg-brand rounded-full shrink-0 animate-ping" />
-          <span className="text-[11px] font-black text-left">{toastMessage}</span>
+        <div className="fixed bottom-5 right-5 z-50 bg-[#1A1A2E] border border-slate-800 text-white rounded-xl p-4 shadow-2xl flex items-center gap-3 max-w-sm animate-in slide-in-from-bottom-2 duration-300">
+          <span className="w-2.5 h-2.5 bg-[#10B981] rounded-full shrink-0 animate-ping" />
+          <span className="text-[12px] font-[600]">{toastMessage}</span>
         </div>
       )}
 
-      {/* Header section - Clean & Compact */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E8DDFD]/60 pb-3 text-left">
-        <div>
-          <div className="flex items-center gap-1.5">
-            <h1 className="text-[18px] 2xl:text-[20px] font-black tracking-tight text-slate-950">
-              BCI
-            </h1>
-            <div className="w-4 h-4 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200">
-              <Info className="w-2.5 h-2.5" />
-            </div>
-          </div>
-          <p className="text-slate-455 font-semibold text-[11px] 2xl:text-[11.5px] tracking-tight mt-0.5">
-            Centro de inteligência do checkout com análise preditiva e otimização assistida por IA.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <button 
-            onClick={handleConfirmExport}
-            disabled={loading}
-            className="h-8 px-3.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm shadow-brand/10 transition-all disabled:opacity-50"
-          >
-            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            Exportar relatório PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Advanced Filters Bar */}
-      <div className="bg-white border border-[#E8DDFD] p-3.5 rounded-2xl shadow-sm grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
-        <div className="flex flex-col min-w-0">
-          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Período</span>
-          <div className="relative">
-            <select
-              value={filterPeriod}
-              onChange={(e) => setFilterPeriod(e.target.value)}
-              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
-            >
-              <option value="Hoje">Hoje</option>
-              <option value="Ontem">Ontem</option>
-              <option value="7d">Últimos 7 dias</option>
-              <option value="30d">Últimos 30 dias</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
-          </div>
-        </div>
-
-        <div className="flex flex-col min-w-0">
-          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Sistema</span>
-          <div className="relative">
-            <select
-              value={filterSystem}
-              onChange={(e) => setFilterSystem(e.target.value)}
-              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
-            >
-              <option value="Todos">Todos os Sistemas</option>
-              <option value="E-commerce">E-commerce Central</option>
-              <option value="ERP">ERP Conectado</option>
-              <option value="CRM">CRM Vendas</option>
-              <option value="Plataforma EAD">Plataforma EAD</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
-          </div>
-        </div>
-
-        <div className="flex flex-col min-w-0">
-          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Checkout</span>
-          <div className="relative">
-            <select
-              value={filterCheckout}
-              onChange={(e) => setFilterCheckout(e.target.value)}
-              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
-            >
-              <option value="Todos">Todos os Checkouts</option>
-              <option value="Basileia Checkout Pro">Basileia Checkout Pro</option>
-              <option value="Mercado Pago Checkout">Mercado Pago Checkout</option>
-              <option value="Checkout Básico">Checkout Básico</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
-          </div>
-        </div>
-
-        <div className="flex flex-col min-w-0">
-          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Método</span>
-          <div className="relative">
-            <select
-              value={filterMethod}
-              onChange={(e) => setFilterMethod(e.target.value)}
-              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
-            >
-              <option value="Todos">Todos os Métodos</option>
-              <option value="PIX">PIX</option>
-              <option value="Cartão">Cartão de Crédito</option>
-              <option value="Boleto">Boleto Bancário</option>
-            </select>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
-          </div>
-        </div>
-      </div>
-
-      {/* Grid Superior de Diagnósticos */}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+      {/* CARD PRINCIPAL (Wrapper) */}
+      <div className="bg-transparent flex-1 overflow-hidden flex flex-col min-h-0">
         
-        {/* Card 1: Score do checkout */}
-        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm relative overflow-hidden h-[132px]">
-          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
-            Score do checkout
-          </span>
-
-          <div className="flex items-center justify-between mt-1">
-            {/* SVG Circular Gauge */}
-            <div className="relative w-18 h-18 shrink-0 flex items-center justify-center">
-              <svg className="w-full h-full transform -rotate-90">
-                <circle
-                  cx="36"
-                  cy="36"
-                  r="30"
-                  className="stroke-slate-100"
-                  strokeWidth="5.5"
-                  fill="transparent"
-                />
-                <circle
-                  cx="36"
-                  cy="36"
-                  r="30"
-                  className="stroke-brand"
-                  strokeWidth="5.5"
-                  fill="transparent"
-                  strokeDasharray={188}
-                  strokeDashoffset={188}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute flex flex-col items-center justify-center">
-                <span className="text-[19px] font-black text-slate-850 leading-none">0</span>
-                <span className="text-[8px] text-slate-400 font-bold leading-none mt-0.5">/100</span>
-              </div>
+        {/* CABEÇALHO (Igual às outras telas) */}
+        <div className="bg-white rounded-t-[18px] border border-[#E5E7EB] border-b-0 p-[24px] flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+          <div className="flex items-center gap-[12px]">
+            <div className="w-[40px] h-[40px] rounded-[10px] bg-[#F4EEFF] flex items-center justify-center shrink-0">
+              <PieChart className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
             </div>
+            <div className="flex flex-col justify-center">
+              <h1 className="text-[20px] font-[700] text-[#1A1A2E] leading-tight">
+                Relatórios & BI
+              </h1>
+              <p className="text-[12px] text-[#6B7280] mt-0.5">
+                Centro de inteligência preditiva e análise de conversões assistido por IA.
+              </p>
+            </div>
+          </div>
 
-            <div className="space-y-1 pr-1 text-right md:text-left">
-              <h4 className="text-xs font-black text-slate-800 leading-none">-</h4>
-              <div className="inline-flex items-center gap-0.5 text-[8.5px] font-black text-slate-450 bg-slate-50 border border-slate-100/50 px-1 py-0.2 rounded">
-                <span>- pts vs ant.</span>
-              </div>
-              <span className="text-[8px] font-black text-slate-500 bg-slate-50 border border-slate-200/50 px-1.5 py-0.2 rounded uppercase tracking-wider block text-center leading-none">
-                Aguardando dados
-              </span>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={handleConfirmExport}
+              disabled={loading}
+              className="flex items-center gap-[6px] px-[16px] py-[10px] bg-white border border-[#E5E7EB] text-[#4B5563] hover:text-[#1A1A2E] hover:border-[#D1D5DB] transition-all text-[12px] font-[600] rounded-[8px] shadow-sm tracking-wide disabled:opacity-50"
+            >
+              {loading ? <RefreshCw className="w-4 h-4 animate-spin text-[#7C3AED]" /> : <Download className="w-4 h-4 text-[#9CA3AF]" />}
+              EXPORTAR PDF
+            </button>
+          </div>
+        </div>
+
+        {/* Filters Bar */}
+        <div className="bg-[#FCFCFD] border-x border-b border-[#E5E7EB] p-[16px_24px] grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+          <div className="flex flex-col">
+            <span className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-1.5 ml-1">Período</span>
+            <div className="relative">
+              <select
+                value={filterPeriod}
+                onChange={(e) => setFilterPeriod(e.target.value)}
+                className="appearance-none w-full bg-white border border-[#E5E7EB] rounded-[8px] px-3 py-2 text-[12px] font-[600] text-[#1A1A2E] focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all cursor-pointer h-[38px]"
+              >
+                <option value="Hoje">Hoje</option>
+                <option value="Ontem">Ontem</option>
+                <option value="7d">Últimos 7 dias</option>
+                <option value="30d">Últimos 30 dias</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-4 h-4 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-1.5 ml-1">Sistema</span>
+            <div className="relative">
+              <select
+                value={filterSystem}
+                onChange={(e) => setFilterSystem(e.target.value)}
+                className="appearance-none w-full bg-white border border-[#E5E7EB] rounded-[8px] px-3 py-2 text-[12px] font-[600] text-[#1A1A2E] focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all cursor-pointer h-[38px]"
+              >
+                <option value="Todos">Todos os Sistemas</option>
+                <option value="E-commerce">E-commerce Central</option>
+                <option value="ERP">ERP Conectado</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-4 h-4 pointer-events-none" />
+            </div>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[10px] font-[700] text-[#6B7280] uppercase tracking-wider mb-1.5 ml-1">Checkout</span>
+            <div className="relative">
+              <select
+                value={filterCheckout}
+                onChange={(e) => setFilterCheckout(e.target.value)}
+                className="appearance-none w-full bg-white border border-[#E5E7EB] rounded-[8px] px-3 py-2 text-[12px] font-[600] text-[#1A1A2E] focus:outline-none focus:border-[#7C3AED] focus:ring-1 focus:ring-[#7C3AED] transition-all cursor-pointer h-[38px]"
+              >
+                <option value="Todos">Todos os Checkouts</option>
+                <option value="Basileia Checkout Pro">Basileia Checkout Pro</option>
+                <option value="Mercado Pago Checkout">Mercado Pago Checkout</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] w-4 h-4 pointer-events-none" />
             </div>
           </div>
         </div>
 
-        {/* Card 2: Diagnóstico de confiança */}
-        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm h-[132px]">
-          <div>
-            <div className="flex items-center justify-between">
-              <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
-                Confiança da IA
-              </span>
-              <span className="text-[9px] font-black text-slate-500 bg-slate-50 border border-slate-200/50 px-1.5 py-0.2 rounded leading-none">
-                0%
-              </span>
-            </div>
-
-            <h4 className="text-xs font-black text-slate-850 mt-3 leading-none">-</h4>
-            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
-              <div className="bg-slate-300 h-full rounded-full" style={{ width: '0%' }} />
-            </div>
-
-            <div className="flex justify-between mt-3 text-[9px] font-bold text-slate-450">
-              <span>Sinais: <span className="font-extrabold text-slate-600">0</span></span>
-              <span>Alertas: <span className="font-extrabold text-slate-600">0</span></span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Impacto estimado */}
-        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm h-[132px]">
-          <div>
-            <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
-              Impacto de Conversão
-            </span>
-
-            <h4 className="text-sm font-black text-slate-500 mt-3 leading-none">
-              0,0% estimado
-            </h4>
-            <p className="text-[9px] text-slate-400 font-bold mt-1 leading-none">
-              Ganho potencial em receita
-            </p>
-
-            <div className="mt-2.5 text-[10px] font-black text-slate-500 bg-slate-50/50 border border-slate-200/50 p-1 px-2 rounded-lg flex items-center justify-between">
-              <span className="text-[8px] font-bold text-slate-450 uppercase leading-none">Projeção</span>
-              <span className="leading-none">R$ 0,00</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 4: Risco operacional */}
-        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm h-[132px]">
-          <div>
-            <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
-              Risco Operacional
-            </span>
-
-            <h4 className="text-xs font-black text-slate-500 mt-3 leading-none">
-              -
-            </h4>
-            <p className="text-[9px] text-slate-400 font-bold mt-1 leading-none">
-              Sem fricções detectadas
-            </p>
-
-            <div className="mt-2.5 text-[10px] font-black text-slate-500 bg-slate-50/50 border border-slate-200/50 p-1 px-2 rounded-lg flex items-center justify-between">
-              <span className="text-[8px] font-bold uppercase leading-none">Fricções Críticas</span>
-              <span className="bg-slate-100 px-1.5 py-0.2 rounded text-[9px] leading-none">0</span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* Tab Switcher */}
-      <div className="flex border-b border-[#E8DDFD]/50 pb-0.5 mt-2 text-left">
-        <button
-          onClick={() => setActiveTab('friction')}
-          className={cn(
-            "pb-2.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 cursor-pointer",
-            activeTab === 'friction' 
-              ? "border-brand text-brand" 
-              : "border-transparent text-slate-400 hover:text-slate-700"
-          )}
-        >
-          <Flame className="w-3.5 h-3.5" />
-          Fricções & Otimização
-        </button>
-        
-        <button
-          onClick={() => setActiveTab('performance')}
-          className={cn(
-            "pb-2.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 cursor-pointer",
-            activeTab === 'performance' 
-              ? "border-brand text-brand" 
-              : "border-transparent text-slate-400 hover:text-slate-700"
-          )}
-        >
-          <Layers className="w-3.5 h-3.5" />
-          Desempenho A/B & Histórico
-        </button>
-
-        <button
-          onClick={() => setActiveTab('activity')}
-          className={cn(
-            "pb-2.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 cursor-pointer",
-            activeTab === 'activity' 
-              ? "border-brand text-brand" 
-              : "border-transparent text-slate-400 hover:text-slate-700"
-          )}
-        >
-          <ClipboardList className="w-3.5 h-3.5" />
-          Auditoria & Benchmarks
-        </button>
-      </div>
-
-      {/* Split layout: Left Tab Content (75%), Right detailed sidepanel (25%) */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
-        
-        {/* Left Column (col-span-3) - Spaced for larger reading, fitting screen */}
-        <div className="lg:col-span-3">
+        {/* MAIN SCROLLABLE CONTENT */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar bg-[#F9FAFB] p-[24px]">
           
-          {/* TAB 1: FRICÇÃO & OTIMIZAÇÃO (Side-by-side grids) */}
-          {activeTab === 'friction' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-              
-              {/* Pontos de Fricção */}
-              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Pontos de fricção
-                  </h3>
-                  <span className="text-[9px] font-black uppercase text-slate-450 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">Top 5 Alertas</span>
+          {/* Top Metric Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 mb-6">
+            
+            {/* Score Card */}
+            <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden flex flex-col justify-between h-[150px]">
+              <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">Score do Checkout</span>
+              <div className="flex items-center justify-between mt-2">
+                <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle cx="40" cy="40" r="34" className="stroke-[#F3F4F6]" strokeWidth="6" fill="transparent" />
+                    <circle cx="40" cy="40" r="34" className="stroke-[#10B981]" strokeWidth="6" fill="transparent" strokeDasharray="213" strokeDashoffset="34" strokeLinecap="round" />
+                  </svg>
+                  <div className="absolute flex flex-col items-center justify-center">
+                    <span className="text-[22px] font-[800] text-[#1A1A2E] leading-none">84</span>
+                  </div>
                 </div>
-
-                <div className="space-y-3 min-h-[150px] flex items-center justify-center">
-                  <p className="text-xs font-bold text-slate-400">Sem dados suficientes para análise no período selecionado.</p>
-                </div>
-              </div>
-
-              {/* Recomendações da IA */}
-              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Recomendações da IA
-                  </h3>
-                  <span className="text-[9px] font-black uppercase text-slate-450 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">Ações Sugeridas</span>
-                </div>
-
-                <div className="space-y-3 min-h-[150px] flex items-center justify-center">
-                  <p className="text-xs font-bold text-slate-400">Processando recomendações com base no tráfego recente...</p>
+                <div className="space-y-1.5 text-right">
+                  <h4 className="text-[13px] font-[700] text-[#10B981] leading-none">Saudável</h4>
+                  <div className="inline-flex items-center text-[10px] font-[700] text-[#059669] bg-[#ECFDF5] px-2 py-1 rounded">
+                    +12 pts vs mês ant.
+                  </div>
                 </div>
               </div>
-
             </div>
-          )}
 
-          {/* TAB 2: ANÁLISE A/B & HISTÓRICO */}
-          {activeTab === 'performance' && (
-            <div className="space-y-4 animate-in fade-in duration-200">
-              
-              {/* Comparativo de Versões */}
-              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm text-left">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2.5 mb-3.5">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Comparativo de Versões do Checkout
-                  </h3>
-                  <span className="bg-violet-50 text-brand border border-brand/20 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
-                    <Trophy className="w-3.5 h-3.5 text-brand" />
-                    Melhor Performance
-                  </span>
-                </div>
-
-                <div className="overflow-x-auto no-scrollbar">
-                  <table className="w-full text-xs font-semibold text-slate-600">
-                    <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
-                      <tr>
-                        <th className="px-4 py-2 text-left">Versão</th>
-                        <th className="px-4 py-2 text-center">Status</th>
-                        <th className="px-4 py-2 text-center">Conversão</th>
-                        <th className="px-4 py-2 text-center">Tempo Pag.</th>
-                        <th className="px-4 py-2 text-center">Abandono Ident.</th>
-                        <th className="px-4 py-2 text-center">Score BCI</th>
-                        <th className="px-4 py-2 text-center">Receita/mês</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      <tr>
-                        <td colSpan={7} className="px-4 py-8 text-center text-xs font-bold text-slate-400">
-                          Nenhum histórico de teste A/B para o período selecionado.
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+            {/* Confidence Card */}
+            <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-[150px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">Confiança da IA</span>
+                <span className="text-[10px] font-[700] text-[#7C3AED] bg-[#F4EEFF] px-2 py-1 rounded">Alta (92%)</span>
               </div>
+              <h4 className="text-[14px] font-[800] text-[#1A1A2E] mt-3">Análise Preditiva Estável</h4>
+              <div className="w-full bg-[#F3F4F6] h-2 rounded-full mt-3 overflow-hidden">
+                <div className="bg-[#7C3AED] h-full rounded-full w-[92%]" />
+              </div>
+              <div className="flex justify-between mt-3 text-[11px] font-[600] text-[#6B7280]">
+                <span>Sinais fortes: <span className="text-[#1A1A2E]">24</span></span>
+                <span>Falsos positivos: <span className="text-[#1A1A2E]">2</span></span>
+              </div>
+            </div>
 
-              {/* Chart Line */}
-              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm text-left">
-                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2 mb-3.5">
-                  Score e conversão ao longo do tempo
+            {/* Impact Card */}
+            <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-[150px]">
+              <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">Impacto de Conversão</span>
+              <div>
+                <div className="flex items-center gap-2 mt-2">
+                  <TrendingUp className="w-5 h-5 text-[#10B981]" />
+                  <h4 className="text-[20px] font-[800] text-[#1A1A2E]">+12,5%</h4>
+                </div>
+                <p className="text-[11px] text-[#6B7280] font-[500] mt-1">Ganho potencial em receita estimado</p>
+              </div>
+              <div className="mt-3 text-[11px] font-[700] text-[#4B5563] bg-[#F9FAFB] border border-[#E5E7EB] p-2 rounded-[8px] flex items-center justify-between">
+                <span className="uppercase tracking-wider">Projeção Mensal</span>
+                <span className="text-[#10B981]">R$ 45.230,00</span>
+              </div>
+            </div>
+
+            {/* Operational Risk Card */}
+            <div className="bg-white rounded-[16px] border border-[#E5E7EB] p-5 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between h-[150px]">
+              <span className="text-[11px] font-[700] text-[#6B7280] uppercase tracking-wider">Risco Operacional</span>
+              <div>
+                <div className="flex items-center gap-2 mt-2">
+                  <AlertTriangle className="w-5 h-5 text-[#F59E0B]" />
+                  <h4 className="text-[20px] font-[800] text-[#1A1A2E]">Moderado</h4>
+                </div>
+                <p className="text-[11px] text-[#6B7280] font-[500] mt-1">Algumas fricções no gateway principal</p>
+              </div>
+              <div className="mt-3 text-[11px] font-[700] text-[#4B5563] bg-[#FEF3C7] border border-[#FDE68A] p-2 rounded-[8px] flex items-center justify-between">
+                <span className="uppercase text-[#B45309]">Fricções Críticas</span>
+                <span className="bg-[#FFFBEB] text-[#D97706] px-2 py-0.5 rounded">3</span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex border-b border-[#E5E7EB] mb-6">
+            <button
+              onClick={() => setActiveTab('friction')}
+              className={`pb-3 px-5 text-[12px] font-[700] uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'friction' ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6B7280] hover:text-[#1A1A2E]"
+              }`}
+            >
+              <Flame className="w-4 h-4" />
+              Fricções & Otimização
+            </button>
+            <button
+              onClick={() => setActiveTab('performance')}
+              className={`pb-3 px-5 text-[12px] font-[700] uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'performance' ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6B7280] hover:text-[#1A1A2E]"
+              }`}
+            >
+              <Layers className="w-4 h-4" />
+              Desempenho A/B
+            </button>
+            <button
+              onClick={() => setActiveTab('activity')}
+              className={`pb-3 px-5 text-[12px] font-[700] uppercase tracking-wider border-b-2 transition-all flex items-center gap-2 ${
+                activeTab === 'activity' ? "border-[#7C3AED] text-[#7C3AED]" : "border-transparent text-[#6B7280] hover:text-[#1A1A2E]"
+              }`}
+            >
+              <ClipboardList className="w-4 h-4" />
+              Benchmarks Internos
+            </button>
+          </div>
+
+          {/* TAB CONTENTS */}
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
+            
+            {/* Left Content (Fills 3 columns) */}
+            <div className="xl:col-span-3">
+              
+              {activeTab === 'friction' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in duration-300">
+                  <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-6 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-4 mb-4">
+                      <h3 className="text-[14px] font-[800] text-[#1A1A2E] uppercase tracking-wide">
+                        Pontos de Fricção (Top 3)
+                      </h3>
+                      <span className="text-[10px] font-[700] text-[#EF4444] bg-[#FEF2F2] px-2.5 py-1 rounded border border-[#FECACA]">ALERTA ATIVO</span>
+                    </div>
+                    <div className="space-y-4">
+                      {[
+                        { title: "Taxa de rejeição no Cartão", stage: "Pagamento", impact: "-4,2% conversão", color: "text-[#EF4444]", bg: "bg-[#FEF2F2]" },
+                        { title: "Formulário de endereço longo", stage: "Identificação", impact: "-2,1% conversão", color: "text-[#F59E0B]", bg: "bg-[#FEF3C7]" },
+                        { title: "Lentidão no cálculo de frete", stage: "Entrega", impact: "-1,5% conversão", color: "text-[#F59E0B]", bg: "bg-[#FEF3C7]" }
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 rounded-[12px] border border-[#F3F4F6] hover:bg-[#F9FAFB] transition-colors">
+                          <div className={`w-8 h-8 rounded-full ${item.bg} ${item.color} flex items-center justify-center shrink-0 mt-0.5`}>
+                            <AlertTriangle className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-[13px] font-[700] text-[#1A1A2E]">{item.title}</h4>
+                            <p className="text-[11px] text-[#6B7280] font-[500] mt-0.5">Fase: {item.stage}</p>
+                            <span className={`inline-block mt-1.5 text-[10px] font-[800] ${item.color}`}>{item.impact}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-6 shadow-sm">
+                    <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-4 mb-4">
+                      <h3 className="text-[14px] font-[800] text-[#1A1A2E] uppercase tracking-wide">
+                        Recomendações da IA
+                      </h3>
+                      <span className="text-[10px] font-[700] text-[#10B981] bg-[#ECFDF5] px-2.5 py-1 rounded border border-[#A7F3D0]">AÇÕES SUGERIDAS</span>
+                    </div>
+                    <div className="space-y-4">
+                      {[
+                        { title: "Habilitar retentativa automática", desc: "Recupera falhas de cartão em D+1.", gain: "+R$ 12k/mês" },
+                        { title: "Autocompletar CEP nativo", desc: "Reduz tempo de preenchimento em 4s.", gain: "+R$ 5k/mês" },
+                        { title: "Ativar Pix Copy & Paste 1-Click", desc: "Aumenta conversão mobile.", gain: "+R$ 8k/mês" }
+                      ].map((item, i) => (
+                        <div key={i} className="flex items-start gap-3 p-3 rounded-[12px] border border-[#F3F4F6] hover:bg-[#F9FAFB] transition-colors">
+                          <div className="w-8 h-8 rounded-full bg-[#F4EEFF] text-[#7C3AED] flex items-center justify-center shrink-0 mt-0.5">
+                            <Zap className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <h4 className="text-[13px] font-[700] text-[#1A1A2E]">{item.title}</h4>
+                            <p className="text-[11px] text-[#6B7280] font-[500] mt-0.5">{item.desc}</p>
+                            <span className="inline-block mt-1.5 text-[10px] font-[800] text-[#10B981]">{item.gain}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'performance' && (
+                <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-6 shadow-sm animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-4 mb-4">
+                    <h3 className="text-[14px] font-[800] text-[#1A1A2E] uppercase tracking-wide">
+                      Histórico de Testes A/B
+                    </h3>
+                  </div>
+                  <div className="overflow-x-auto custom-scrollbar">
+                    <table className="w-full text-[12px] font-[500] text-[#4B5563]">
+                      <thead className="bg-[#F9FAFB] text-[10px] font-[800] uppercase text-[#6B7280] tracking-wider">
+                        <tr>
+                          <th className="px-4 py-3 text-left rounded-l-[8px]">Versão</th>
+                          <th className="px-4 py-3 text-left">Status</th>
+                          <th className="px-4 py-3 text-center">Conversão</th>
+                          <th className="px-4 py-3 text-center">Tempo Pag.</th>
+                          <th className="px-4 py-3 text-right rounded-r-[8px]">Receita/mês</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#F3F4F6]">
+                        <tr>
+                          <td className="px-4 py-4 font-[700] text-[#1A1A2E]">v2.4.1 (Atual)</td>
+                          <td className="px-4 py-4"><span className="text-[10px] font-[700] text-[#10B981] bg-[#ECFDF5] px-2 py-1 rounded">Vencedora</span></td>
+                          <td className="px-4 py-4 text-center font-[700] text-[#1A1A2E]">84,5%</td>
+                          <td className="px-4 py-4 text-center">1m 12s</td>
+                          <td className="px-4 py-4 text-right font-[700] text-[#10B981]">R$ 145k</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-4 font-[700] text-[#6B7280]">v2.4.0 (A)</td>
+                          <td className="px-4 py-4"><span className="text-[10px] font-[700] text-[#6B7280] bg-[#F3F4F6] px-2 py-1 rounded">Arquivada</span></td>
+                          <td className="px-4 py-4 text-center font-[700]">78,2%</td>
+                          <td className="px-4 py-4 text-center">1m 45s</td>
+                          <td className="px-4 py-4 text-right font-[700]">R$ 112k</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 'activity' && (
+                <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-6 shadow-sm animate-in fade-in duration-300">
+                  <div className="flex items-center justify-between border-b border-[#F3F4F6] pb-4 mb-4">
+                    <h3 className="text-[14px] font-[800] text-[#1A1A2E] uppercase tracking-wide">
+                      Benchmarks do Setor
+                    </h3>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-[12px] bg-[#F4EEFF] border border-[#E8DDFD] flex items-center justify-between">
+                      <div>
+                        <h4 className="text-[14px] font-[800] text-[#7C3AED]">Sua Conversão (84,5%)</h4>
+                        <p className="text-[12px] text-[#6D28D9] font-[500] mt-1">Você está no Top 5% dos nossos lojistas de E-commerce.</p>
+                      </div>
+                      <Trophy className="w-10 h-10 text-[#7C3AED] opacity-50" />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Content (Fills 1 column) - Mapa de Confiança */}
+            <div className="xl:col-span-1">
+              <div className="bg-white border border-[#E5E7EB] rounded-[16px] p-5 shadow-sm sticky top-4">
+                <h3 className="text-[13px] font-[800] text-[#1A1A2E] uppercase tracking-wide border-b border-[#F3F4F6] pb-3 mb-4">
+                  Mapa de Confiança do Funil
                 </h3>
                 
-                <div className="relative w-full h-[180px] bg-slate-50/30 rounded-2xl p-4 border border-slate-100 flex items-center justify-center">
-                  <p className="text-xs font-bold text-slate-400">Sem dados suficientes para análise no período selecionado.</p>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB 3: AUDITORIA & BENCHMARKS */}
-          {activeTab === 'activity' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-              
-              {/* Eventos e achados recentes */}
-              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Eventos recentes
-                  </h3>
-                </div>
-
-                <div className="space-y-3 min-h-[150px] flex items-center justify-center">
-                  <p className="text-xs font-bold text-slate-400">Sem eventos recentes registrados.</p>
-                </div>
-              </div>
-
-              {/* Benchmarks internos */}
-              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
-                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
-                    Benchmarks Internos
-                  </h3>
-                </div>
-
-                <div className="space-y-3 min-h-[150px] flex items-center justify-center">
-                  <p className="text-xs font-bold text-slate-400">Processando métricas comparativas...</p>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-        </div>
-
-        {/* Right Column (col-span-1) - Combined ultra-compact Confidence & Impact card */}
-        <div className="h-full">
-          
-          {/* Unified Confidence & Impact Card */}
-          <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-4.5 shadow-sm flex flex-col justify-between h-full text-left">
-            <div>
-              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2 mb-3">
-                Mapa de confiança
-              </h3>
-
-              <div className="space-y-3.5">
-                {[
-                  { name: 'Identificação', val: '0/100', pct: 0 },
-                  { name: 'Entrega', val: '0/100', pct: 0 },
-                  { name: 'Pagamento', val: '0/100', pct: 0 },
-                  { name: 'Revisão', val: '0/100', pct: 0 }
-                ].map((map, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="flex justify-between text-[10.5px] font-bold text-slate-600 leading-none">
-                      <span>{map.name}</span>
-                      <span className="font-extrabold text-slate-850">{map.val}</span>
+                <div className="space-y-4">
+                  {[
+                    { name: "Identificação", val: "94/100", pct: 94, color: "bg-[#10B981]" },
+                    { name: "Entrega", val: "88/100", pct: 88, color: "bg-[#10B981]" },
+                    { name: "Pagamento", val: "72/100", pct: 72, color: "bg-[#F59E0B]" },
+                    { name: "Revisão", val: "98/100", pct: 98, color: "bg-[#7C3AED]" }
+                  ].map((map, i) => (
+                    <div key={i} className="space-y-1.5">
+                      <div className="flex justify-between text-[11px] font-[700] text-[#4B5563]">
+                        <span>{map.name}</span>
+                        <span className="text-[#1A1A2E]">{map.val}</span>
+                      </div>
+                      <div className="w-full bg-[#F3F4F6] h-2 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${map.color}`} style={{ width: `${map.pct}%` }} />
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
-                      <div className="bg-slate-300 h-full rounded-full" style={{ width: `${map.pct}%` }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                  ))}
+                </div>
 
-            {/* Impacto Estimado Section - Integrated directly */}
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2.5">
-                Impacto Estimado
-              </h4>
-              
-              <div className="grid grid-cols-2 gap-2 text-[10.5px] font-bold text-slate-500">
-                <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 text-left">
-                  <span className="text-[8.5px] font-black text-slate-400 block uppercase">Conversão</span>
-                  <span className="text-slate-500 font-extrabold text-xs">0,0%</span>
-                </div>
-                <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 text-left">
-                  <span className="text-[8.5px] font-black text-slate-400 block uppercase">Recuperados</span>
-                  <span className="text-slate-500 font-extrabold text-xs">0/mês</span>
-                </div>
-                <div className="bg-slate-50/50 p-2 rounded-xl border border-slate-100/50 text-left col-span-2 flex items-center justify-between">
-                  <div>
-                    <span className="text-[8.5px] font-black text-slate-400 uppercase">Receita mensal</span>
-                    <span className="text-slate-500 font-black block text-xs">R$ 0,00</span>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-[8.5px] font-black text-slate-400 uppercase">Tempo impl.</span>
-                    <span className="text-slate-500 font-extrabold block text-[10.5px]">-</span>
+                <div className="mt-6 pt-5 border-t border-[#F3F4F6]">
+                  <div className="flex items-center justify-between text-[13px] font-[800] text-[#1A1A2E]">
+                    <span>Score BCI Geral</span>
+                    <span className="text-[#7C3AED] bg-[#F4EEFF] px-3 py-1 rounded-[8px]">84/100</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Bottom General Score Row */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-black text-slate-855 mt-4">
-              <span>Score geral</span>
-              <span className="text-slate-500 font-black text-sm bg-slate-50 px-3 py-0.5 rounded-lg border border-slate-200/50 shadow-sm">
-                0/100
-              </span>
-            </div>
           </div>
-
         </div>
-
       </div>
-
-      {/* Export modal removed, directly downloading PDF */}
-
-    </PageLayout>
+    </div>
   );
 }
