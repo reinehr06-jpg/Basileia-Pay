@@ -4,12 +4,17 @@ import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
+const DEV_BYPASS = process.env.NODE_ENV === 'development';
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
+    // In dev mode, skip auth redirect so we can browse pages freely
+    if (DEV_BYPASS) return;
+
     if (isLoading) return;
 
     const isAuthRoute =
@@ -33,6 +38,11 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
   }, [pathname, router, user, isLoading]);
+
+  // In dev, skip loading spinner
+  if (DEV_BYPASS) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (

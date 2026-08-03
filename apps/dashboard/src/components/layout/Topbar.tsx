@@ -1,32 +1,17 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { 
-  Search, 
-  Bell, 
-  Settings, 
-  User, 
-  ChevronDown, 
-  Sun,
-  Moon,
-  LogOut,
-  LayoutGrid,
-  Shield
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Search, Bell, ChevronDown, Layers, Activity, DollarSign, CheckCircle2, PlayCircle, HelpCircle, LayoutDashboard, CreditCard, Sun, Moon } from "lucide-react";
 import { CompanySwitcher } from './CompanySwitcher';
-import { useAuth } from '@/lib/auth-context';
 
-interface TopbarProps {
-  title?: string;
-  description?: string;
-}
-
-export function Topbar({ title, description }: TopbarProps) {
-  const { user, isMaster, logout } = useAuth();
+export function Topbar() {
   const router = useRouter();
-  const [showUserMenu, setShowUserMenu] = useState(false);
+  const pathname = usePathname();
+  const [isSystemsOpen, setIsSystemsOpen] = useState(false);
+  const [isConnectionsOpen, setIsConnectionsOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  
   const [dark, setDark] = useState(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('basileia-theme') || localStorage.getItem('basileia_theme');
@@ -36,6 +21,10 @@ export function Topbar({ title, description }: TopbarProps) {
     }
     return false;
   });
+
+  const systemsRef = useRef<HTMLDivElement>(null);
+  const connectionsRef = useRef<HTMLDivElement>(null);
+  const helpRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleThemeChange = () => {
@@ -61,9 +50,7 @@ export function Topbar({ title, description }: TopbarProps) {
       }
     };
     
-    // Check theme on mount
     handleThemeChange();
-    
     window.addEventListener('storage', handleThemeChange);
     return () => window.removeEventListener('storage', handleThemeChange);
   }, []);
@@ -81,99 +68,76 @@ export function Topbar({ title, description }: TopbarProps) {
     localStorage.setItem('basileia-theme', next ? 'dark' : 'light');
   };
 
-  const roleLabel = (role: string) => {
-    switch (role) {
-      case 'super_admin': return 'Super Admin';
-      case 'owner': return 'Owner';
-      case 'admin': return 'Admin';
-      case 'finance': return 'Financeiro';
-      case 'developer': return 'Dev';
-      case 'support': return 'Suporte';
-      default: return role;
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (systemsRef.current && !systemsRef.current.contains(event.target as Node)) {
+        setIsSystemsOpen(false);
+      }
+      if (connectionsRef.current && !connectionsRef.current.contains(event.target as Node)) {
+        setIsConnectionsOpen(false);
+      }
+      if (helpRef.current && !helpRef.current.contains(event.target as Node)) {
+        setIsHelpOpen(false);
+      }
     }
-  };
-
-  const initials = user?.name ? user.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'U';
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <header className="h-[46px] 2xl:h-[54px] px-4 2xl:px-6 flex items-center justify-between sticky top-0 z-20 w-full transition-all duration-300 bg-white/40 backdrop-blur-md border-b border-white/20">
-      {/* Search Bar */}
-      <div className="relative flex-1 max-w-[480px] group mr-6">
-        <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate/40 group-focus-within:text-brand transition-colors">
-          <Search className="w-3.5 h-3.5" />
-        </div>
+    <header className="h-[56px] bg-white border-b border-[#E5E7EB] flex items-center justify-between px-[32px] shrink-0 sticky top-0 z-50 dark:bg-[#100D23] dark:border-[#261E42]">
+      {/* Busca global com atalho ⌘K */}
+      <div className="relative flex items-center w-[340px] h-10 bg-[#F9FAFB] dark:bg-[#070514] border border-[#E5E7EB] dark:border-[#261E42] rounded-[10px] px-3 transition-all">
+        <Search className="text-[#9CA3AF] w-4 h-4 mr-2 shrink-0" strokeWidth={2.4} />
         <input 
           type="text" 
-          placeholder="Buscar transacao, cliente, pedido ou evento"
-          aria-label="Buscar"
-          className="w-full bg-white/60 border border-border/50 rounded-xl pl-10 pr-10 py-1.5 2xl:py-2 text-[12px] 2xl:text-[13px] font-medium text-ink placeholder:text-slate/40 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand/40 transition-all shadow-sm"
+          placeholder="Buscar transações, checkouts, clientes..." 
+          className="bg-transparent border-none outline-none text-[13px] text-[#374151] dark:text-[#F5F2FF] placeholder-[#9CA3AF] w-full"
         />
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 px-1 py-0.5 bg-background border border-border rounded text-[9px] font-black text-slate/30 uppercase tracking-tighter">
-          K
-        </div>
+        <span className="text-[#9CA3AF] text-[12px] font-medium shrink-0 ml-2">⌘K</span>
       </div>
 
-      {/* Company Switcher (Super Admin) */}
-      <CompanySwitcher />
-
-      {/* Right Controls */}
-      <div className="flex items-center gap-1.5 2xl:gap-3">
-        {/* Notifications */}
-        <button onClick={() => router.push('/dashboard/trust')} className="relative p-1.5 2xl:p-2 text-slate/40 hover:text-brand hover:bg-brand-soft rounded-lg transition-all cursor-pointer" aria-label="Notificações">
-          <Bell className="w-4.5 h-4.5" />
-        </button>
-
+      {/* RIGHT - Ações */}
+      <div className="flex items-center gap-4">
         {/* Theme Toggle */}
-        <button onClick={toggleTheme} className="p-1.5 2xl:p-2 text-slate/40 hover:text-brand hover:bg-brand-soft rounded-lg transition-all cursor-pointer" aria-label="Alternar tema">
-          {dark ? <Moon className="w-4.5 h-4.5" /> : <Sun className="w-4.5 h-4.5" />}
+        <button 
+          onClick={toggleTheme} 
+          className="p-2 text-[#6B7280] dark:text-[#8B82A8] hover:text-[#374151] dark:hover:text-[#F5F2FF] rounded-full transition-colors" 
+          aria-label="Alternar tema"
+        >
+          {dark ? <Moon className="w-[20px] h-[20px]" strokeWidth={2.2} /> : <Sun className="w-[20px] h-[20px]" strokeWidth={2.2} />}
         </button>
 
-        <div className="h-6 w-px bg-border/40 mx-0.5 2xl:mx-1.5" />
-
-        {/* User Profile */}
-        <div className="relative">
-          <div 
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="flex items-center gap-2.5 pl-1 cursor-pointer group"
+        {/* Botão de Ajuda Contextual */}
+        <div className="relative" ref={helpRef}>
+          <button 
+            onClick={() => { setIsHelpOpen(!isHelpOpen); setIsSystemsOpen(false); setIsConnectionsOpen(false); }}
+            className={`transition-colors p-2 rounded-full ${isHelpOpen ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30' : 'text-[#6B7280] dark:text-[#8B82A8] hover:text-[#374151] dark:hover:text-[#F5F2FF]'}`}
           >
-            <div className="text-right hidden sm:block">
-              <p className="text-[11.5px] 2xl:text-[12px] font-black text-ink leading-tight group-hover:text-brand transition-colors">{user?.name || 'Usuario'}</p>
-              <p className="text-[9px] 2xl:text-[9.5px] font-bold text-slate/40 uppercase tracking-tight">{roleLabel(user?.role || '')}</p>
-            </div>
-            <div className="w-7.5 h-7.5 2xl:w-8.5 h-8.5 rounded-lg bg-gradient-to-tr from-brand/20 to-brand-accent/20 p-0.5 border border-brand/10 group-hover:scale-105 transition-transform overflow-hidden shadow-md">
-              <div className="w-full h-full bg-brand/20 text-brand font-black text-[10px] flex items-center justify-center rounded-[7px]">{initials}</div>
-            </div>
-          </div>
+            <HelpCircle className="w-[20px] h-[20px]" strokeWidth={2.2} />
+          </button>
 
-          {showUserMenu && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)} />
-              <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl border border-border shadow-xl z-50 py-2">
-                {user && (
-                  <div className="px-3 py-2 border-b border-border/50">
-                    <p className="text-sm font-black text-ink">{user.name}</p>
-                    <p className="text-[10px] font-bold text-slate/50 truncate">{user.email}</p>
-                    <p className="text-[9px] font-bold text-brand mt-0.5">{roleLabel(user.role)}</p>
-                  </div>
-                )}
-                <button onClick={() => { setShowUserMenu(false); router.push('/dashboard/settings'); }} className="w-full px-3 py-2 text-left text-[12px] font-bold text-ink hover:bg-brand-soft flex items-center gap-2">
-                  <User className="w-3.5 h-3.5" /> Minha conta
-                </button>
-                <button onClick={() => { setShowUserMenu(false); router.push('/dashboard/settings'); }} className="w-full px-3 py-2 text-left text-[12px] font-bold text-ink hover:bg-brand-soft flex items-center gap-2">
-                  <Settings className="w-3.5 h-3.5" /> Configuracoes
-                </button>
-                {isMaster && (
-                  <a href="/dashboard/super-admin" className="w-full px-3 py-2 text-left text-[12px] font-bold text-brand hover:bg-brand-soft flex items-center gap-2">
-                    <Shield className="w-3.5 h-3.5" /> Super Admin
-                  </a>
-                )}
-                <div className="border-t border-border/50 mt-1 pt-1">
-                  <button onClick={logout} className="w-full px-3 py-2 text-left text-[12px] font-bold text-danger hover:bg-danger/5 flex items-center gap-2">
-                    <LogOut className="w-3.5 h-3.5" /> Sair
-                  </button>
-                </div>
+          {isHelpOpen && (
+            <div className="absolute right-0 mt-2 w-[320px] bg-white dark:bg-[#161230] border border-[#E5E7EB] dark:border-[#261E42] rounded-[14px] shadow-lg overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#F1F1F4] dark:border-[#261E42] bg-indigo-50/50 dark:bg-[#100D23] flex items-center gap-2">
+                <HelpCircle className="w-[16px] h-[16px] text-indigo-600 dark:text-indigo-400" strokeWidth={2.5} />
+                <h3 className="text-[13px] font-[700] text-indigo-900 dark:text-indigo-300">Ajuda: Visão Geral</h3>
               </div>
-            </>
+              <div className="p-4 flex flex-col gap-3">
+                <p className="text-[12px] font-[500] text-[#4B5563] dark:text-[#8B82A8] leading-relaxed">
+                  Bem-vindo ao Basileia Pay. Aqui você encontra tutoriais e dicas de como gerenciar pagamentos e assinaturas.
+                </p>
+                <a 
+                  href="https://basileia.global"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-[#F9FAFB] dark:bg-[#100D23] hover:bg-gray-100 dark:hover:bg-[#261E42] border border-[#E5E7EB] dark:border-[#261E42] text-[#374151] dark:text-[#F5F2FF] text-[13px] font-[600] py-2 rounded-[10px] transition-colors mt-2"
+                >
+                  <PlayCircle className="w-[16px] h-[16px] text-indigo-600 dark:text-indigo-400" />
+                  Central de Ajuda
+                </a>
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRightLeft,
+  Users,
   Search,
   Plus,
   ChevronDown,
@@ -12,22 +12,22 @@ import {
   Trash2
 } from "lucide-react";
 
-const MOCK_TRANSACTIONS = [
-  { id: "TR-9823", cliente: "Maria Oliveira", produto: "Mentoria Elite", data: "02/08/2026 14:30", metodo: "PIX", valor: 997.00, status: "Aprovado" },
-  { id: "TR-9822", cliente: "João Pedro Santos", produto: "E-book Vendas", data: "02/08/2026 13:15", metodo: "Cartão de Crédito", valor: 47.90, status: "Aprovado" },
-  { id: "TR-9821", cliente: "Ana Clara", produto: "Assinatura Pro (Mensal)", data: "02/08/2026 11:45", metodo: "PIX", valor: 149.90, status: "Pendente" },
-  { id: "TR-9820", cliente: "Carlos Mendes", produto: "Mentoria Elite", data: "01/08/2026 18:20", metodo: "Boleto", valor: 997.00, status: "Aguardando Pagamento" },
-  { id: "TR-9819", cliente: "Fernanda Costa", produto: "Curso Ads Completo", data: "01/08/2026 15:10", metodo: "Cartão de Crédito", valor: 497.00, status: "Recusado" },
-  { id: "TR-9818", cliente: "Lucas Silva", produto: "E-book Vendas", data: "01/08/2026 09:30", metodo: "PIX", valor: 47.90, status: "Aprovado" },
-  { id: "TR-9817", cliente: "Beatriz Souza", produto: "Assinatura Pro (Anual)", data: "31/07/2026 21:05", metodo: "Cartão de Crédito", valor: 1499.00, status: "Chargeback" },
-  { id: "TR-9816", cliente: "Rafael Lima", produto: "Mentoria Elite", data: "31/07/2026 16:40", metodo: "PIX", valor: 997.00, status: "Aprovado" },
-  { id: "TR-9815", cliente: "Camila Ribeiro", produto: "Consultoria 1h", data: "31/07/2026 14:15", metodo: "PIX", valor: 250.00, status: "Estornado" },
-  { id: "TR-9814", cliente: "Felipe Gomes", produto: "Curso Ads Completo", data: "30/07/2026 10:20", metodo: "Cartão de Crédito", valor: 497.00, status: "Aprovado" },
+const MOCK_CUSTOMERS = [
+  { id: "CUS-1029", nome: "Maria Oliveira", email: "maria.oliveira@email.com", cadastro: "02/08/2026", ltv: 2450.00, ticket: 150.00, status: "Ativo" },
+  { id: "CUS-1028", nome: "João Pedro Santos", email: "joaops@email.com", cadastro: "01/08/2026", ltv: 450.00, ticket: 450.00, status: "Ativo" },
+  { id: "CUS-1027", nome: "Ana Clara", email: "anaclara.dev@email.com", cadastro: "30/07/2026", ltv: 0.00, ticket: 0.00, status: "Inativo" },
+  { id: "CUS-1026", nome: "Carlos Mendes", email: "cmendes.adv@email.com", cadastro: "28/07/2026", ltv: 997.00, ticket: 997.00, status: "Ativo" },
+  { id: "CUS-1025", nome: "Fernanda Costa", email: "fernandacosta1992@email.com", cadastro: "25/07/2026", ltv: 3250.00, ticket: 149.90, status: "Ativo" },
+  { id: "CUS-1024", nome: "Lucas Silva", email: "lucassilva.br@email.com", cadastro: "22/07/2026", ltv: 120.00, ticket: 120.00, status: "Inativo" },
+  { id: "CUS-1023", nome: "Beatriz Souza", email: "bia_souza@email.com", cadastro: "15/07/2026", ltv: 8400.00, ticket: 450.00, status: "VIP" },
+  { id: "CUS-1022", nome: "Rafael Lima", email: "rafaellima.arq@email.com", cadastro: "10/07/2026", ltv: 497.00, ticket: 497.00, status: "Ativo" },
+  { id: "CUS-1021", nome: "Camila Ribeiro", email: "camila.ribeiro.99@email.com", cadastro: "05/07/2026", ltv: 0.00, ticket: 0.00, status: "Bloqueado" },
+  { id: "CUS-1020", nome: "Felipe Gomes", email: "felipegomes_oficial@email.com", cadastro: "01/07/2026", ltv: 15400.00, ticket: 997.00, status: "VIP" },
 ];
 
-export default function OrdersPage() {
-  const [buscaCliente, setBuscaCliente] = useState("");
-  const [buscaId, setBuscaId] = useState("");
+export default function CustomersPage() {
+  const [buscaNome, setBuscaNome] = useState("");
+  const [buscaEmail, setBuscaEmail] = useState("");
   const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' | null }>({ key: '', direction: null });
 
   const formatCurrency = (val: number) => {
@@ -51,9 +51,9 @@ export default function OrdersPage() {
     return <ChevronDown className="w-3.5 h-3.5 opacity-20" />;
   };
 
-  let filteredList = [...MOCK_TRANSACTIONS].filter(t => 
-    t.cliente.toLowerCase().includes(buscaCliente.toLowerCase()) && 
-    (t.id.toLowerCase().includes(buscaId.toLowerCase()) || t.produto.toLowerCase().includes(buscaId.toLowerCase()))
+  let filteredList = [...MOCK_CUSTOMERS].filter(c => 
+    c.nome.toLowerCase().includes(buscaNome.toLowerCase()) && 
+    (c.email.toLowerCase().includes(buscaEmail.toLowerCase()) || c.id.toLowerCase().includes(buscaEmail.toLowerCase()))
   );
 
   if (sortConfig.direction !== null) {
@@ -62,7 +62,7 @@ export default function OrdersPage() {
       let valA: any = a[key as keyof typeof a];
       let valB: any = b[key as keyof typeof b];
 
-      if (key === 'valor') {
+      if (key === 'ltv' || key === 'ticket') {
         valA = Number(valA);
         valB = Number(valB);
       }
@@ -82,14 +82,14 @@ export default function OrdersPage() {
         {/* CABEÇALHO DENTRO DO CARD */}
         <div className="p-[16px_24px_0_24px] flex items-center gap-[12px] shrink-0">
           <div className="w-[40px] h-[40px] rounded-[10px] bg-[#F4EEFF] flex items-center justify-center shrink-0">
-            <ArrowRightLeft className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
+            <Users className="w-[20px] h-[20px] text-[#7C3AED]" strokeWidth={2.2} />
           </div>
           <div className="flex flex-col justify-center">
             <h1 className="text-[20px] font-[700] text-[#1A1A2E] leading-tight">
-              Transações
+              Base de Clientes
             </h1>
             <p className="text-[12px] text-[#6B7280] mt-0.5">
-              Acompanhe e gerencie todas as vendas e movimentações.
+              Gerencie todos os compradores, leads e assinantes da sua operação.
             </p>
           </div>
         </div>
@@ -99,7 +99,7 @@ export default function OrdersPage() {
           <div className="flex items-center gap-[12px]">
             <button className="flex items-center gap-[6px] px-[16px] py-[10px] bg-[#6D28D9] text-white text-[13px] font-[600] rounded-[8px] hover:bg-[#5B21B6] transition-colors shadow-sm uppercase tracking-wide shrink-0">
               <Plus className="w-[16px] h-[16px]" strokeWidth={2.4} />
-              NOVA TRANSAÇÃO
+              NOVO CLIENTE
             </button>
           </div>
           
@@ -108,9 +108,9 @@ export default function OrdersPage() {
               <Search className="text-[#9CA3AF] w-[16px] h-[16px] mr-[8px] shrink-0" strokeWidth={2.4} />
               <input
                 type="text"
-                value={buscaCliente}
-                onChange={(e) => setBuscaCliente(e.target.value)}
-                placeholder="Buscar por Cliente"
+                value={buscaNome}
+                onChange={(e) => setBuscaNome(e.target.value)}
+                placeholder="Buscar por Nome"
                 className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full"
               />
             </div>
@@ -118,9 +118,9 @@ export default function OrdersPage() {
               <Search className="text-[#9CA3AF] w-[16px] h-[16px] mr-[8px] shrink-0" strokeWidth={2.4} />
               <input
                 type="text"
-                value={buscaId}
-                onChange={(e) => setBuscaId(e.target.value)}
-                placeholder="Buscar por ID ou Produto"
+                value={buscaEmail}
+                onChange={(e) => setBuscaEmail(e.target.value)}
+                placeholder="Buscar por Email ou ID"
                 className="bg-transparent border-none outline-none text-[12px] text-[#1A1A2E] placeholder-[#9CA3AF] w-full"
               />
             </div>
@@ -131,16 +131,13 @@ export default function OrdersPage() {
         <div className="flex-1 flex flex-col overflow-x-auto custom-scrollbar">
 
           {/* Cabeçalho */}
-          <div 
-            className="grid items-center px-[24px] h-[40px] bg-[#FCFCFD] border-t border-b border-[#F1F1F4] min-w-[1150px] sticky top-0 z-10 shrink-0"
-            style={{ gridTemplateColumns: "100px 2fr 1.5fr 1.2fr 130px 140px 160px 80px" }}
-          >
+          <div className="grid grid-cols-[100px_2fr_2fr_1.2fr_1fr_1fr_0.8fr_80px] items-center px-[24px] h-[40px] bg-[#FCFCFD] border-t border-b border-[#F1F1F4] min-w-[1000px] sticky top-0 z-10 shrink-0">
             <button onClick={() => requestSort('id')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">ID {getSortIcon('id')}</button>
-            <button onClick={() => requestSort('cliente')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Cliente {getSortIcon('cliente')}</button>
-            <button onClick={() => requestSort('produto')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Produto {getSortIcon('produto')}</button>
-            <button onClick={() => requestSort('data')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Data {getSortIcon('data')}</button>
-            <button onClick={() => requestSort('metodo')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Método {getSortIcon('metodo')}</button>
-            <button onClick={() => requestSort('valor')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Valor {getSortIcon('valor')}</button>
+            <button onClick={() => requestSort('nome')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Cliente {getSortIcon('nome')}</button>
+            <button onClick={() => requestSort('email')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">E-mail {getSortIcon('email')}</button>
+            <button onClick={() => requestSort('cadastro')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Cadastro {getSortIcon('cadastro')}</button>
+            <button onClick={() => requestSort('ltv')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">LTV {getSortIcon('ltv')}</button>
+            <button onClick={() => requestSort('ticket')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Ticket Médio {getSortIcon('ticket')}</button>
             <button onClick={() => requestSort('status')} className="flex items-center gap-1 text-[12px] font-[700] text-[#6B7280] hover:text-[#1A1A2E] transition-colors">Status {getSortIcon('status')}</button>
             <span className="text-[12px] font-[700] text-[#6B7280] text-center">Ações</span>
           </div>
@@ -150,40 +147,35 @@ export default function OrdersPage() {
             {filteredList.length === 0 ? (
                <div className="flex flex-col items-center justify-center p-12 text-center">
                  <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-3">
-                   <Search className="w-6 h-6 text-gray-400" />
+                   <Users className="w-6 h-6 text-gray-400" />
                  </div>
-                 <h3 className="text-[15px] font-[600] text-gray-900 mb-1">Nenhuma transação encontrada</h3>
+                 <h3 className="text-[15px] font-[600] text-gray-900 mb-1">Nenhum cliente encontrado</h3>
                  <p className="text-[13px] text-gray-500">Tente ajustar os termos da sua busca.</p>
                </div>
             ) : (
-              filteredList.map((t) => (
-                <div 
-                  key={t.id} 
-                  className="grid items-center px-[24px] h-[42px] bg-white border-b border-[#F1F1F4] hover:bg-[#FAFAFC] transition-colors last:border-b-0 min-w-[1150px]"
-                  style={{ gridTemplateColumns: "100px 2fr 1.5fr 1.2fr 130px 140px 160px 80px" }}
-                >
-                  <span className="text-[12px] font-[600] text-[#4B5563] truncate pr-4">{t.id}</span>
+              filteredList.map((c) => (
+                <div key={c.id} className="grid grid-cols-[100px_2fr_2fr_1.2fr_1fr_1fr_0.8fr_80px] items-center px-[24px] h-[42px] bg-white border-b border-[#F1F1F4] hover:bg-[#FAFAFC] transition-colors last:border-b-0 min-w-[1000px]">
+                  <span className="text-[12px] font-[600] text-[#4B5563] truncate pr-4">{c.id}</span>
+                  <span className="text-[12px] font-[600] text-[#6D28D9] truncate pr-4 cursor-pointer hover:underline">{c.nome}</span>
+                  <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{c.email}</span>
+                  <span className="text-[12px] font-[500] text-[#4B5563]">{c.cadastro}</span>
+                  <span className="text-[12px] font-[700] text-[#1A1A2E]">{formatCurrency(c.ltv)}</span>
+                  <span className="text-[12px] font-[500] text-[#4B5563]">{formatCurrency(c.ticket)}</span>
                   
-                  <span className="text-[12px] font-[600] text-[#6D28D9] truncate pr-4 cursor-pointer hover:underline">{t.cliente}</span>
-                  <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{t.produto}</span>
-                  
-                  <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{t.data}</span>
-                  <span className="text-[12px] font-[500] text-[#4B5563] truncate pr-4">{t.metodo}</span>
-                  
-                  <span className="text-[12px] font-[700] text-[#1A1A2E] truncate pr-4">{formatCurrency(t.valor)}</span>
-                  
-                  <div className="pr-6">
+                  <div>
                     <div className={`inline-flex items-center gap-[4px] px-[8px] py-[2px] border rounded-full ${
-                      t.status === "Aprovado" 
-                        ? "bg-[#10B981]/[0.08] border-[#10B981]/[0.12] text-[#10B981]" 
-                        : t.status === "Recusado" || t.status === "Chargeback" || t.status === "Estornado"
-                        ? "bg-[#EF4444]/[0.08] border-[#EF4444]/[0.12] text-[#EF4444]"
-                        : "bg-[#F59E0B]/[0.08] border-[#F59E0B]/[0.12] text-[#F59E0B]"
+                      c.status === "Ativo"
+                        ? "bg-[#10B981]/[0.08] border-[#10B981]/[0.12] text-[#10B981]"
+                        : c.status === "VIP"
+                        ? "bg-[#7C3AED]/[0.08] border-[#7C3AED]/[0.12] text-[#7C3AED]"
+                        : c.status === "Inativo"
+                        ? "bg-gray-100 border-gray-200 text-gray-500"
+                        : "bg-[#EF4444]/[0.08] border-[#EF4444]/[0.12] text-[#EF4444]"
                     }`}>
                       <div className={`w-1.5 h-1.5 rounded-full ${
-                        t.status === "Aprovado" ? "bg-[#10B981]" : t.status === "Recusado" || t.status === "Chargeback" || t.status === "Estornado" ? "bg-[#EF4444]" : "bg-[#F59E0B]"
+                        c.status === "Ativo" ? "bg-[#10B981]" : c.status === "VIP" ? "bg-[#7C3AED]" : c.status === "Inativo" ? "bg-gray-400" : "bg-[#EF4444]"
                       }`}></div>
-                      <span className="text-[11px] font-[600] leading-none whitespace-nowrap">{t.status}</span>
+                      <span className="text-[11px] font-[600] leading-none">{c.status}</span>
                     </div>
                   </div>
                   
@@ -213,7 +205,7 @@ export default function OrdersPage() {
           </div>
 
           <span className="font-[500] text-[#374151]">
-            1-{filteredList.length} de {MOCK_TRANSACTIONS.length}
+            1-{filteredList.length} de {MOCK_CUSTOMERS.length}
           </span>
 
           <div className="flex items-center gap-4">

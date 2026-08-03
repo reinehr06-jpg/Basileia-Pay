@@ -1,98 +1,93 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   Shield, 
-  Lock, 
-  FileText, 
-  User, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
-  HelpCircle, 
-  Clock, 
-  ShieldAlert, 
   Check, 
-  ChevronRight, 
-  ArrowLeft,
-  Key,
-  Monitor,
+  Clock,
+  ShieldAlert,
   Globe
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { fetchWithTimeout, getCsrfToken, setTokens, getAccessToken, clearTokens } from '@/lib/api';
 
-type AuthState = 'credentials' | 'two_factor' | 'recovery' | 'locked_out' | 'session_expired' | 'restricted';
+import { fetchWithTimeout, getCsrfToken, setTokens } from '@/lib/api';
+import { LoginStyles } from '@/components/auth/LoginStyles';
+
+type AuthFlowState = 
+  | 'credentials'
+  | '2fa'
+  | 'recovery'
+  | 'locked_out'
+  | 'session_expired'
+  | 'restricted';
 
 export default function LoginPage() {
-  const [authState, setAuthState] = useState<AuthState>(() => {
-    // Detect ?reason=expired from URL to show session expired screen
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('reason') === 'expired') return 'session_expired';
-    }
-    return 'credentials';
-  });
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // State
+  const [authState, setAuthState] = useState<AuthFlowState>('credentials');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [remember, setRemember] = useState(true);
   const [loading, setLoading] = useState(false);
-
-  // 2FA Code States
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const codeInputs = useRef<any[]>([]);
-
-  // Recovery email state
+  
+  // Extra states
+  const [lockoutTime, setLockoutTime] = useState(0);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoverySent, setRecoverySent] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
-  // Locked out countdown simulation
-  const [lockoutTime, setLockoutTime] = useState(899); // 14:59 minutes
-
+  // Check URL params for specific states
   useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
+    const error = searchParams.get('error');
+    if (error === 'session_expired') setAuthState('session_expired');
+    if (error === 'locked') {
+      setAuthState('locked_out');
+      setLockoutTime(900); // 15 mins
+    }
+    if (error === 'restricted') setAuthState('restricted');
+  }, [searchParams]);
+
+  // Lockout timer
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
     if (authState === 'locked_out' && lockoutTime > 0) {
-      timer = setInterval(() => {
-        setLockoutTime((prev) => prev - 1);
+      interval = setInterval(() => {
+        setLockoutTime((prev) => {
+          if (prev <= 1) {
+            setAuthState('credentials');
+            return 0;
+          }
+          return prev - 1;
+        });
       }, 1000);
     }
-    return () => clearInterval(timer);
+    return () => clearInterval(interval);
   }, [authState, lockoutTime]);
-
-  const formatLockoutTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
+    setTimeout(() => setToastMessage(''), 3500);
   };
 
-  const handleCredentialsSubmit = async (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
-      triggerToast('Preencha todos os campos obrigatórios.');
+      triggerToast('Preencha email e senha');
       return;
     }
-    
+
     setLoading(true);
-    triggerToast('Validando credenciais de acesso...');
+    triggerToast('Autenticando...');
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
-      // Initialize CSRF-protected session
-      await fetchWithTimeout(`${API_URL}/sanctum/csrf-cookie`, {
-        method: 'GET',
-        credentials: 'include',
-      });
-      
       const csrfToken = getCsrfToken();
+      
       const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 
@@ -100,142 +95,85 @@ export default function LoginPage() {
           'Accept': 'application/json',
           ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
         },
-        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
       const data = await res.json();
 
-      if (!res.ok || !data.success) {
-        triggerToast(data.error?.message || 'Email ou senha inválidos.');
+      if (!res.ok) {
+        if (res.status === 403 && data.error === 'Account locked') {
+          setAuthState('locked_out');
+          setLockoutTime(900);
+          triggerToast('Muitas tentativas. Conta bloqueada.');
+        } else if (res.status === 403 && data.error === 'Device not recognized') {
+          setAuthState('restricted');
+          triggerToast('Acesso de dispositivo não reconhecido.');
+        } else {
+          triggerToast(data.message || 'Credenciais inválidas');
+        }
         setLoading(false);
         return;
       }
 
-      // Store tokens in sessionStorage for Bearer auth
-      const accessToken = data.access_token || data.data?.access_token || data.token || data.data?.token;
-      const refreshToken = data.refresh_token || data.data?.refresh_token;
-      const expiresAt = data.expires_at || data.data?.expires_at;
-      if (accessToken && refreshToken) {
-        setTokens(accessToken, refreshToken, expiresAt);
-      }
-
-      // Se precisa configurar 2FA, vai para setup
-      if (data.data?.needs_2fa_setup) {
-        triggerToast('Configure a autenticação de dois fatores para continuar.');
-        setTimeout(() => {
-          window.location.href = '/2fa/setup';
-        }, 500);
+      // Check if 2FA is required
+      if (data.requires_2fa) {
+        setAuthState('2fa');
+        setLoading(false);
+        triggerToast('Código 2FA enviado/requerido');
         return;
       }
 
-      // Se tem 2FA configurado, vai para verificação
-      if (data.data?.user?.two_factor_enabled) {
-        triggerToast('Credenciais corretas! Prossiga com o 2FA.');
-        setAuthState('two_factor');
-      } else {
-        triggerToast('Login realizado com sucesso!');
-        setTimeout(() => {
-          window.location.href = '/dashboard/onboarding';
-        }, 500);
-      }
+      // Success
+      setTokens(data.access_token, data.refresh_token, data.expires_at);
+      triggerToast('Login efetuado com sucesso!');
+      router.push('/dashboard');
+      
     } catch (err) {
-      triggerToast('Erro de conexão com o servidor. Verifique se a API está rodando.');
-    } finally {
+      console.error('Login error:', err);
+      triggerToast('Erro de conexão. Tente novamente.');
       setLoading(false);
     }
   };
 
-  // 2FA Code Handling
-  const handleCodeChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      // Handle paste
-      const pasted = value.slice(0, 6).split('');
-      const newCode = [...code];
-      pasted.forEach((char, i) => {
-        if (index + i < 6) newCode[index + i] = char;
-      });
-      setCode(newCode);
-      // Focus last pasted or next input
-      const nextIndex = Math.min(index + pasted.length, 5);
-      codeInputs.current[nextIndex]?.focus();
-      return;
-    }
-
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
-
-    if (value && index < 5) {
-      codeInputs.current[index + 1]?.focus();
-    }
-  };
-
-  const handleCodeKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      codeInputs.current[index - 1]?.focus();
-    }
-  };
-
-  const handle2faVerifySubmit = async (e: React.FormEvent) => {
+  const handle2FASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const fullCode = code.join('');
-    if (fullCode.length < 6) {
-      triggerToast('Por favor, insira o código completo de 6 dígitos.');
+    if (twoFactorCode.length < 6) {
+      triggerToast('Código inválido');
       return;
     }
 
     setLoading(true);
-    triggerToast('Validando código OTP...');
+    triggerToast('Verificando código 2FA...');
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-
       const csrfToken = getCsrfToken();
-      const token = getAccessToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/2fa/verify?_t=${Date.now()}`, {
+      
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/verify`, {
         method: 'POST',
-        headers: {
+        headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
           ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
         },
-        credentials: 'include',
-        body: JSON.stringify({ code: fullCode }),
+        body: JSON.stringify({ email, code: twoFactorCode }),
       });
 
       const data = await res.json();
 
-      if (res.status === 401) {
-        triggerToast('Sessão expirada. Faça login novamente.');
-        setAuthState('credentials');
-        setCode(['', '', '', '', '', '']);
+      if (!res.ok) {
+        triggerToast(data.message || 'Código inválido');
         setLoading(false);
         return;
       }
 
-      if (!res.ok || !data.success) {
-        triggerToast(data.message || data.error?.message || 'Código inválido ou expirado.');
-        setLoading(false);
-        return;
-      }
-
-      // Check if the response includes new tokens (some backends rotate tokens after 2FA)
-      const newAccess = data.data?.access_token || data.access_token || data.token;
-      const newRefresh = data.data?.refresh_token || data.refresh_token;
-      const expiresAt = data.data?.expires_at || data.expires_at;
-      if (newAccess && newRefresh) {
-        setTokens(newAccess, newRefresh, expiresAt);
-      }
-
-      triggerToast('Autenticado! Redirecionando...');
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 500);
+      setTokens(data.access_token, data.refresh_token, data.expires_at);
+      triggerToast('Autenticado com sucesso!');
+      router.push('/dashboard');
+      
     } catch (err) {
-      triggerToast('Erro de conexão com o servidor.');
-    } finally {
+      console.error('2FA error:', err);
+      triggerToast('Erro de comunicação.');
       setLoading(false);
     }
   };
@@ -243,17 +181,17 @@ export default function LoginPage() {
   const handleRecoverySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recoveryEmail) {
-      triggerToast('Informe seu e-mail.');
+      triggerToast('Digite seu e-mail de recuperação');
       return;
     }
 
     setLoading(true);
-    triggerToast('Processando solicitação de recuperação...');
+    triggerToast('Processando solicitação...');
 
     try {
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-      
       const csrfToken = getCsrfToken();
+      
       const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/password/forgot`, {
         method: 'POST',
         headers: { 
@@ -264,8 +202,6 @@ export default function LoginPage() {
         body: JSON.stringify({ email: recoveryEmail }),
       });
 
-      const data = await res.json();
-
       if (!res.ok) {
         triggerToast('Erro ao processar solicitação. Tente novamente.');
         setLoading(false);
@@ -273,700 +209,452 @@ export default function LoginPage() {
       }
 
       setRecoverySent(true);
-      triggerToast('Se este e-mail estiver cadastrado, enviaremos as instruções.');
+      triggerToast('Instruções enviadas! Verifique seu e-mail.');
+      setRecoveryEmail('');
+      setTimeout(() => {
+        setAuthState('credentials');
+        setRecoverySent(false);
+      }, 5000);
     } catch (err) {
-      triggerToast('Erro de conexão com o servidor.');
+      console.error('Recovery error:', err);
+      triggerToast('Erro de conexão. Verifique sua internet.');
     } finally {
       setLoading(false);
     }
   };
 
+  const formatLockoutTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-tr from-[#FAF8FF] via-[#F4EFFF] to-[#FCFAFF] flex items-center justify-center p-4 xl:p-10 select-none overflow-x-hidden font-sans">
-      
-      {/* Toast Alert popup */}
+    <>
+      <LoginStyles />
       {toastMessage && (
-        <div className="fixed top-6 right-6 z-55 bg-slate-900 text-white rounded-2xl p-4 shadow-2xl flex items-center gap-2.5 max-w-sm animate-in slide-in-from-top-4 duration-300">
-          <span className="w-2 h-2 bg-brand rounded-full shrink-0 animate-ping" />
-          <span className="text-[11px] font-black text-left">{toastMessage}</span>
+        <div style={{position: 'fixed', top: '24px', right: '24px', zIndex: 9999, background: '#0f172a', color: '#fff', borderRadius: '16px', padding: '14px 20px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '10px', maxWidth: '360px', animation: 'fadeIn 0.3s ease'}}>
+          <span style={{width: '8px', height: '8px', background: '#7C3AED', borderRadius: '50%', flexShrink: 0}} />
+          <span style={{fontSize: '12px', fontWeight: 700}}>{toastMessage}</span>
         </div>
       )}
+      <div className="split">
 
-      {/* Grid container */}
-      <div className="w-full max-w-[1240px] grid grid-cols-1 lg:grid-cols-2 gap-8 xl:gap-14 items-center">
-        
-        {/* Lado Esquerdo: Branding & Confiança */}
-        <div className="hidden lg:flex flex-col text-left space-y-7 animate-in fade-in slide-in-from-left-6 duration-700">
+        {/* ========================================
+            LEFT PANEL
+        ======================================== */}
+        <div className="left">
           
-          {/* Logo Basileia */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-brand via-violet-650 to-brand-dark flex items-center justify-center text-white font-extrabold shadow-lg shadow-brand/10">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="white" />
-                <path d="M2 17L12 22L22 17M2 12L12 17L22 12" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+          {/* Fundo abstrato futurista com luzes e linhas */}
+          <div className="bg-base" />
+          <div className="bg-glow-center" />
+          <div className="bg-glow-logo" />
+          <div className="bg-line line-1" />
+          <div className="bg-line line-2" />
+          <div className="bg-line line-3" />
+
+          <div className="brand-logo-container">
+            <img 
+              src="https://dash.basileia.global/images/logo-basileia.png?0b669f9a5d54a07b37941d0c8db9ac64" 
+              alt="Basileia Pay" 
+              className="brand-logo"
+            />
+          </div>
+
+          <div className="benefits-container">
+            <div className="benefit-card">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 22V11"/><path d="M6 22V11"/><path d="M12 2v5"/><path d="M9 5h6"/><path d="M12 7l-9 7v8h18v-8z"/><path d="M10 22v-5a2 2 0 0 1 4 0v5"/>
+                </svg>
+              </div>
+              <div className="benefit-text">Gestão de<br/>Vendas</div>
             </div>
-            <span className="text-[25px] font-black tracking-tight text-[#1E1538]">Basileia</span>
+            
+            <div className="benefit-card">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
+                </svg>
+              </div>
+              <div className="benefit-text">Segurança<br/>Bancária</div>
+            </div>
+
+            <div className="benefit-card">
+              <div className="benefit-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>
+                </svg>
+              </div>
+              <div className="benefit-text">Resultados<br/>Centralizados</div>
+            </div>
           </div>
 
-          {/* Frase institucional */}
-          <div className="space-y-4">
-            <h2 className="text-[28px] xl:text-[34px] font-black tracking-tight text-[#1E1538] leading-tight">
-              Plataforma inteligente para<br />gestão, pagamentos e automação.
-            </h2>
-          </div>
+          <div className="preview-wrapper">
+            <div className="preview-sidebar">
+              <div className="preview-sidebar-logo" />
+              <div className="preview-nav-item active">
+                <div className="preview-nav-icon" />
+                <div className="preview-nav-text" />
+              </div>
+              <div className="preview-nav-item">
+                <div className="preview-nav-icon" />
+                <div className="preview-nav-text short" />
+              </div>
+              <div className="preview-nav-item">
+                <div className="preview-nav-icon" />
+                <div className="preview-nav-text medium" />
+              </div>
+              <div className="preview-nav-item">
+                <div className="preview-nav-icon" />
+                <div className="preview-nav-text short" />
+              </div>
+            </div>
+            
+            <div className="preview-main">
+              <div className="preview-header">
+                <div className="preview-header-titles">
+                  <div className="preview-header-title" />
+                  <div className="preview-header-sub" />
+                </div>
+                <div className="preview-avatar" />
+              </div>
 
-          {/* Pilares de segurança */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-3">
-            {[
-              { icon: Shield, title: 'Ambiente protegido', desc: 'Seus dados sempre seguros' },
-              { icon: Lock, title: 'Infraestrutura segura', desc: 'Padrões globais de segurança' },
-              { icon: FileText, title: 'Acesso auditável', desc: 'Logs, trilhas e conformidade' }
-            ].map((pilar) => {
-              const IconComp = pilar.icon;
-              return (
-                <div key={pilar.title} className="space-y-2">
-                  <div className="w-9 h-9 rounded-xl bg-violet-100/75 text-brand flex items-center justify-center border border-violet-200/20 shadow-sm">
-                    <IconComp className="w-4.5 h-4.5" />
+              <div className="preview-content">
+                <div className="preview-stats-row">
+                  <div className="preview-stat-card"><div className="preview-stat-icon"/><div className="preview-stat-line"/></div>
+                  <div className="preview-stat-card"><div className="preview-stat-icon"/><div className="preview-stat-line"/></div>
+                  <div className="preview-stat-card"><div className="preview-stat-icon"/><div className="preview-stat-line"/></div>
+                  <div className="preview-stat-card"><div className="preview-stat-icon"/><div className="preview-stat-line"/></div>
+                </div>
+
+                <div className="preview-charts-row">
+                  <div className="preview-line-chart">
+                    <div className="preview-line-chart-grid" />
+                    <div className="preview-chart-tooltip" />
+                    <svg viewBox="0 0 100 40" preserveAspectRatio="none" style={{width: '100%', height: '100%', position: 'absolute', inset: 0, padding: '16px', boxSizing: 'border-box'}}>
+                      <defs>
+                        <linearGradient id="chart-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="rgba(196, 181, 253, 0.4)" />
+                          <stop offset="100%" stopColor="rgba(196, 181, 253, 0)" />
+                        </linearGradient>
+                      </defs>
+                      <polygon points="0,40 0,35 15,25 30,30 45,15 60,20 75,5 90,12 100,5 100,40" fill="url(#chart-grad)" />
+                      <polyline points="0,35 15,25 30,30 45,15 60,20 75,5 90,12 100,5" fill="none" stroke="rgba(196, 181, 253, 1)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                      <polyline points="0,38 15,30 30,34 45,22 60,26 75,12 90,18 100,10" fill="none" stroke="rgba(196, 181, 253, 0.3)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="2 2" />
+                      <circle cx="45" cy="15" r="1.5" fill="#C4B5FD" stroke="#16003B" strokeWidth="0.5" />
+                      <circle cx="75" cy="5" r="2" fill="#C4B5FD" stroke="#16003B" strokeWidth="0.5" />
+                      <circle cx="100" cy="5" r="1.5" fill="#C4B5FD" />
+                    </svg>
                   </div>
-                  <h4 className="text-xs font-black text-slate-800 tracking-tight">{pilar.title}</h4>
-                  <p className="text-[10px] font-bold text-slate-400 leading-normal">{pilar.desc}</p>
+                  <div className="preview-donut-chart">
+                    <svg viewBox="0 0 40 40" style={{width: '60px', height: '60px', position: 'relative', zIndex: 1}}>
+                      <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="5" />
+                      <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(167,139,250,0.8)" strokeWidth="5" strokeDasharray="30 70" strokeDashoffset="0" strokeLinecap="round" transform="rotate(-90 20 20)" style={{filter: 'drop-shadow(0 2px 4px rgba(167,139,250,0.4))'}}/>
+                      <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(196,181,253,0.3)" strokeWidth="5" strokeDasharray="15 80" strokeDashoffset="-35" strokeLinecap="round" transform="rotate(-90 20 20)" />
+                    </svg>
+                    <div className="preview-donut-center">
+                      <div className="preview-donut-text-1" />
+                      <div className="preview-donut-text-2" />
+                    </div>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
 
-          {/* High Fidelity Beautiful Corporate Visual Centerpiece representing Basileia Checkout */}
-          <div className="relative w-full h-[220px] rounded-[24px] overflow-hidden border border-brand/5 shadow-sm bg-white/40 backdrop-blur-md flex items-center justify-center">
-            
-            {/* Glowing neon purple circles */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-brand/10 rounded-full blur-3xl" />
-            <div className="absolute top-10 right-10 w-20 h-20 bg-fuchsia-500/5 rounded-full blur-2xl" />
-
-            {/* Isometric Checkout visual artwork */}
-            <svg className="w-[340px] h-[190px] z-10 overflow-visible" viewBox="0 0 340 190" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <style>{`
-                @keyframes floatCheckout {
-                  0% { transform: translateY(0px); }
-                  50% { transform: translateY(-4px); }
-                  100% { transform: translateY(0px); }
-                }
-                @keyframes floatCreditCard {
-                  0% { transform: translateY(0px) rotate(0deg); }
-                  50% { transform: translateY(-8px) rotate(1.5deg); }
-                  100% { transform: translateY(0px) rotate(0deg); }
-                }
-                @keyframes floatPixQR {
-                  0% { transform: translateY(0px) scale(1); }
-                  50% { transform: translateY(-5px) scale(1.03); }
-                  100% { transform: translateY(0px) scale(1); }
-                }
-                @keyframes pulseGlow {
-                  0% { opacity: 0.8; }
-                  50% { opacity: 1; }
-                  100% { opacity: 0.8; }
-                }
-                .anim-checkout {
-                  animation: floatCheckout 5s ease-in-out infinite;
-                  transform-origin: center;
-                }
-                .anim-card-glow {
-                  animation: floatCreditCard 4s ease-in-out infinite;
-                  transform-origin: center;
-                }
-                .anim-pix-qr {
-                  animation: floatPixQR 4.5s ease-in-out infinite;
-                  transform-origin: center;
-                }
-                .glow-secure {
-                  animation: pulseGlow 2s ease-in-out infinite;
-                }
-              `}</style>
-
-              {/* 1. THE MAIN CHECKOUT WINDOW (Simulating a Premium Payment Form) */}
-              <g className="anim-checkout">
-                {/* Outer shadow card */}
-                <rect x="15" y="15" width="200" height="155" rx="14" fill="#FFFFFF" stroke="#E8DDFD" strokeWidth="1.5" filter="drop-shadow(0 10px 20px rgba(139, 92, 246, 0.05))" />
-                
-                {/* Top browser/window header with exit/minimize buttons */}
-                <path d="M15 29 C15 20.7 21.7 15 30 15 L200 15 C208.3 15 215 20.7 215 29 L215 35 L15 35 Z" fill="#F8FAFC" stroke="#E8DDFD" strokeWidth="1" />
-                <circle cx="27" cy="25" r="3" fill="#EF4444" />
-                <circle cx="37" cy="25" r="3" fill="#FBBF24" />
-                <circle cx="47" cy="25" r="3" fill="#10B981" />
-                <text x="60" y="28" fill="#64748B" fontSize="8" fontWeight="bold" fontFamily="sans-serif">checkout.basileia.pay</text>
-                
-                {/* Form header & summary */}
-                <text x="30" y="52" fill="#1E1538" fontSize="10" fontWeight="900" fontFamily="sans-serif">Resumo do Pedido</text>
-                <text x="145" y="52" fill="#8B5CF6" fontSize="10" fontWeight="900" fontFamily="sans-serif" textAnchor="end">R$ 149,90</text>
-                
-                {/* Tab selectors for payment methods */}
-                <rect x="30" y="60" width="75" height="18" rx="4" fill="#F5F3FF" stroke="#8B5CF6" strokeWidth="1" />
-                <text x="67" y="72" fill="#8B5CF6" fontSize="8" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">💳 Cartão</text>
-                
-                <rect x="110" y="60" width="75" height="18" rx="4" fill="#F8FAFC" stroke="#E2E8F0" strokeWidth="1" />
-                <text x="147" y="72" fill="#64748B" fontSize="8" fontWeight="bold" fontFamily="sans-serif" textAnchor="middle">⚡ Pix</text>
-
-                {/* Card input field placeholder (Realistic Credit Card Input Form) */}
-                <rect x="30" y="85" width="155" height="18" rx="4" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
-                <text x="38" y="97" fill="#94A3B8" fontSize="8" fontFamily="sans-serif">4000 1234 5678 9010</text>
-                {/* Mini card indicator */}
-                <rect x="168" y="89" width="12" height="10" rx="1.5" fill="#1E293B" />
-                <circle cx="172" cy="94" r="2.5" fill="#EF4444" />
-                <circle cx="176" cy="94" r="2.5" fill="#F59E0B" opacity="0.8" />
-
-                {/* Expiry and CVV fields */}
-                <rect x="30" y="108" width="75" height="18" rx="4" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
-                <text x="38" y="120" fill="#94A3B8" fontSize="8" fontFamily="sans-serif">12 / 29</text>
-
-                <rect x="110" y="108" width="75" height="18" rx="4" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" />
-                <text x="118" y="120" fill="#94A3B8" fontSize="8" fontFamily="sans-serif">•••</text>
-
-                {/* Big Green/Violet Secure CTA Button */}
-                <rect x="30" y="132" width="155" height="22" rx="6" fill="#8B5CF6" />
-                <text x="107" y="146" fill="#FFFFFF" fontSize="8.5" fontWeight="900" fontFamily="sans-serif" textAnchor="middle">PAGAR AGORA</text>
-                
-                {/* PCI Compliance indicator */}
-                <text x="30" y="162" fill="#94A3B8" fontSize="7" fontWeight="bold" fontFamily="sans-serif">🔒 SSL Secured • PCI-DSS Compliant</text>
-              </g>
-
-              {/* 2. THE FLOATING PREMIUM CREDIT CARD */}
-              <g className="anim-card-glow" transform="translate(170, 30)">
-                {/* Shiny Card backing */}
-                <rect x="0" y="0" width="145" height="90" rx="10" fill="url(#premium-card-gradient)" stroke="#FFFFFF" strokeWidth="1.5" filter="drop-shadow(0 8px 16px rgba(109, 40, 217, 0.15))" />
-                
-                {/* Gold security chip */}
-                <rect x="12" y="14" width="18" height="14" rx="3" fill="url(#chip-gradient)" stroke="#F59E0B" strokeWidth="0.5" />
-                <line x1="12" y1="21" x2="30" y2="21" stroke="#F59E0B" strokeWidth="0.5" />
-                <line x1="21" y1="14" x2="21" y2="28" stroke="#F59E0B" strokeWidth="0.5" />
-
-                {/* Cardholder name and mockup numbers */}
-                <text x="12" y="48" fill="#F3E8FF" fontSize="9" fontFamily="monospace" letterSpacing="1">•••• •••• •••• 4242</text>
-                <text x="12" y="66" fill="#D8B4FE" fontSize="6.5" fontWeight="bold" fontFamily="sans-serif">PRO MEMBER</text>
-                <text x="12" y="74" fill="#FFFFFF" fontSize="8" fontWeight="bold" fontFamily="sans-serif">VINICIUS REINEHR</text>
-
-                {/* Holographic brand emblem */}
-                <g className="glow-secure">
-                  <circle cx="120" cy="70" r="8" fill="#EF4444" opacity="0.9" />
-                  <circle cx="128" cy="70" r="8" fill="#F59E0B" opacity="0.75" />
-                </g>
-              </g>
-
-              {/* 3. FLOATING PIX QR CODE BADGE (Glassmorphic) */}
-              <g className="anim-pix-qr" transform="translate(240, 115)">
-                {/* Transparent glassmorphic background */}
-                <rect x="0" y="0" width="80" height="65" rx="12" fill="#FFFFFF" stroke="#E2E8F0" strokeWidth="1" filter="drop-shadow(0 6px 12px rgba(0,0,0,0.03))" />
-                
-                {/* Pix Header indicator */}
-                <rect x="0" y="0" width="80" height="15" rx="12" fill="#E0F2FE" />
-                <rect x="0" y="8" width="80" height="7" fill="#E0F2FE" />
-                <text x="40" y="11" fill="#0369A1" fontSize="7" fontWeight="black" fontFamily="sans-serif" textAnchor="middle">⚡ PIX CONFIRMADO</text>
-
-                {/* Detailed Mockup QR Code matrix grid */}
-                <g transform="translate(10, 22)" fill="#1E293B">
-                  {/* Top-left corner finder */}
-                  <rect x="0" y="0" width="10" height="10" fill="#0284C7" />
-                  <rect x="2" y="2" width="6" height="6" fill="#FFFFFF" />
-                  <rect x="3" y="3" width="4" height="4" fill="#0284C7" />
-
-                  {/* Top-right corner finder */}
-                  <rect x="50" y="0" width="10" height="10" fill="#0284C7" />
-                  <rect x="52" y="2" width="6" height="6" fill="#FFFFFF" />
-                  <rect x="53" y="3" width="4" height="4" fill="#0284C7" />
-
-                  {/* Bottom-left corner finder */}
-                  <rect x="0" y="26" width="10" height="10" fill="#0284C7" />
-                  <rect x="2" y="28" width="6" height="6" fill="#FFFFFF" />
-                  <rect x="3" y="29" width="4" height="4" fill="#0284C7" />
-
-                  {/* Random pixels to look like a real QR code */}
-                  <rect x="15" y="0" width="3" height="3" />
-                  <rect x="22" y="3" width="4" height="3" />
-                  <rect x="30" y="1" width="3" height="4" />
-                  <rect x="38" y="0" width="5" height="3" />
-                  
-                  <rect x="15" y="12" width="6" height="3" />
-                  <rect x="25" y="15" width="3" height="5" />
-                  <rect x="35" y="10" width="12" height="3" />
-                  
-                  <rect x="15" y="26" width="5" height="3" />
-                  <rect x="25" y="30" width="10" height="3" />
-                  <rect x="42" y="26" width="6" height="8" fill="#10B981" />
-                  
-                  {/* Success check inside QR card */}
-                  <path d="M44 30 L46 32 L49 28" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                </g>
-              </g>
-
-              {/* DEF GRADIENTS */}
-              <defs>
-                <linearGradient id="premium-card-gradient" x1="0" y1="0" x2="145" y2="90" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#7C3AED" />
-                  <stop offset="0.5" stopColor="#6D28D9" />
-                  <stop offset="1" stopColor="#4C1D95" />
-                </linearGradient>
-                <linearGradient id="chip-gradient" x1="12" y1="14" x2="30" y2="28" gradientUnits="userSpaceOnUse">
-                  <stop stopColor="#FCD34D" />
-                  <stop offset="1" stopColor="#F59E0B" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-
-        </div>
-
-        {/* Lado Direito: Auth Container Card */}
-        <div className="flex flex-col space-y-4 items-center justify-center animate-in fade-in slide-in-from-right-6 duration-700">
-          
-          <div className="bg-white border border-[#E8DDFD]/90 rounded-[28px] p-6.5 xl:p-9.5 shadow-2xl shadow-purple-950/5 w-full max-w-[480px] text-left space-y-6 relative overflow-hidden">
-            
-            {/* Step indicator (Only visible for active forms credentials & 2fa) */}
-            {(authState === 'credentials' || authState === 'two_factor') && (
-              <div className="flex items-center justify-center gap-3 w-full shrink-0 select-none pb-2 border-b border-slate-50">
-                <div className="flex items-center gap-1.5">
-                  <span className={cn(
-                    "w-5.5 h-5.5 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
-                    authState === 'credentials' ? "bg-brand text-white shadow-md shadow-brand/15" : "bg-emerald-100 text-emerald-700"
-                  )}>
-                    {authState === 'credentials' ? '1' : <Check className="w-3 h-3" />}
-                  </span>
-                  <span className={cn(
-                    "text-[11px] font-black uppercase tracking-wider",
-                    authState === 'credentials' ? "text-brand" : "text-slate-400"
-                  )}>Credenciais</span>
-                </div>
-                <span className="w-10 h-[1.5px] bg-[#E8DDFD] shrink-0" />
-                <div className="flex items-center gap-1.5">
-                  <span className={cn(
-                    "w-5.5 h-5.5 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
-                    authState === 'two_factor' ? "bg-brand text-white shadow-md shadow-brand/15" : "bg-slate-50 border border-slate-200 text-slate-400"
-                  )}>2</span>
-                  <span className={cn(
-                    "text-[11px] font-black uppercase tracking-wider",
-                    authState === 'two_factor' ? "text-brand" : "text-slate-400"
-                  )}>Verificação</span>
+                <div className="preview-list">
+                  <div className="preview-list-item">
+                    <div className="preview-list-dot" /><div className="preview-list-line" />
+                  </div>
+                  <div className="preview-list-item">
+                    <div className="preview-list-dot" /><div className="preview-list-line" style={{width: '60%'}}/>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================
+            RIGHT PANEL
+        ======================================== */}
+        <div className="right">
+          <div className="mobile-logo">
+            <div className="mobile-logo-row">
+              <div className="mobile-logo-icon"><span>B</span></div>
+              <span className="mobile-logo-text">Basileia</span>
+            </div>
+          </div>
+
+          <div className="card">
+            {/* Logo dentro do card */}
+            <div className="card-logo">
+              <img 
+                src="https://dash.basileia.global/images/logo-basileia.png?0b669f9a5d54a07b37941d0c8db9ac64" 
+                alt="Basileia Pay" 
+                style={{ width: '145px', height: 'auto', filter: 'brightness(0) invert(18%) sepia(87%) saturate(3015%) hue-rotate(253deg) brightness(85%) contrast(108%)' }}
+              />
+            </div>
 
             {/* FLOW STATE 1: CREDENTIALS */}
             {authState === 'credentials' && (
-              <form onSubmit={handleCredentialsSubmit} className="space-y-5 animate-in fade-in duration-300">
-                <div>
-                  <h3 className="text-[22px] font-black tracking-tight text-[#1E1538]">Entrar na Basileia</h3>
-                  <p className="text-slate-400 font-semibold text-xs mt-1">Acesse sua central com segurança</p>
+              <form onSubmit={handleLoginSubmit} className="fade-in" style={{width: '100%'}}>
+                <div className="card-header">
+                  <h1>Entrar no Basileia Pay</h1>
+                  <p>Acesse seu painel financeiro para continuar.</p>
                 </div>
 
-                <div className="space-y-4">
-                  {/* Email */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail</label>
-                    <div className="relative w-full">
-                      <input 
-                        type="email"
-                        required
-                        placeholder="seu@email.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value.toLowerCase())}
-                        className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-[#E8DDFD] rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-brand placeholder:text-slate-350 shadow-sm"
-                      />
-                      <User className="w-4 h-4 text-slate-350 absolute left-3.5 top-3.5" />
-                    </div>
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Senha</label>
-                    <div className="relative w-full">
-                      <input 
-                        type={showPassword ? 'text' : 'password'}
-                        required
-                        placeholder="Digite sua senha"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full h-11 pl-10 pr-10 bg-slate-50 border border-[#E8DDFD] rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-brand placeholder:text-slate-350 shadow-sm"
-                      />
-                      <Lock className="w-4 h-4 text-slate-350 absolute left-3.5 top-3.5" />
-                      <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        aria-label="Alternar exibição de senha"
-                        className="absolute right-3 top-3.5 text-slate-350 hover:text-slate-655"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Remember & Forgot row */}
-                <div className="flex items-center justify-between text-xs pt-1 select-none">
-                  <label className="flex items-center gap-2 font-semibold text-slate-550 cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      className="rounded border-[#E8DDFD] text-brand focus:ring-brand cursor-pointer"
+                <div className="field">
+                  <label htmlFor="email">E-mail</label>
+                  <div className="input-wrap">
+                    <span className="icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="2" y="4" width="20" height="16" rx="2" />
+                        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                      </svg>
+                    </span>
+                    <input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="seuemail@exemplo.com"
+                      required
                     />
-                    Lembrar de mim
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label htmlFor="password">Senha</label>
+                  <div className="input-wrap">
+                    <span className="icon">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                      </svg>
+                    </span>
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label="Mostrar/esconder senha"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        {showPassword ? (
+                          <>
+                            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                            <line x1="1" y1="1" x2="23" y2="23" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+                            <circle cx="12" cy="12" r="3" />
+                          </>
+                        )}
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="actions">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={remember}
+                      onChange={(e) => setRemember(e.target.checked)}
+                    />
+                    Manter conectado
                   </label>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setAuthState('recovery');
-                      triggerToast('Aba de recuperação de acesso aberta.');
-                    }}
-                    className="text-brand font-black hover:underline tracking-tight"
-                  >
+                  <button type="button" className="forgot" onClick={() => setAuthState('recovery')}>
                     Esqueci minha senha
                   </button>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full h-12 bg-brand hover:bg-brand-dark text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-brand/15 transition-all flex items-center justify-center gap-1.5"
-                >
-                  {loading ? 'Entrando...' : 'Continuar'}
-                  <ArrowRight className="w-4 h-4 text-white" />
+                <button type="submit" className="btn" disabled={loading}>
+                  {loading ? 'Autenticando...' : 'Entrar no sistema'}
                 </button>
 
-                <div className="text-center text-xs text-slate-400 font-semibold mt-2">
-                  Não tem uma conta?{' '}
-                  <Link href="/register" className="text-brand font-black hover:underline">
-                    Criar conta
-                  </Link>
+                <div className="divider">
+                  <hr />
+                  <span>ou</span>
+                  <hr />
+                </div>
+
+                <div className="new-account">
+                  <span>Ainda não tem uma conta?</span>
+                  <a onClick={() => setIsRegistering(true)} style={{cursor: 'pointer'}}>Criar conta agora →</a>
                 </div>
               </form>
             )}
 
-            {/* FLOW STATE 2: TWO FACTOR AUTH (2FA) */}
-            {authState === 'two_factor' && (
-              <form onSubmit={handle2faVerifySubmit} className="space-y-5 animate-in fade-in duration-300">
-                <div>
-                  <h3 className="text-[22px] font-black tracking-tight text-[#1E1538]">Verificação em 2 fatores</h3>
-                  <p className="text-slate-400 font-semibold text-xs mt-1">
-                    Insira o código de 6 dígitos gerado pelo seu app autenticador.
-                  </p>
+            {/* FLOW STATE 2: 2FA */}
+            {authState === '2fa' && (
+              <form onSubmit={handle2FASubmit} className="fade-in" style={{width: '100%'}}>
+                <div className="card-header">
+                  <h1>Autenticação em Dois Fatores</h1>
+                  <p>Insira o código de 6 dígitos gerado pelo seu app autenticador.</p>
                 </div>
 
-                <div className="space-y-4">
-                  {/* 6 Digit Input boxes */}
-                  <div className="flex justify-between gap-2 pt-2">
-                    {code.map((digit, i) => (
-                      <input
-                        key={i}
-                        ref={(el) => { codeInputs.current[i] = el; }}
-                        type="text"
-                        maxLength={1}
-                        value={digit}
-                        onChange={(e) => handleCodeChange(i, e.target.value)}
-                        onKeyDown={(e) => handleCodeKeyDown(i, e)}
-                        className="w-11 h-13 bg-slate-50 border-2 border-[#E8DDFD] rounded-xl text-center text-lg font-black text-[#1E1538] focus:outline-none focus:border-brand transition-all shadow-sm focus:bg-white"
-                      />
-                    ))}
+                <div className="field">
+                  <label>Código 2FA</label>
+                  <div className="input-wrap">
+                    <span className="icon">
+                      <Shield className="w-4 h-4" />
+                    </span>
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={twoFactorCode}
+                      onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
+                      placeholder="000000"
+                      className="text-center tracking-[0.5em] text-lg font-mono"
+                      required
+                    />
                   </div>
-
-                  <span className="text-[10px] font-bold text-slate-400 text-left block leading-relaxed">
-                    Dica: Copie o código gerado no Autenticador e cole direto no primeiro campo para auto-preenchimento.
-                  </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={loading || code.join('').length < 6}
-                  className="w-full h-12 bg-brand hover:bg-brand-dark text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-brand/15 transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  {loading ? 'Verificando...' : 'Verificar e Acessar'}
-                  <ArrowRight className="w-4 h-4 text-white" />
+                <button type="submit" className="btn mt-4" disabled={loading || twoFactorCode.length < 6}>
+                  {loading ? 'Verificando...' : 'Verificar Acesso'}
                 </button>
-
-                <div className="flex flex-col gap-3 pt-2 text-center text-xs select-none">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      triggerToast('Digite "000000" para simular o código de recuperação.');
-                      setCode(['0', '0', '0', '0', '0', '0']);
-                    }}
-                    className="text-brand font-black hover:underline"
-                  >
-                    Usar código de recuperação
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthState('credentials');
-                      triggerToast('Voltando para o primeiro passo.');
-                    }}
-                    className="text-slate-450 hover:text-slate-700 font-bold flex items-center justify-center gap-1"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao login
-                  </button>
+                
+                <div className="new-account" style={{marginTop: '20px', justifyContent: 'center'}}>
+                  <a onClick={() => setAuthState('credentials')} style={{cursor: 'pointer'}}>← Voltar</a>
                 </div>
               </form>
             )}
 
-            {/* FLOW STATE 3: PASSWORD RECOVERY (FORGOT) */}
+            {/* FLOW STATE 3: RECOVERY */}
             {authState === 'recovery' && (
-              <form onSubmit={handleRecoverySubmit} className="space-y-5 animate-in fade-in duration-300">
-                <div>
-                  <h3 className="text-[22px] font-black tracking-tight text-[#1E1538]">Recuperar Acesso</h3>
-                  <p className="text-slate-400 font-semibold text-xs mt-1">
-                    Insira seu e-mail para receber as instruções de redefinição.
-                  </p>
+              <form onSubmit={handleRecoverySubmit} className="fade-in" style={{width: '100%'}}>
+                <div className="card-header">
+                  <h1>Recuperar Acesso</h1>
+                  <p>Insira seu e-mail para receber instruções.</p>
                 </div>
 
                 {!recoverySent ? (
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">E-mail corporativo</label>
-                      <div className="relative w-full">
-                        <input 
+                  <>
+                    <div className="field">
+                      <label>E-mail corporativo</label>
+                      <div className="input-wrap">
+                        <span className="icon">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="2" y="4" width="20" height="16" rx="2" />
+                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
+                          </svg>
+                        </span>
+                        <input
                           type="email"
                           required
-                          placeholder="seu@email.com"
+                          placeholder="seuemail@exemplo.com"
                           value={recoveryEmail}
-                          onChange={(e) => setRecoveryEmail(e.target.value.toLowerCase())}
-                          className="w-full h-11 pl-10 pr-4 bg-slate-50 border border-[#E8DDFD] rounded-xl text-xs font-semibold text-slate-900 focus:outline-none focus:border-brand placeholder:text-slate-350 shadow-sm"
+                          onChange={(e) => setRecoveryEmail(e.target.value)}
                         />
-                        <User className="w-4 h-4 text-slate-350 absolute left-3.5 top-3.5" />
                       </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={loading}
-                      className="w-full h-12 bg-brand hover:bg-brand-dark text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-brand/15 transition-all flex items-center justify-center"
-                    >
+                    <button type="submit" className="btn mt-4" disabled={loading}>
                       {loading ? 'Enviando...' : 'Enviar Instruções'}
                     </button>
-                  </div>
+                  </>
                 ) : (
-                  <div className="bg-[#FAF8FF] border border-[#E8DDFD]/65 rounded-2xl p-4.5 text-left space-y-3.5 shadow-sm">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-100">
-                      <Check className="w-4 h-4" />
+                  <div style={{background: 'rgba(16, 185, 129, 0.1)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.2)'}}>
+                    <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                      <Check style={{color: '#10B981'}} size={18} />
+                      <h4 style={{margin: 0, color: '#047857', fontSize: '14px', fontWeight: 600}}>Solicitação Enviada</h4>
                     </div>
-                    <div className="space-y-1">
-                      <h4 className="text-[11px] font-black text-slate-800 uppercase tracking-wider leading-none">Solicitação Enviada</h4>
-                      <p className="text-[10px] font-bold text-slate-400 leading-relaxed mt-1">
-                        Se este e-mail estiver cadastrado, enviaremos as instruções de recuperação.
-                      </p>
-                    </div>
+                    <p style={{margin: 0, fontSize: '13px', color: '#065F46', paddingLeft: '26px'}}>
+                      Se este e-mail estiver cadastrado, enviaremos as instruções de recuperação.
+                    </p>
                   </div>
                 )}
 
-                <div className="text-center pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAuthState('credentials');
-                      setRecoverySent(false);
-                    }}
-                    className="text-slate-450 hover:text-slate-700 font-bold flex items-center justify-center gap-1 mx-auto text-xs"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao login
-                  </button>
+                <div className="new-account" style={{marginTop: '20px', justifyContent: 'center'}}>
+                  <a onClick={() => { setAuthState('credentials'); setRecoverySent(false); }} style={{cursor: 'pointer'}}>← Voltar ao login</a>
                 </div>
               </form>
             )}
 
             {/* FLOW STATE 4: LOCKED OUT */}
             {authState === 'locked_out' && (
-              <div className="space-y-5 animate-in fade-in duration-300 text-left">
-                <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 border border-rose-100 flex items-center justify-center">
-                  <ShieldAlert className="w-6 h-6 shrink-0" />
+              <div className="fade-in" style={{width: '100%', textAlign: 'center'}}>
+                <div style={{width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(244, 63, 94, 0.1)', color: '#F43F5E', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'}}>
+                  <ShieldAlert size={24} />
                 </div>
 
-                <div>
-                  <h3 className="text-[20px] font-black tracking-tight text-[#1E1538]">Acesso bloqueado por segurança</h3>
-                  <p className="text-slate-400 font-semibold text-xs mt-1.5 leading-relaxed">
-                    Por segurança, seu acesso foi bloqueado temporariamente devido a sucessivas tentativas falhas. Tente novamente em alguns minutos ou fale com o suporte.
-                  </p>
+                <div className="card-header" style={{textAlign: 'center'}}>
+                  <h1>Acesso bloqueado</h1>
+                  <p>Seu acesso foi bloqueado temporariamente por segurança.</p>
                 </div>
 
-                {/* Countdown Alert block */}
-                <div className="bg-[#FFF5F5] border border-rose-100 rounded-2xl p-4 flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-rose-500 shrink-0" />
-                  <div className="leading-tight">
-                    <span className="font-extrabold text-rose-950 text-xs block">Tempo restante para desbloqueio</span>
-                    <span className="text-[14px] font-mono font-black text-rose-600 block mt-1">
+                <div style={{background: 'rgba(244, 63, 94, 0.05)', border: '1px solid rgba(244, 63, 94, 0.2)', borderRadius: '12px', padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '24px'}}>
+                  <Clock size={20} color="#F43F5E" />
+                  <div style={{textAlign: 'left'}}>
+                    <span style={{fontSize: '10px', textTransform: 'uppercase', fontWeight: 600, color: '#9F1239', display: 'block'}}>Tempo restante</span>
+                    <span style={{fontSize: '16px', fontFamily: 'monospace', fontWeight: 800, color: '#E11D48', display: 'block', marginTop: '2px'}}>
                       {formatLockoutTime(lockoutTime)}
                     </span>
                   </div>
                 </div>
 
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={() => triggerToast("Redirecionando para o canal seguro de suporte corporativo...")}
-                    className="w-full h-11 bg-white hover:bg-slate-50 text-[#1E1538] border border-[#E8DDFD] rounded-xl text-xs font-black uppercase tracking-wider shadow-sm transition-all"
-                  >
-                    Falar com suporte
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setAuthState('credentials');
-                      setLockoutTime(899);
-                      triggerToast('Voltando para credenciais de acesso.');
-                    }}
-                    className="w-full h-11 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao login
-                  </button>
-                </div>
+                <button type="button" className="btn" onClick={() => triggerToast("Redirecionando para suporte...")} style={{background: '#fff', color: '#1e293b', border: '1px solid #e2e8f0', marginBottom: '12px'}}>
+                  Falar com suporte
+                </button>
+                <button type="button" className="btn" onClick={() => { setAuthState('credentials'); setLockoutTime(899); }} style={{background: '#f8fafc', color: '#475569', border: 'none'}}>
+                  Voltar ao login
+                </button>
               </div>
             )}
 
             {/* FLOW STATE 5: SESSION EXPIRED */}
             {authState === 'session_expired' && (
-              <div className="space-y-5 animate-in fade-in duration-300 text-left">
-                <div className="w-12 h-12 rounded-2xl bg-violet-50 text-brand border border-violet-100 flex items-center justify-center">
-                  <Clock className="w-6 h-6 shrink-0" />
+              <div className="fade-in" style={{width: '100%', textAlign: 'center'}}>
+                <div style={{width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(124, 58, 237, 0.1)', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'}}>
+                  <Clock size={24} />
                 </div>
 
-                <div>
-                  <h3 className="text-[20px] font-black tracking-tight text-[#1E1538]">Sessão expirada</h3>
-                  <p className="text-slate-400 font-semibold text-xs mt-1.5 leading-relaxed">
-                    Sua sessão expirou por segurança. Faça login novamente para continuar.
-                  </p>
+                <div className="card-header" style={{textAlign: 'center'}}>
+                  <h1>Sessão expirada</h1>
+                  <p>Sua sessão expirou por segurança. Faça login novamente.</p>
                 </div>
 
-                <div className="bg-[#FAF8FF] border border-[#E8DDFD]/65 rounded-xl p-3.5 text-left text-[10px] font-bold text-slate-400 leading-normal flex items-start gap-2">
-                  <Shield className="w-4 h-4 text-brand shrink-0 mt-0.5" />
-                  <span>Nenhum dado foi perdido. Suas alterações locais e rascunhos foram salvos localmente e serão revalidados após o login.</span>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={() => {
-                      setAuthState('credentials');
-                      triggerToast('Acesso revalidado! Digite suas credenciais.');
-                    }}
-                    className="w-full h-11.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-brand/15 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    Entrar novamente
-                    <ArrowRight className="w-4 h-4 text-white" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setAuthState('credentials');
-                      triggerToast('Voltando para credenciais de acesso.');
-                    }}
-                    className="w-full h-11 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao login
-                  </button>
-                </div>
+                <button type="button" className="btn mt-4" onClick={() => setAuthState('credentials')}>
+                  Entrar novamente
+                </button>
               </div>
             )}
 
             {/* FLOW STATE 6: RESTRICTED ACCESS */}
             {authState === 'restricted' && (
-              <div className="space-y-5 animate-in fade-in duration-300 text-left">
-                <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center">
-                  <Globe className="w-6 h-6 shrink-0" />
+              <div className="fade-in" style={{width: '100%', textAlign: 'center'}}>
+                <div style={{width: '48px', height: '48px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px'}}>
+                  <Globe size={24} />
                 </div>
 
-                <div>
-                  <h3 className="text-[20px] font-black tracking-tight text-[#1E1538]">Acesso restrito</h3>
-                  <p className="text-slate-400 font-semibold text-xs mt-1.5 leading-relaxed">
-                    Este IP ou dispositivo não está autorizado a acessar a plataforma sob as políticas de segurança da sua organização.
-                  </p>
+                <div className="card-header" style={{textAlign: 'center'}}>
+                  <h1>Acesso restrito</h1>
+                  <p>Este dispositivo não está autorizado a acessar a plataforma.</p>
                 </div>
 
-                {/* Connection params box */}
-                <div className="bg-[#FAF8FF] border border-[#E8DDFD]/65 rounded-xl p-4.5 text-left space-y-2.5">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none pb-1">Parâmetros detectados</div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-xs font-bold">
-                    <div>
-                      <span className="text-[9px] text-slate-400 block leading-tight">IP de origem</span>
-                      <span className="text-slate-800 text-[10.5px] block font-mono">198.51.100.42</span>
-                    </div>
-
-                    <div>
-                      <span className="text-[9px] text-slate-400 block leading-tight">Localização</span>
-                      <span className="text-slate-800 text-[10.5px] block">São Paulo, BR</span>
-                    </div>
-
-                    <div className="col-span-2 border-t border-slate-100 pt-2">
-                      <span className="text-[9px] text-slate-400 block leading-tight">Dispositivo de acesso</span>
-                      <span className="text-slate-800 text-[10.5px] block">macOS Chrome (v124)</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <button
-                    onClick={() => {
-                      triggerToast('Solicitação de liberação de IP enviada ao time de segurança corporativo!');
-                    }}
-                    className="w-full h-11.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-lg shadow-brand/15 transition-all flex items-center justify-center gap-1.5"
-                  >
-                    Solicitar liberação de IP
-                    <ArrowRight className="w-4 h-4 text-white" />
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      setAuthState('credentials');
-                      triggerToast('Voltando para credenciais de acesso.');
-                    }}
-                    className="w-full h-11 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5" /> Voltar ao login
-                  </button>
-                </div>
+                <button type="button" className="btn mt-4" onClick={() => triggerToast('Solicitação enviada ao time de segurança!')} style={{marginBottom: '12px'}}>
+                  Solicitar liberação
+                </button>
+                <button type="button" className="btn" onClick={() => setAuthState('credentials')} style={{background: '#f8fafc', color: '#475569', border: 'none'}}>
+                  Voltar ao login
+                </button>
               </div>
             )}
 
-            {/* Shield emblem dividers */}
-            <div className="relative w-full h-[1px] bg-slate-50/50 flex items-center justify-center py-2">
-              <span className="w-full h-[1px] bg-[#E8DDFD]/65 absolute top-1/2 -translate-y-1/2" />
-              <div className="w-7 h-7 bg-white rounded-full border border-[#E8DDFD] shadow-sm flex items-center justify-center z-10 shrink-0">
-                <Shield className="w-3.5 h-3.5 text-brand" />
-              </div>
-            </div>
-
-            {/* Register section footer */}
-            <div className="text-center text-xs font-semibold text-slate-500 pb-1">
-              Não possui uma conta?{' '}
-              <Link 
-                href="/register"
-                className="text-brand font-black hover:underline"
-              >
-                Cadastre-se grátis
-              </Link>
-            </div>
-
-            {/* Support section footer */}
-            <div className="text-center text-xs font-semibold text-slate-400 pb-1">
-              Precisando de ajuda?{' '}
-              <a 
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  triggerToast("Abrindo canal de suporte de segurança Basileia...");
-                }}
-                className="text-brand font-black hover:underline"
-              >
-                Fale com nosso suporte
-              </a>
-            </div>
-
           </div>
 
-          {/* Footer absolute text */}
-          <div className="text-[11px] font-bold text-slate-400 flex items-center gap-1 pt-1 justify-center">
-            <Shield className="w-3.5 h-3.5 text-brand" />
-            <span>Basileia Tecnologia Ltda. • Todos os direitos reservados</span>
-          </div>
-
+          <p className="footer">© 2026 Basileia Pay. Todos os direitos reservados.</p>
         </div>
-
       </div>
-
-    </div>
+    </>
   );
 }

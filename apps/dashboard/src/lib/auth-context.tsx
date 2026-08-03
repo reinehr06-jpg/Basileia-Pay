@@ -53,11 +53,29 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 // Refresh 10 minutos antes de expirar
 const REFRESH_BUFFER_MS = 10 * 60 * 1000;
 
+const DEV_BYPASS = process.env.NODE_ENV === 'development';
+
+const DEV_MOCK_USER: User = {
+  id: 'dev-1',
+  uuid: 'dev-uuid-0001',
+  name: 'Admin Dev',
+  email: 'admin@basileia.dev',
+  role: 'super_admin',
+  two_factor_enabled: false,
+  needs_2fa_setup: false,
+  company_id: 1,
+  is_master: true,
+};
+
+const DEV_MOCK_COMPANIES: Company[] = [
+  { id: 1, uuid: 'comp-uuid-1', name: 'Basileia Pay Dev', slug: 'basileia-pay-dev', status: 'active' },
+];
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [availableCompanies, setAvailableCompanies] = useState<Company[]>([]);
-  const [activeCompanyId, setActiveCompanyId] = useState<number | null>(null);
+  const [user, setUser] = useState<User | null>(DEV_BYPASS ? DEV_MOCK_USER : null);
+  const [isLoading, setIsLoading] = useState(DEV_BYPASS ? false : true);
+  const [availableCompanies, setAvailableCompanies] = useState<Company[]>(DEV_BYPASS ? DEV_MOCK_COMPANIES : []);
+  const [activeCompanyId, setActiveCompanyId] = useState<number | null>(DEV_BYPASS ? 1 : null);
   const router = useRouter();
   const pathname = usePathname();
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
