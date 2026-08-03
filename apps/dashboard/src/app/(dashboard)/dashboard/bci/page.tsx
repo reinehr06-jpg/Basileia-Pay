@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState } from "react";
+import { apiFetch } from "@/lib/api";
 import { PageLayout } from "@/components/layout/PageLayout";
 import {
   BrainCircuit,
+  Sparkles,
   Settings2,
   Plus,
   Info,
@@ -18,79 +20,48 @@ import {
   ClipboardList,
   Download,
   ChevronDown,
-  AlertTriangle,
-  ArrowRight,
-  TrendingDown,
-  Activity,
-  Filter,
-  MoreHorizontal,
-  Sparkles
+  AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   AreaChart,
   Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   LineChart,
-  Line,
-  BarChart,
-  Bar,
-  Cell,
-  ComposedChart
+  Line
 } from "recharts";
 
 type BciTabValue = "friction" | "performance" | "activity";
 
-// Mock Data for Charts
-const frictionData = [
-  { day: '01/08', score: 92, alerts: 1 },
-  { day: '02/08', score: 88, alerts: 3 },
-  { day: '03/08', score: 85, alerts: 4 },
-  { day: '04/08', score: 82, alerts: 5 },
-  { day: '05/08', score: 78, alerts: 7 },
-  { day: '06/08', score: 84, alerts: 2 },
-  { day: '07/08', score: 89, alerts: 1 },
-];
-
-const abTestData = [
-  { day: 'Seg', vA: 3.2, vB: 3.8 },
-  { day: 'Ter', vA: 3.1, vB: 4.1 },
-  { day: 'Qua', vA: 3.4, vB: 4.5 },
-  { day: 'Qui', vA: 3.3, vB: 4.2 },
-  { day: 'Sex', vA: 3.5, vB: 4.8 },
-  { day: 'Sáb', vA: 3.8, vB: 5.1 },
-  { day: 'Dom', vA: 3.9, vB: 5.4 },
-];
-
+// Dados visuais para preencher os espaços vazios
 const sparklineData1 = [{ v: 4 }, { v: 7 }, { v: 5 }, { v: 8 }, { v: 9 }, { v: 12 }];
 const sparklineData2 = [{ v: 12 }, { v: 10 }, { v: 8 }, { v: 6 }, { v: 4 }, { v: 3 }];
 
 export default function BciPage() {
-  const [isExporting, setIsExporting] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<BciTabValue>("friction");
   const [isTabLoading, setIsTabLoading] = useState(false);
-  const [resolvedFrictions, setResolvedFrictions] = useState<number[]>([]);
-  const [resolvingId, setResolvingId] = useState<number | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Filters State
   const [filterPeriod, setFilterPeriod] = useState("7d");
   const [filterSystem, setFilterSystem] = useState("Todos");
   const [filterCheckout, setFilterCheckout] = useState("Todos");
+  const [filterMethod, setFilterMethod] = useState("Todos");
 
-  // Handle Tab Switch with simulated delay
+  // Interação de Resolução
+  const [resolvedFrictions, setResolvedFrictions] = useState<number[]>([]);
+  const [resolvingId, setResolvingId] = useState<number | null>(null);
+
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
   const handleTabChange = (tab: BciTabValue) => {
     setActiveTab(tab);
     setIsTabLoading(true);
-    setTimeout(() => setIsTabLoading(false), 600);
-  };
-
-  const handleExport = () => {
-    setIsExporting(true);
-    setTimeout(() => setIsExporting(false), 2000);
+    setTimeout(() => setIsTabLoading(false), 400);
   };
 
   const handleResolveFriction = (id: number) => {
@@ -98,410 +69,519 @@ export default function BciPage() {
     setTimeout(() => {
       setResolvedFrictions((prev) => [...prev, id]);
       setResolvingId(null);
+      triggerToast("Fricção resolvida e otimizada com sucesso!");
     }, 1500);
   };
 
-  const ExportButton = (
-    <button
-      onClick={handleExport}
-      disabled={isExporting}
-      className="h-10 px-4 bg-brand hover:bg-brand-dark text-white rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 cursor-pointer shadow-sm shadow-brand/20 transition-all disabled:opacity-70 disabled:cursor-wait"
-    >
-      {isExporting ? (
-        <RefreshCw className="w-4 h-4 animate-spin" />
-      ) : (
-        <Download className="w-4 h-4" />
-      )}
-      {isExporting ? "Gerando PDF..." : "Exportar Relatório"}
-    </button>
-  );
+  const handleConfirmExport = async () => {
+    triggerToast(`Preparando exportação em formato PDF...`);
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+      triggerToast("Download do PDF concluído com sucesso!");
+    }, 2000);
+  };
 
   return (
-    <PageLayout title="BCI & Análise Preditiva" action={ExportButton}>
-      
-      {/* Top Filter Bar */}
-      <div className="bg-white/60 backdrop-blur-md border border-slate-200/60 p-2 rounded-2xl flex flex-wrap lg:flex-nowrap items-center gap-3">
-        <div className="flex items-center gap-2 px-3 py-1.5 border-r border-slate-200/60">
-          <Filter className="w-4 h-4 text-slate-400" />
-          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros</span>
+    <PageLayout title="BCI">
+      {/* Toast alert indicator */}
+      {toastMessage && (
+        <div className="fixed bottom-5 right-5 z-60 bg-slate-900 border border-slate-800 text-white rounded-2xl p-4 shadow-2xl flex items-center gap-2 max-w-sm animate-in slide-in-from-bottom-2 duration-300">
+          <span className="w-2 h-2 bg-brand rounded-full shrink-0 animate-ping" />
+          <span className="text-[11px] font-black text-left">{toastMessage}</span>
         </div>
-        
-        <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-3">
-          <select
-            value={filterPeriod}
-            onChange={(e) => setFilterPeriod(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 cursor-pointer transition-all shadow-sm"
-          >
-            <option value="Hoje">Hoje</option>
-            <option value="7d">Últimos 7 dias</option>
-            <option value="30d">Últimos 30 dias</option>
-          </select>
-          
-          <select
-            value={filterSystem}
-            onChange={(e) => setFilterSystem(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 cursor-pointer transition-all shadow-sm"
-          >
-            <option value="Todos">Todos os Sistemas</option>
-            <option value="E-commerce">E-commerce Central</option>
-            <option value="ERP">ERP Conectado</option>
-          </select>
+      )}
 
-          <select
-            value={filterCheckout}
-            onChange={(e) => setFilterCheckout(e.target.value)}
-            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand/20 cursor-pointer transition-all shadow-sm"
+      {/* Header section - Clean & Compact */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#E8DDFD]/60 pb-3 text-left">
+        <div>
+          <div className="flex items-center gap-1.5">
+            <h1 className="text-[18px] 2xl:text-[20px] font-black tracking-tight text-slate-950">
+              BCI
+            </h1>
+            <div className="w-4 h-4 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-200">
+              <Info className="w-2.5 h-2.5" />
+            </div>
+          </div>
+          <p className="text-slate-455 font-semibold text-[11px] 2xl:text-[11.5px] tracking-tight mt-0.5">
+            Centro de inteligência do checkout com análise preditiva e otimização assistida por IA.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={handleConfirmExport}
+            disabled={loading}
+            className="h-8 px-3.5 bg-brand hover:bg-brand-dark text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 cursor-pointer shadow-sm shadow-brand/10 transition-all disabled:opacity-50"
           >
-            <option value="Todos">Todos os Checkouts</option>
-            <option value="Pro">Basileia Checkout Pro</option>
-            <option value="Básico">Checkout Básico</option>
-          </select>
+            {loading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            Exportar relatório PDF
+          </button>
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Score Card */}
-        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-              Score do Checkout
-            </span>
-            <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center text-brand">
-              <Activity className="w-4 h-4" />
-            </div>
-          </div>
-          
-          <div className="flex items-end gap-3">
-            <div className="text-4xl font-black text-slate-800 tracking-tight">84<span className="text-xl text-slate-400">/100</span></div>
-            <div className="mb-1 flex items-center gap-1 text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-lg text-xs font-bold">
-              <TrendingUp className="w-3 h-3" />
-              +12 pts
-            </div>
-          </div>
-          <div className="mt-4 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div className="h-full bg-brand rounded-full w-[84%] transition-all duration-1000" />
+      {/* Advanced Filters Bar */}
+      <div className="bg-white border border-[#E8DDFD] p-3.5 rounded-2xl shadow-sm grid grid-cols-2 md:grid-cols-4 gap-3 text-left">
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Período</span>
+          <div className="relative">
+            <select
+              value={filterPeriod}
+              onChange={(e) => setFilterPeriod(e.target.value)}
+              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
+            >
+              <option value="Hoje">Hoje</option>
+              <option value="Ontem">Ontem</option>
+              <option value="7d">Últimos 7 dias</option>
+              <option value="30d">Últimos 30 dias</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
           </div>
         </div>
 
-        {/* Confidence Card */}
-        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <div className="flex justify-between items-start mb-4">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-              Confiança da IA
-            </span>
-            <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center text-violet-600">
-              <BrainCircuit className="w-4 h-4" />
-            </div>
-          </div>
-          
-          <div className="flex items-end gap-3">
-            <div className="text-3xl font-black text-slate-800 tracking-tight">92%</div>
-            <div className="mb-1 text-slate-500 text-xs font-bold">Estável</div>
-          </div>
-          
-          <div className="mt-4 flex gap-2">
-             <div className="flex-1 bg-slate-50 border border-slate-100 rounded-lg py-1.5 px-3 text-center">
-               <span className="block text-[9px] font-black text-slate-400 uppercase">Sinais</span>
-               <span className="text-sm font-bold text-slate-700">2,450</span>
-             </div>
-             <div className="flex-1 bg-slate-50 border border-slate-100 rounded-lg py-1.5 px-3 text-center">
-               <span className="block text-[9px] font-black text-slate-400 uppercase">Alertas</span>
-               <span className="text-sm font-bold text-amber-600">2</span>
-             </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Sistema</span>
+          <div className="relative">
+            <select
+              value={filterSystem}
+              onChange={(e) => setFilterSystem(e.target.value)}
+              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
+            >
+              <option value="Todos">Todos os Sistemas</option>
+              <option value="E-commerce">E-commerce Central</option>
+              <option value="ERP">ERP Conectado</option>
+              <option value="CRM">CRM Vendas</option>
+              <option value="Plataforma EAD">Plataforma EAD</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
           </div>
         </div>
 
-        {/* Impact Card */}
-        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-              Impacto Projetado
-            </span>
-            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-              <Zap className="w-4 h-4" />
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Checkout</span>
+          <div className="relative">
+            <select
+              value={filterCheckout}
+              onChange={(e) => setFilterCheckout(e.target.value)}
+              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
+            >
+              <option value="Todos">Todos os Checkouts</option>
+              <option value="Basileia Checkout Pro">Basileia Checkout Pro</option>
+              <option value="Mercado Pago Checkout">Mercado Pago Checkout</option>
+              <option value="Checkout Básico">Checkout Básico</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
+          </div>
+        </div>
+
+        <div className="flex flex-col min-w-0">
+          <span className="text-[8.5px] font-black text-slate-400 uppercase tracking-wider pl-1 mb-1 block leading-none">Método</span>
+          <div className="relative">
+            <select
+              value={filterMethod}
+              onChange={(e) => setFilterMethod(e.target.value)}
+              className="appearance-none w-full bg-[#FAF8FF] border border-[#E8DDFD] rounded-xl pl-3 pr-8 py-1.5 text-xs font-black text-slate-700 focus:outline-none focus:border-brand cursor-pointer h-[34px]"
+            >
+              <option value="Todos">Todos os Métodos</option>
+              <option value="PIX">PIX</option>
+              <option value="Cartão">Cartão de Crédito</option>
+              <option value="Boleto">Boleto Bancário</option>
+            </select>
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-3.5 h-3.5 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* Grid Superior de Diagnósticos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+        {/* Card 1: Score do checkout */}
+        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm relative overflow-hidden h-[132px]">
+          <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
+            Score do checkout
+          </span>
+
+          <div className="flex items-center justify-between mt-1">
+            <div className="relative w-18 h-18 shrink-0 flex items-center justify-center">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle cx="36" cy="36" r="30" className="stroke-slate-100" strokeWidth="5.5" fill="transparent" />
+                <circle cx="36" cy="36" r="30" className="stroke-brand" strokeWidth="5.5" fill="transparent" strokeDasharray={188} strokeDashoffset={188 * 0.16} strokeLinecap="round" />
+              </svg>
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-[19px] font-black text-slate-850 leading-none">84</span>
+                <span className="text-[8px] text-slate-400 font-bold leading-none mt-0.5">/100</span>
+              </div>
+            </div>
+
+            <div className="space-y-1 pr-1 text-right md:text-left">
+              <h4 className="text-xs font-black text-slate-800 leading-none">Saudável</h4>
+              <div className="inline-flex items-center gap-0.5 text-[8.5px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100/50 px-1 py-0.5 rounded">
+                <span>+12 pts vs ant.</span>
+              </div>
+              <span className="text-[8px] font-black text-slate-500 bg-slate-50 border border-slate-200/50 px-1.5 py-0.5 rounded uppercase tracking-wider block text-center leading-none">
+                Score Ativo
+              </span>
             </div>
           </div>
-          
-          <div className="flex items-end gap-3 mb-3">
-            <div className="text-2xl font-black text-emerald-600 tracking-tight">+ R$ 45.230</div>
-          </div>
+        </div>
 
-          <div className="h-10 w-full opacity-60">
+        {/* Card 2: Diagnóstico de confiança */}
+        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm h-[132px]">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
+                Confiança da IA
+              </span>
+              <span className="text-[9px] font-black text-brand bg-brand/10 border border-brand/20 px-1.5 py-0.5 rounded leading-none">
+                92%
+              </span>
+            </div>
+
+            <h4 className="text-xs font-black text-slate-850 mt-3 leading-none">Análise Preditiva Estável</h4>
+            <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2.5 overflow-hidden">
+              <div className="bg-brand h-full rounded-full w-[92%]" />
+            </div>
+
+            <div className="flex justify-between mt-3 text-[9px] font-bold text-slate-450">
+              <span>Sinais: <span className="font-extrabold text-slate-600">2.450</span></span>
+              <span>Alertas: <span className="font-extrabold text-slate-600">2</span></span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Impacto estimado */}
+        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm h-[132px] relative overflow-hidden">
+          <div className="z-10 relative">
+            <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
+              Impacto de Conversão
+            </span>
+
+            <div className="flex items-center gap-1.5 mt-3">
+              <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+              <h4 className="text-sm font-black text-emerald-600 leading-none">
+                +12,5% estimado
+              </h4>
+            </div>
+            <p className="text-[9px] text-slate-400 font-bold mt-1.5 leading-none">
+              Ganho potencial em receita
+            </p>
+
+            <div className="mt-2 text-[10px] font-black text-slate-500 bg-emerald-50/90 border border-emerald-100/50 p-1.5 px-2 rounded-lg flex items-center justify-between backdrop-blur-sm">
+              <span className="text-[8px] font-bold text-emerald-600/70 uppercase leading-none">Projeção Mensal</span>
+              <span className="leading-none text-emerald-600">R$ 45.230,00</span>
+            </div>
+          </div>
+          <div className="absolute bottom-0 left-0 w-full h-[60px] opacity-20 z-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sparklineData1}>
-                <Line type="monotone" dataKey="v" stroke="#10b981" strokeWidth={3} dot={false} />
-              </LineChart>
+              <AreaChart data={sparklineData1}>
+                <Area type="monotone" dataKey="v" stroke="#10b981" fill="#10b981" strokeWidth={2} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Risk Card */}
-        <div className="bg-white border border-slate-200/60 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+        {/* Card 4: Risco operacional */}
+        <div className="bg-white border border-[#E8DDFD]/65 rounded-[20px] p-4 flex flex-col justify-between shadow-sm h-[132px] relative overflow-hidden">
+          <div className="z-10 relative">
+            <span className="text-[9.5px] font-black uppercase text-slate-400 tracking-wider leading-none">
               Risco Operacional
             </span>
-            <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
-              <AlertTriangle className="w-4 h-4" />
+
+            <div className="flex items-center gap-1.5 mt-3">
+              <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+              <h4 className="text-xs font-black text-amber-600 leading-none">
+                Moderado
+              </h4>
+            </div>
+            <p className="text-[9px] text-slate-400 font-bold mt-1.5 leading-none">
+              Algumas fricções nos gateways
+            </p>
+
+            <div className="mt-2 text-[10px] font-black text-slate-500 bg-amber-50/90 border border-amber-200/50 p-1.5 px-2 rounded-lg flex items-center justify-between backdrop-blur-sm">
+              <span className="text-[8px] font-bold text-amber-700 uppercase leading-none">Fricções Críticas</span>
+              <span className="bg-amber-100/50 text-amber-600 px-1.5 py-0.5 rounded text-[9px] leading-none">3</span>
             </div>
           </div>
-          
-          <div className="flex items-end gap-3 mb-3">
-            <div className="text-2xl font-black text-amber-600 tracking-tight">Baixo</div>
-            <div className="mb-1 text-slate-500 text-xs font-bold">-3 Fricções</div>
-          </div>
-
-          <div className="h-10 w-full opacity-60">
+          <div className="absolute bottom-0 left-0 w-full h-[60px] opacity-20 z-0">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={sparklineData2}>
-                <Line type="monotone" dataKey="v" stroke="#f59e0b" strokeWidth={3} dot={false} />
-              </LineChart>
+              <AreaChart data={sparklineData2}>
+                <Area type="monotone" dataKey="v" stroke="#f59e0b" fill="#f59e0b" strokeWidth={2} />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Area (Tabs + Content) */}
-        <div className="lg:col-span-2 space-y-6">
+      {/* Tab Switcher */}
+      <div className="flex border-b border-[#E8DDFD]/50 pb-0.5 mt-2 text-left">
+        <button
+          onClick={() => handleTabChange("friction")}
+          className={cn(
+            "pb-2.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 cursor-pointer",
+            activeTab === "friction" ? "border-brand text-brand" : "border-transparent text-slate-400 hover:text-slate-700"
+          )}
+        >
+          <Flame className="w-3.5 h-3.5" />
+          Fricções & Otimização
+        </button>
+
+        <button
+          onClick={() => handleTabChange("performance")}
+          className={cn(
+            "pb-2.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 cursor-pointer",
+            activeTab === "performance" ? "border-brand text-brand" : "border-transparent text-slate-400 hover:text-slate-700"
+          )}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          Desempenho A/B & Histórico
+        </button>
+
+        <button
+          onClick={() => handleTabChange("activity")}
+          className={cn(
+            "pb-2.5 px-4 text-xs font-black uppercase tracking-wider border-b-2 transition-all flex items-center gap-1.5 cursor-pointer",
+            activeTab === "activity" ? "border-brand text-brand" : "border-transparent text-slate-400 hover:text-slate-700"
+          )}
+        >
+          <ClipboardList className="w-3.5 h-3.5" />
+          Auditoria & Benchmarks
+        </button>
+      </div>
+
+      {/* Split layout: Left Tab Content (75%), Right detailed sidepanel (25%) */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 items-stretch">
+        <div className={cn("lg:col-span-3 transition-opacity duration-300", isTabLoading ? "opacity-30" : "opacity-100")}>
           
-          {/* Custom Tab Switcher */}
-          <div className="bg-white rounded-2xl p-1.5 inline-flex border border-slate-200 shadow-sm w-full md:w-auto">
-            <button
-              onClick={() => handleTabChange('friction')}
-              className={cn(
-                "flex-1 md:flex-none px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2",
-                activeTab === 'friction' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-              )}
-            >
-              <Flame className="w-4 h-4" />
-              Fricções
-            </button>
-            <button
-              onClick={() => handleTabChange('performance')}
-              className={cn(
-                "flex-1 md:flex-none px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-200 flex items-center justify-center gap-2",
-                activeTab === 'performance' ? "bg-brand text-white shadow-md shadow-brand/20" : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"
-              )}
-            >
-              <Layers className="w-4 h-4" />
-              Testes A/B
-            </button>
-          </div>
-
-          {/* Tab Content Wrapper */}
-          <div className={cn("transition-opacity duration-300", isTabLoading ? "opacity-40 pointer-events-none" : "opacity-100")}>
-            
-            {activeTab === 'friction' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                
-                {/* Chart Section */}
-                <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800">Evolução de Fricções</h3>
-                      <p className="text-xs text-slate-500 mt-1">Impacto negativo na conversão ao longo da semana.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                        <span className="w-2.5 h-2.5 rounded-full bg-brand" /> Score
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600 ml-3">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-400" /> Alertas
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={frictionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#6d28d9" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#6d28d9" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} dy={10} />
-                        <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} domain={[60, 100]} />
-                        <YAxis yAxisId="right" orientation="right" hide />
-                        <RechartsTooltip 
-                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                          labelStyle={{ fontWeight: 900, color: '#1e293b', marginBottom: '8px' }}
-                          itemStyle={{ fontWeight: 700, fontSize: '12px' }}
-                        />
-                        <Area yAxisId="left" type="monotone" dataKey="score" stroke="#6d28d9" strokeWidth={3} fillOpacity={1} fill="url(#colorScore)" />
-                        <Bar yAxisId="right" dataKey="alerts" barSize={10} fill="#fbbf24" radius={[4, 4, 0, 0]} />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
+          {activeTab === "friction" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+              {/* Pontos de Fricção */}
+              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                    Pontos de fricção
+                  </h3>
+                  <span className="text-[9px] font-black uppercase text-red-500 bg-red-50 px-2 py-0.5 rounded-lg border border-red-100">Top 3 Alertas</span>
                 </div>
 
-                {/* Interactive Action List */}
-                <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-slate-800">Alertas Ativos</h3>
-                    <span className="bg-brand/10 text-brand text-xs font-black px-3 py-1 rounded-full">3 pendentes</span>
-                  </div>
+                <div className="space-y-3 min-h-[150px]">
+                  {[
+                    { id: 1, title: "Taxa de rejeição no Cartão", stage: "Pagamento", impact: "-4,2% conversão", color: "text-red-500", bg: "bg-red-50" },
+                    { id: 2, title: "Formulário de endereço longo", stage: "Identificação", impact: "-2,1% conversão", color: "text-amber-500", bg: "bg-amber-50" },
+                    { id: 3, title: "Lentidão no cálculo de frete", stage: "Entrega", impact: "-1,5% conversão", color: "text-amber-500", bg: "bg-amber-50" }
+                  ].map((item) => {
+                    const isResolved = resolvedFrictions.includes(item.id);
+                    const isResolving = resolvingId === item.id;
+                    if (isResolved) return null;
 
-                  <div className="space-y-3">
-                    {[
-                      { id: 1, title: "Taxa de rejeição no Cartão", stage: "Pagamento", impact: "-4,2%", color: "text-red-500", bg: "bg-red-50", type: "Crítico" },
-                      { id: 2, title: "Formulário de endereço longo", stage: "Identificação", impact: "-2,1%", color: "text-amber-500", bg: "bg-amber-50", type: "Atenção" },
-                      { id: 3, title: "Lentidão no cálculo de frete", stage: "Entrega", impact: "-1,5%", color: "text-amber-500", bg: "bg-amber-50", type: "Atenção" }
-                    ].map((item) => {
-                      const isResolved = resolvedFrictions.includes(item.id);
-                      const isResolving = resolvingId === item.id;
-                      
-                      if (isResolved) return null;
-
-                      return (
-                        <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full ${item.bg} ${item.color} flex items-center justify-center shrink-0`}>
-                              <AlertTriangle className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="text-sm font-bold text-slate-800">{item.title}</h4>
-                                <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${item.color} ${item.bg}`}>
-                                  {item.type}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3 text-xs font-bold text-slate-500">
-                                <span>Fase: <span className="text-slate-700">{item.stage}</span></span>
-                                <span className="w-1 h-1 rounded-full bg-slate-300" />
-                                <span className="text-red-500">Impacto: {item.impact} conv.</span>
-                              </div>
-                            </div>
+                    return (
+                      <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-2xl border border-slate-50 bg-white hover:bg-slate-50/50 transition-colors shadow-sm">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full ${item.bg} ${item.color} flex items-center justify-center shrink-0`}>
+                            <AlertTriangle className="w-4 h-4" />
                           </div>
-                          
-                          <button
-                            onClick={() => handleResolveFriction(item.id)}
-                            disabled={isResolving}
-                            className="shrink-0 sm:w-auto w-full h-10 px-6 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-2"
-                          >
-                            {isResolving ? (
-                              <><RefreshCw className="w-4 h-4 animate-spin" /> Resolvendo...</>
-                            ) : (
-                              <>Resolver com IA <Sparkles className="w-3.5 h-3.5" /></>
-                            )}
-                          </button>
+                          <div>
+                            <h4 className="text-[11px] font-black text-slate-800 leading-tight">{item.title}</h4>
+                            <p className="text-[9px] text-slate-500 font-bold mt-0.5">Fase: {item.stage}</p>
+                            <span className={`inline-block mt-0.5 text-[9.5px] font-black ${item.color}`}>{item.impact}</span>
+                          </div>
                         </div>
-                      );
-                    })}
-
-                    {resolvedFrictions.length === 3 && (
-                      <div className="p-8 text-center bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center">
-                        <div className="w-16 h-16 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-4">
-                          <CheckCircle2 className="w-8 h-8" />
-                        </div>
-                        <h4 className="text-lg font-bold text-emerald-800 mb-1">Tudo limpo!</h4>
-                        <p className="text-sm text-emerald-600/80 font-bold">Nenhuma fricção detectada no seu checkout.</p>
+                        <button
+                          onClick={() => handleResolveFriction(item.id)}
+                          disabled={isResolving}
+                          className="shrink-0 h-8 px-3 bg-brand/5 hover:bg-brand/10 text-brand rounded-lg text-[9px] font-black uppercase transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                        >
+                          {isResolving ? (
+                            <><RefreshCw className="w-3 h-3 animate-spin" /> Resolvendo...</>
+                          ) : (
+                            <>Corrigir agora</>
+                          )}
+                        </button>
                       </div>
-                    )}
-                  </div>
+                    );
+                  })}
+                  {resolvedFrictions.length === 3 && (
+                    <div className="p-6 text-center bg-emerald-50 rounded-2xl border border-emerald-100 flex flex-col items-center">
+                      <div className="w-12 h-12 bg-emerald-100 text-emerald-500 rounded-full flex items-center justify-center mb-2">
+                        <CheckCircle2 className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-black text-emerald-800 mb-1">Tudo limpo!</h4>
+                      <p className="text-[10px] text-emerald-600/80 font-bold">Nenhuma fricção detectada.</p>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
 
-            {activeTab === 'performance' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="text-lg font-bold text-slate-800">Testes A/B em Andamento</h3>
-                      <p className="text-xs text-slate-500 mt-1">Comparativo de conversão das variantes ativas.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600">
-                        <span className="w-2.5 h-2.5 rounded-full bg-slate-400" /> Controle (v2.4)
-                      </span>
-                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-600 ml-3">
-                        <span className="w-2.5 h-2.5 rounded-full bg-brand" /> Variante (v2.5)
-                      </span>
-                    </div>
-                  </div>
+              {/* Recomendações da IA */}
+              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                    Recomendações de Crescimento
+                  </h3>
+                  <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">Ações Sugeridas</span>
+                </div>
 
-                  <div className="w-full h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={abTestData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 700 }} tickFormatter={(v) => `${v}%`} />
-                        <RechartsTooltip 
-                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)' }}
-                          formatter={(value: number) => [`${value}%`, 'Conversão']}
-                        />
-                        <Line type="monotone" dataKey="vA" stroke="#94a3b8" strokeWidth={3} dot={{ r: 4, strokeWidth: 2 }} activeDot={{ r: 6 }} />
-                        <Line type="monotone" dataKey="vB" stroke="#6d28d9" strokeWidth={4} dot={{ r: 5, strokeWidth: 2 }} activeDot={{ r: 8 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
+                <div className="space-y-3 min-h-[150px]">
+                  {[
+                    { title: "Habilitar retentativa automática", desc: "Recupera falhas de cartão em D+1.", gain: "+R$ 12k/mês" },
+                    { title: "Autocompletar CEP nativo", desc: "Reduz tempo de preenchimento em 4s.", gain: "+R$ 5k/mês" },
+                    { title: "Ativar Pix Copy & Paste 1-Click", desc: "Aumenta conversão mobile significativamente.", gain: "+R$ 8k/mês" }
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-2xl border border-slate-50 shadow-sm bg-white hover:bg-slate-50/50 transition-colors">
+                      <div className="w-8 h-8 rounded-full bg-brand/10 text-brand flex items-center justify-center shrink-0">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-[11px] font-black text-slate-800 leading-tight">{item.title}</h4>
+                        <p className="text-[9px] text-slate-500 font-bold mt-0.5">{item.desc}</p>
+                        <span className="inline-block mt-1 text-[10px] font-black text-emerald-600">{item.gain}</span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
-          </div>
+          {/* TAB 2: ANÁLISE A/B & HISTÓRICO */}
+          {activeTab === "performance" && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm text-left">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2.5 mb-3.5">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                    Comparativo de Versões do Checkout
+                  </h3>
+                  <span className="bg-violet-50 text-brand border border-brand/20 px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                    <Trophy className="w-3.5 h-3.5 text-brand" />
+                    Melhor Performance
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto no-scrollbar">
+                  <table className="w-full text-xs font-semibold text-slate-600">
+                    <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                      <tr>
+                        <th className="px-4 py-2 text-left">Versão</th>
+                        <th className="px-4 py-2 text-center">Status</th>
+                        <th className="px-4 py-2 text-center">Conversão</th>
+                        <th className="px-4 py-2 text-center">Tempo Pag.</th>
+                        <th className="px-4 py-2 text-center">Abandono Ident.</th>
+                        <th className="px-4 py-2 text-center">Score BCI</th>
+                        <th className="px-4 py-2 text-center">Receita/mês</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      <tr>
+                        <td className="px-4 py-3 font-bold text-slate-800">v2.4.1 (Atual)</td>
+                        <td className="px-4 py-3 text-center"><span className="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Vencedora</span></td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-800">84,5%</td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-600">1m 12s</td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-600">3,1%</td>
+                        <td className="px-4 py-3 text-center font-black text-brand">84</td>
+                        <td className="px-4 py-3 text-center font-black text-emerald-600">R$ 145k</td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-3 font-bold text-slate-500">v2.4.0 (A)</td>
+                        <td className="px-4 py-3 text-center"><span className="text-[9px] font-black text-slate-500 bg-slate-100 px-2 py-1 rounded">Arquivada</span></td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-500">78,2%</td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-500">1m 45s</td>
+                        <td className="px-4 py-3 text-center font-bold text-slate-500">5,8%</td>
+                        <td className="px-4 py-3 text-center font-black text-slate-500">72</td>
+                        <td className="px-4 py-3 text-center font-black text-slate-500">R$ 112k</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: AUDITORIA & BENCHMARKS */}
+          {activeTab === "activity" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
+              <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-5 shadow-sm space-y-4 text-left h-full">
+                <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                    Eventos recentes
+                  </h3>
+                </div>
+                <div className="space-y-3 min-h-[150px]">
+                  {[
+                    { date: "Hoje, 10:45", event: "Alerta de rejeição Mercado Pago resolvido com sucesso." },
+                    { date: "Ontem, 16:30", event: "Nova versão BCI Checkout Pro implantada com sucesso." },
+                    { date: "Ontem, 09:15", event: "Pico de acesso detectado (+145%) com estabilidade no checkout." }
+                  ].map((e, i) => (
+                    <div key={i} className="text-[10.5px] font-bold text-slate-600 bg-slate-50/80 p-3 rounded-xl border border-slate-100/80">
+                      <span className="block text-[9px] font-black text-slate-400 mb-1">{e.date}</span>
+                      {e.event}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Side: Funnel & Confidence */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm sticky top-6">
-            <h3 className="text-base font-bold text-slate-800 mb-6 flex items-center justify-between">
-              Funil de Conversão
-              <span className="bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase px-2 py-0.5 rounded-lg border border-emerald-100">Otimizado</span>
-            </h3>
+        {/* Right Column - Map of Confidence */}
+        <div className="h-full">
+          <div className="bg-white border border-[#E8DDFD]/65 rounded-[22px] p-4.5 shadow-sm flex flex-col justify-between h-full text-left">
+            <div>
+              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider border-b border-slate-50 pb-2 mb-3">
+                Mapa de confiança
+              </h3>
 
-            <div className="relative">
-              <div className="absolute left-4 top-4 bottom-8 w-0.5 bg-slate-100" />
-              
-              <div className="space-y-6">
+              <div className="space-y-3.5">
                 {[
-                  { step: 'Visitas', val: '12.450', pct: 100, color: 'bg-slate-800' },
-                  { step: 'Identificação', val: '9.820', pct: 78.8, color: 'bg-brand' },
-                  { step: 'Entrega', val: '7.400', pct: 59.4, color: 'bg-brand' },
-                  { step: 'Pagamento', val: '4.890', pct: 39.2, color: 'bg-brand' },
-                  { step: 'Concluído', val: '4.500', pct: 36.1, color: 'bg-emerald-500' }
-                ].map((item, i, arr) => (
-                  <div key={i} className="relative pl-10">
-                    <div className={`absolute left-2.5 top-1.5 w-3.5 h-3.5 rounded-full border-4 border-white shadow-sm ${item.color} z-10`} />
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-slate-600">{item.step}</span>
-                      <span className="text-sm font-black text-slate-800">{item.val}</span>
+                  { name: "Identificação", val: "94/100", pct: 94, color: "bg-emerald-500" },
+                  { name: "Entrega", val: "88/100", pct: 88, color: "bg-emerald-500" },
+                  { name: "Pagamento", val: "72/100", pct: 72, color: "bg-amber-500" },
+                  { name: "Revisão", val: "98/100", pct: 98, color: "bg-brand" }
+                ].map((map, i) => (
+                  <div key={i} className="space-y-1">
+                    <div className="flex justify-between text-[10.5px] font-bold text-slate-600 leading-none">
+                      <span>{map.name}</span>
+                      <span className="font-extrabold text-slate-850">{map.val}</span>
                     </div>
-                    <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                      <div className={`h-full rounded-full transition-all duration-1000 ${item.color}`} style={{ width: `${item.pct}%` }} />
+                    <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">
+                      <div className={`${map.color} h-full rounded-full transition-all duration-700`} style={{ width: `${map.pct}%` }} />
                     </div>
-                    {i < arr.length - 1 && (
-                      <div className="mt-2 text-right">
-                        <span className="text-[10px] font-bold text-red-400 bg-red-50 px-1.5 py-0.5 rounded">
-                          -{((arr[i].pct - arr[i+1].pct) / arr[i].pct * 100).toFixed(1)}% drop
-                        </span>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-slate-100">
-              <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                <span className="text-[10px] font-black uppercase text-slate-400 block mb-1">Receita Perdida Estimada</span>
-                <div className="text-xl font-black text-slate-800 mb-2">R$ 18.400<span className="text-sm text-slate-500">/mês</span></div>
-                <p className="text-[10px] font-bold text-slate-500 leading-tight">
-                  Se o drop-off no pagamento for reduzido em 5%, você recupera esse valor.
-                </p>
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2.5">
+                Impacto Estimado
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-[10.5px] font-bold text-slate-500">
+                <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50 text-left">
+                  <span className="text-[8.5px] font-black text-emerald-600/70 block uppercase">Conversão</span>
+                  <span className="text-emerald-600 font-extrabold text-xs">+12,5%</span>
+                </div>
+                <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50 text-left">
+                  <span className="text-[8.5px] font-black text-emerald-600/70 block uppercase">Recuperados</span>
+                  <span className="text-emerald-600 font-extrabold text-xs">152/mês</span>
+                </div>
+                <div className="bg-emerald-50/50 p-2 rounded-xl border border-emerald-100/50 text-left col-span-2 flex items-center justify-between">
+                  <div>
+                    <span className="text-[8.5px] font-black text-emerald-600/70 uppercase">Receita mensal</span>
+                    <span className="text-emerald-600 font-black block text-xs">R$ 45.230,00</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[8.5px] font-black text-emerald-600/70 uppercase">Tempo impl.</span>
+                    <span className="text-emerald-600 font-extrabold block text-[10.5px]">2h</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-black text-slate-855 mt-4">
+              <span>Score BCI geral</span>
+              <span className="text-brand font-black text-sm bg-brand/10 px-3 py-0.5 rounded-lg border border-brand/20 shadow-sm">
+                84/100
+              </span>
+            </div>
           </div>
         </div>
-
       </div>
     </PageLayout>
   );
