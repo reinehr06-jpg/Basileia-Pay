@@ -23,7 +23,8 @@ import {
   TrendingDown,
   Activity,
   Filter,
-  MoreHorizontal
+  MoreHorizontal,
+  Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
