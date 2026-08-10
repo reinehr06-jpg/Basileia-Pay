@@ -1,7 +1,7 @@
 # Basileia Pay API — Production Dockerfile
 # Single stage: php:8.4-fpm-alpine + nginx + supervisor, non-root, read-only
 
-FROM php:8.4-fpm-alpine AS base
+FROM php:8.5-fpm-alpine AS base
 
 # Install system deps + PHP extensions + nginx + supervisor
 RUN apk add --no-cache \
