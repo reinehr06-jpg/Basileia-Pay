@@ -91,7 +91,7 @@ jobs:
         timeout-minutes: 2
         run: |
           sleep 10
-          while ! curl -s -f http://localhost:8000/api/health > /dev/null; do
+          while ! curl -A "CI-Healthcheck" -s -f http://localhost:8000/api/health > /dev/null; do
             echo "Waiting for API to be healthy..."
             sleep 5
           done
