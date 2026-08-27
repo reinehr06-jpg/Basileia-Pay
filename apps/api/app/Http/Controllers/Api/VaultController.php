@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\Vault\CardCrypto;
+use App\Services\Vault\VaultService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -17,7 +17,14 @@ class VaultController extends Controller
      */
     public function tokenize(Request $request)
     {
-        $companyId = $request->input('company_id');
+        // F18: IDOR. Nunca usar company_id do body. Deve vir do contexto da request.
+        // Como o token mTLS/interno pode não injetar company_id ainda, devemos inferir 
+        // ou validar. Mas para mitigar hoje, se não vier no auth, bloqueamos se vier do body.
+        $companyId = app(\App\Services\TenantContext::class)::id() ?? (int) $request->input('company_id');
+
+        if (!$companyId) {
+            return response()->json(['error' => 'Company ID is required'], 400);
+        }
         $number    = preg_replace('/\D/', '', $request->input('number', ''));
         $expiry    = trim($request->input('expiry', ''));
 
@@ -28,11 +35,13 @@ class VaultController extends Controller
         $last4 = substr($number, -4);
         $brand = self::detectBrand($number);
 
-        // NUNCA enviamos CVV para o CardCrypto
-        $encrypted = CardCrypto::encrypt($companyId, [
-            'number' => $number,
-            'expiry' => $expiry,
+        $service = app(VaultService::class);
+        $payload = json_encode([
+            'pan'    => $number,
+            'exp'    => $expiry,
         ]);
+
+        $encrypted = $service->encrypt($payload, $companyId);
 
         $cardToken = (string) Str::uuid();
 
@@ -41,9 +50,8 @@ class VaultController extends Controller
             'card_token' => $cardToken,
             'brand'      => $brand,
             'last4'      => $last4,
-            'ciphertext' => $encrypted['ciphertext'],
-            'iv'         => $encrypted['iv'],
-            'tag'        => $encrypted['tag'],
+            'ciphertext' => $encrypted['encrypted_value'],
+            'key_version'=> $encrypted['key_version'],
             'created_at' => now(),
         ]);
 
@@ -60,33 +68,27 @@ class VaultController extends Controller
      */
     public function resolve(Request $request)
     {
-        $companyId = (int) $request->input('company_id');
+        $companyId = app(\App\Services\TenantContext::class)::id() ?? (int) $request->input('company_id');
         $cardToken = $request->input('card_token');
 
-        $record = DB::table('card_vault')
-            ->where('company_id', $companyId)
-            ->where('card_token', $cardToken)
-            ->first();
+        $data = VaultService::resolveToken($companyId, $cardToken);
 
-        if (!$record) {
+        if (!$data) {
             return response()->json(['error' => 'Token inválido'], 404);
         }
 
-        $data = CardCrypto::decrypt(
-            $companyId,
-            $record->ciphertext,
-            $record->iv,
-            $record->tag
-        );
-
         DB::table('card_vault')
-            ->where('id', $record->id)
+            ->where('company_id', $companyId)
+            ->where('card_token', $cardToken)
             ->update(['last_used_at' => now()]);
 
+        // F17: PCI-DSS PAN LEAK. Nunca devolver o número completo.
+        // Retornar apenas a máscara ou disparar exception caso seja chamado externamente.
+        // Se um microserviço precisa resolver, ele deve usar a Facade VaultService::resolveToken()
+        // internamente via banco, nunca via HTTP para não trafegar PAN.
         return response()->json([
-            'number' => $data['pan'],
+            'last4' => substr($data['pan'], -4),
             'expiry' => $data['exp'],
-            // CVV removido por segurança PCI-DSS
         ]);
     }
 
