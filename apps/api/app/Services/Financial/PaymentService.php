@@ -15,29 +15,34 @@ class PaymentService
 
     public function createPayment(Order $order, string $method, string $idempotencyKey, ?GatewayAccount $gatewayAccount = null): Payment
     {
-        return DB::transaction(function () use ($order, $method, $idempotencyKey, $gatewayAccount) {
-            $existing = Payment::where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
-            if ($existing) {
-                return $existing;
-            }
-
-            // Se o gatewayAccount não for fornecido, resolve o padrão da company
+        // 1. Fase de persistência no DB (curta, segura, trata concorrência via unique key)
+        $payment = DB::transaction(function () use ($order, $method, $idempotencyKey, $gatewayAccount) {
             if (!$gatewayAccount) {
                 $gatewayAccount = GatewayAccount::where('company_id', $order->company_id)->firstOrFail();
             }
 
-            $payment = Payment::create([
-                'uuid' => Str::uuid(),
-                'company_id' => $order->company_id,
-                'order_id' => $order->id,
-                'gateway_account_id' => $gatewayAccount->id,
-                'gateway_id' => $gatewayAccount->gateway_id,
-                'method' => $method,
-                'status' => 'created',
-                'amount' => $order->amount,
-                'currency' => $order->currency,
-                'idempotency_key' => $idempotencyKey,
-            ]);
+            try {
+                $payment = Payment::create([
+                    'uuid' => Str::uuid(),
+                    'company_id' => $order->company_id,
+                    'order_id' => $order->id,
+                    'gateway_account_id' => $gatewayAccount->id,
+                    'gateway_id' => $gatewayAccount->gateway_id,
+                    'method' => $method,
+                    'status' => 'created',
+                    'amount' => $order->amount,
+                    'currency' => $order->currency,
+                    'idempotency_key' => $idempotencyKey,
+                ]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // Violação de constraint unique (Postgres 23505, MySQL 1062)
+                if (in_array($e->errorInfo[0] ?? '', ['23505', '1062']) || in_array($e->errorInfo[1] ?? '', [1062])) {
+                    return Payment::where('company_id', $order->company_id)
+                        ->where('idempotency_key', $idempotencyKey)
+                        ->firstOrFail();
+                }
+                throw $e;
+            }
 
             FinancialAuditLog::create([
                 'entity_type' => 'payment',
@@ -47,29 +52,40 @@ class PaymentService
                 'after_state' => $payment->toArray(),
             ]);
 
-            // Avança pedido para pending/processing
             if ($order->status === 'created') {
                 $this->orderTransition->transition($order, 'pending');
             }
 
-            // Resolver e invocar o driver real do Gateway
-            $registry = app(\App\Services\Gateway\GatewayDriverRegistry::class);
-            $driver = $registry->resolve($gatewayAccount);
+            return $payment;
+        });
 
-            $chargeRequest = new \App\Services\Gateway\DTO\ChargeRequest(
-                amount: $order->amount,
-                paymentMethod: $method,
-                customer: [
-                    'name' => $order->customer_name,
-                    'email' => $order->customer_email,
-                    'document' => $order->customer_document,
-                    'asaas_customer_id' => $order->metadata['asaas_customer_id'] ?? null,
-                ],
-                reference: (string)$order->uuid
-            );
+        // Se o pagamento já existir (veio do catch constraint unique), retorna imediatamente 
+        // e não chama o HTTP de novo se não estiver como 'created'
+        if (!$payment->wasRecentlyCreated && $payment->status !== 'created') {
+            return $payment;
+        }
 
-            $response = $driver->createCharge($chargeRequest);
+        // 2. Chamada HTTP ao Gateway FORA da transação de banco de dados (F4)
+        $registry = app(\App\Services\Gateway\GatewayDriverRegistry::class);
+        $gatewayAccount = $gatewayAccount ?? GatewayAccount::find($payment->gateway_account_id);
+        $driver = $registry->resolve($gatewayAccount);
 
+        $chargeRequest = new \App\Services\Gateway\DTO\ChargeRequest(
+            amount: $order->amount,
+            paymentMethod: $method,
+            customer: [
+                'name' => $order->customer_name,
+                'email' => $order->customer_email,
+                'document' => $order->customer_document,
+                'asaas_customer_id' => $order->metadata['asaas_customer_id'] ?? null,
+            ],
+            reference: (string)$order->uuid
+        );
+
+        $response = $driver->createCharge($chargeRequest);
+
+        // 3. Atualiza estado de acordo com o retorno HTTP
+        DB::transaction(function () use ($payment, $response, $order) {
             if ($response->success) {
                 $payment->update([
                     'status' => 'pending',
@@ -86,35 +102,34 @@ class PaymentService
                         'raw_response' => $response->rawResponse ?? []
                     ]
                 ]);
-                
                 $this->orderTransition->transition($order, 'failed');
             }
-
-            return $payment;
         });
+
+        return $payment;
     }
 
-    public function handleGatewayConfirmation(string $gatewayTransactionId, array $rawPayload): void
+    public function handleGatewayConfirmation(string $gatewayTransactionId, array $rawPayload, int $paidAmount = null): void
     {
-        DB::transaction(function () use ($gatewayTransactionId, $rawPayload) {
-            // Encontra pagamento pelo tx id externo e aplica lock (idempotência via DB lock)
+        DB::transaction(function () use ($gatewayTransactionId, $rawPayload, $paidAmount) {
             $payment = Payment::where('gateway_payment_id', $gatewayTransactionId)
                 ->lockForUpdate()
                 ->first();
 
-            if (!$payment) {
-                return; // Pagamento não encontrado
-            }
-
-            if ($payment->status === 'paid' || $payment->status === 'confirmed') {
-                return; // Já processado
+            if (!$payment || in_array($payment->status, ['paid', 'underpaid', 'refunded'])) {
+                return;
             }
 
             $beforeState = $payment->toArray();
 
-            $payment->status = 'confirmed';
+            // F8 - Validação de valor reportado
+            $status = 'paid';
+            if ($paidAmount !== null && $paidAmount < $payment->amount) {
+                $status = 'underpaid';
+            }
+
+            $payment->status = $status;
             $payment->paid_at = now();
-            // Apenas adiciona ao array, sem sobrescrever
             $payment->gateway_response = array_merge($payment->gateway_response ?? [], ['confirmation_payload' => $rawPayload]);
             $payment->save();
 
@@ -126,8 +141,7 @@ class PaymentService
                 'after_state' => $payment->toArray(),
             ]);
 
-            // Avançar a Order
-            $this->orderTransition->transition($payment->order, 'paid');
+            $this->orderTransition->transition($payment->order, $status === 'underpaid' ? 'review' : 'paid');
         });
     }
 }

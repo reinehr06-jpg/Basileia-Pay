@@ -11,9 +11,10 @@ class OrderStatusTransitionService
 {
     private const ALLOWED_TRANSITIONS = [
         'created' => ['pending', 'processing', 'cancelled'],
-        'pending' => ['processing', 'paid', 'failed', 'expired', 'cancelled'],
-        'processing' => ['paid', 'failed', 'expired', 'cancelled'],
+        'pending' => ['processing', 'paid', 'review', 'failed', 'expired', 'cancelled'],
+        'processing' => ['paid', 'review', 'failed', 'expired', 'cancelled'],
         'paid' => ['refunded'],
+        'review' => ['paid', 'refunded'], // Requires manual review (e.g. underpaid)
         'failed' => [],
         'expired' => [],
         'refunded' => [],

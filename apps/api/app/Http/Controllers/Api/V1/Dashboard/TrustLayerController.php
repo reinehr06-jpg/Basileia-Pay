@@ -27,7 +27,7 @@ class TrustLayerController extends Controller
 
         $openAlerts = \App\Models\Alert::where('company_id', $companyId)
             ->whereIn('status', ['open', 'acknowledged'])
-            ->orderByRaw("FIELD(severity, 'critical', 'high', 'medium', 'low', 'info')")
+            ->orderByRaw("CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 WHEN 'info' THEN 5 ELSE 6 END")
             ->limit(10)->get()
             ->map(fn($a) => [
                 'id' => $a->id, 'severity' => $a->severity, 'title' => $a->title,

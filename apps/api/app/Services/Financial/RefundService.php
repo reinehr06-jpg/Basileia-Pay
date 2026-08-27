@@ -14,11 +14,12 @@ class RefundService
 
     public function requestRefund(Payment $payment, int $amount, string $reason, int $actorId): Refund
     {
-        return DB::transaction(function () use ($payment, $amount, $reason, $actorId) {
+        $refund = DB::transaction(function () use ($payment, $amount, $reason, $actorId) {
             $payment = Payment::lockForUpdate()->find($payment->id);
 
-            if ($payment->status !== 'confirmed' && $payment->status !== 'paid') {
-                throw new Exception('Apenas pagamentos confirmados podem ser estornados.');
+            // Validar apenas paid. confirmed não é mais usado após a refatoração do PaymentService.
+            if ($payment->status !== 'paid' && $payment->status !== 'underpaid') {
+                throw new Exception('Apenas pagamentos processados (paid/underpaid) podem ser estornados.');
             }
 
             $refundedSoFar = $payment->refunds()->whereIn('status', ['completed', 'processing'])->sum('amount');
@@ -42,20 +43,25 @@ class RefundService
                 'before_state' => null,
                 'after_state' => $refund->toArray(),
             ]);
+            
+            return $refund;
+        });
 
-            $registry = app(\App\Services\Gateway\GatewayDriverRegistry::class);
-            $gatewayAccount = $payment->gatewayAccount;
-            $driver = $registry->resolve($gatewayAccount);
-            $result = $driver->refund($payment->gateway_payment_id, $amount);
+        // HTTP Call fora da transação de banco de dados
+        $registry = app(\App\Services\Gateway\GatewayDriverRegistry::class);
+        $gatewayAccount = clone $payment->gatewayAccount;
+        $driver = $registry->resolve($gatewayAccount);
+        $result = $driver->refund($payment->gateway_payment_id, $amount);
 
+        DB::transaction(function () use ($refund, $result) {
             if ($result->success) {
                 $this->completeRefund($refund);
             } else {
                 $refund->update(['status' => 'failed', 'metadata' => ['error' => $result->errorMessage]]);
             }
-
-            return $refund;
         });
+
+        return $refund->fresh();
     }
 
     public function completeRefund(Refund $refund): void

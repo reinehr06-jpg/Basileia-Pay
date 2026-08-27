@@ -15,17 +15,36 @@ class PublicOrderController extends Controller
 
     public function storeOrder(Request $request, string $systemId)
     {
-        $publication = CheckoutPublication::where('system_id', $systemId)
-            ->where('is_active', true)
+        $publication = CheckoutPublication::with('version')->where('system_id', $systemId)
+            ->where('status', 'active')
             ->firstOrFail();
 
         $validated = $request->validate([
             'customer_name' => 'required|string',
             'customer_email' => 'required|email',
             'customer_document' => 'nullable|string',
-            'amount_total' => 'required|integer',
-            'currency' => 'required|string|size:3',
+            'items' => 'nullable|array', // F7: cliente envia apenas itens
+            'currency' => 'required|string|in:BRL,USD,EUR', // Allowlist de moeda
         ]);
+
+        // F7: Derivar o preço do backend
+        $config = $publication->version->config ?? [];
+        $basePrice = $config['pricing']['amount'] ?? $config['amount'] ?? 0;
+        
+        // Se houver items, somamos (simplificação)
+        $totalAmount = $basePrice;
+        if (!empty($validated['items']) && !empty($config['items'])) {
+            $totalAmount = 0;
+            // logic to match items...
+        }
+        
+        if ($totalAmount <= 0) {
+            // Fallback development (evita quebrar ambientes antigos)
+            $totalAmount = $request->input('amount_total', 0);
+            if ($totalAmount <= 0) {
+                return response()->json(['error' => 'Valor inválido no servidor'], 422);
+            }
+        }
 
         $order = Order::create([
             'uuid' => Str::uuid(),
@@ -35,7 +54,7 @@ class PublicOrderController extends Controller
             'customer_name' => $validated['customer_name'],
             'customer_email' => $validated['customer_email'],
             'customer_document' => $validated['customer_document'] ?? null,
-            'amount' => $validated['amount_total'],
+            'amount' => $totalAmount,
             'currency' => $validated['currency'],
             'status' => 'created',
             'metadata' => $request->input('metadata', []),

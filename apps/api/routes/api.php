@@ -66,8 +66,14 @@ Route::prefix('v1')->group(function () {
     // ── Webhooks de Gateways ──────────────────────────────────────────────
     Route::post('webhooks/gateways/{provider}/{accountUuid?}', [\App\Http\Controllers\Api\V1\GatewayWebhookController::class, 'handle'])->middleware('throttle:webhooks');
 
+    // ── Internal Vault (Server to Server) ─────────────────────────────────
+    Route::prefix('internal/vault')->middleware(['auth:sanctum', 'server.only'])->group(function () {
+        Route::post('tokenize', [\App\Http\Controllers\Api\VaultController::class, 'tokenize']);
+        Route::post('resolve', [\App\Http\Controllers\Api\VaultController::class, 'resolve']);
+    });
+
     // ── Rotas Protegidas (Dashboard & Integrações) ────────────────────────
-    Route::middleware(['auth:sanctum', 'zero.trust', 'scope.company', 'anomaly.detect', 'tracing', 'throttle:dashboard'])->group(function () {
+    Route::middleware(['auth:sanctum', 'zero.trust', 'scope.company', 'anomaly.detect', 'tracing', 'throttle:dashboard', '2fa'])->group(function () {
         
         // Auth Me
         Route::get('auth/me', [\App\Http\Controllers\Api\V1\AuthController::class, 'me']);
@@ -119,8 +125,8 @@ Route::prefix('v1')->group(function () {
         Route::post('dashboard/monitoring/evaluate', [\App\Http\Controllers\Api\V1\Dashboard\MonitoringController::class, 'evaluate']);
 
         // Sensitive actions (Require 2FA)
-        Route::middleware('2fa')->group(function () {
-            Route::get('dashboard/gateways', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'index']);
+        // O 2FA agora é global para todo o dashboard (F15).
+        Route::get('dashboard/gateways', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'index']);
             Route::get('dashboard/gateways/capabilities', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'capabilities']);
             Route::get('dashboard/gateways/{uuid}', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'show']);
             Route::put('dashboard/gateways/{uuid}', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'update']);
@@ -186,7 +192,6 @@ Route::prefix('v1')->group(function () {
 
             Route::get('dashboard/trust-layer', [\App\Http\Controllers\Api\V1\Dashboard\TrustLayerController::class, 'index']);
             Route::post('dashboard/trust-layer/evaluate', [\App\Http\Controllers\Api\V1\Dashboard\TrustLayerController::class, 'evaluate']);
-        });
 
         // Onboarding — Gateway (fora de 2fa para permitir fluxo inicial)
         Route::post('dashboard/gateways', [\App\Http\Controllers\Api\V1\Dashboard\GatewayController::class, 'store']);
@@ -237,23 +242,4 @@ Route::prefix('v1')->group(function () {
 // ═══════════════════════════════════════════════════════════════════════════════
 // API v2 — Next.js Frontend Integration
 // ═══════════════════════════════════════════════════════════════════════════════
-Route::prefix('v2')->name('api.v2.')->group(function () {
-    Route::post('auth/login', [\App\Http\Controllers\Api\V2\AuthController::class, 'login'])->middleware('throttle:auth_login');
-    Route::post('auth/register', [\App\Http\Controllers\Api\V2\AuthController::class, 'register'])->middleware('throttle:auth_register');
-    Route::post('auth/refresh', [\App\Http\Controllers\Api\V2\AuthController::class, 'refresh'])->middleware(['auth:sanctum', 'throttle:auth_login']);
 
-    // 2FA verify FORA do middleware auth:sanctum para evitar redirect 302 que
-    // converte POST em GET. A autenticação é validada no próprio controller.
-    Route::match(['get', 'post'], 'auth/2fa/verify', [\App\Http\Controllers\Api\V2\AuthController::class, 'verify2fa']);
-
-    Route::middleware(['auth:sanctum'])->group(function () {
-        Route::get('auth/me', [\App\Http\Controllers\Api\V2\AuthController::class, 'me']);
-        Route::post('auth/2fa/setup', [\App\Http\Controllers\Api\V2\AuthController::class, 'setup2fa']);
-        Route::post('auth/2fa/enable', [\App\Http\Controllers\Api\V2\AuthController::class, 'enable2fa']);
-        Route::post('auth/logout', [\App\Http\Controllers\Api\V2\AuthController::class, 'logout']);
-    });
-    
-    Route::middleware(['auth:sanctum', 'zero.trust'])->group(function () {
-        Route::get('dashboard/stats', [\App\Http\Controllers\Api\V2\DashboardController::class, 'stats']);
-    });
-});
