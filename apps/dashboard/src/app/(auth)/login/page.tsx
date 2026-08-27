@@ -93,7 +93,7 @@ function LoginContent() {
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+          ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken as string } : {}),
         },
         body: JSON.stringify({ email, password }),
       });
