@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('checkouts', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->foreignUuid('user_id')->constrained();
+            $table->foreignId('user_id')->constrained();
             $table->string('name');
             $table->string('system_id')->nullable()->unique();
             $table->enum('status', ['draft','published','archived'])->default('draft');
