@@ -68,7 +68,13 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Start Docker Compose
+      - name: Start Infrastructure
+        run: docker compose up -d --wait postgres redis
+
+      - name: Run Migrations
+        run: docker compose run --rm api php artisan migrate --force
+
+      - name: Start all services
         run: docker compose up -d
 
       - name: Wait for Healthchecks
