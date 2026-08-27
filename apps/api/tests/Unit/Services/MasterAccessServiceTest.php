@@ -18,7 +18,7 @@ class MasterAccessServiceTest extends TestCase
 
     public function test_uses_configured_seed(): void
     {
-        config(['master.totp_seed' => 'test_seed']);
+        config(['master.totp_seed' => '12345678901234567890123456789012']);
         $service = new MasterAccessService();
         $code = $service->generateCode();
         
