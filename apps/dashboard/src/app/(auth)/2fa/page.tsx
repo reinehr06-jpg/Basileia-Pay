@@ -20,7 +20,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export default function TwoFactorPage() {
   const router = useRouter();
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const codeInputs = useRef<any[]>([]);
+  const codeInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 

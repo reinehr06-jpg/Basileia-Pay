@@ -14,7 +14,7 @@ export default function TwoFactorSetupPage() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const codeInputs = useRef<any[]>([]);
+  const codeInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

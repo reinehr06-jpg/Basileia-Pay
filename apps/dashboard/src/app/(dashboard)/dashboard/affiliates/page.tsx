@@ -73,7 +73,7 @@ export default function AffiliatesPage() {
     }
   };
 
-  let filteredList = [...MOCK_AFFILIATES].filter(
+  const filteredList = [...MOCK_AFFILIATES].filter(
     (a) =>
       (a.name.toLowerCase().includes(buscaNome.toLowerCase()) ||
        a.email.toLowerCase().includes(buscaNome.toLowerCase())) &&
