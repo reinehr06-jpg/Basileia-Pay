@@ -21,25 +21,27 @@ class SetTenantContext
             return $next($request);
         }
 
-        $company = null;
+        // 1. Validate requested company ID
+        $requestedCompanyId = $request->cookie('basileia_active_company') ?? $request->header('X-Active-Company-ID') ?? clone $user->company_id;
 
-        // 1. Resolve company from basileia_active_company cookie
-        $activeCompanyCookie = $request->cookie('basileia_active_company');
-        if ($activeCompanyCookie) {
-            $company = Company::find($activeCompanyCookie);
+        if ($requestedCompanyId) {
+            $company = Company::find($requestedCompanyId);
+            
+            if ($company) {
+                // F6: Segurança IDOR - Validar se o usuário pertence à empresa solicitada
+                $userBelongs = $user->companies()->where('companies.id', $company->id)->exists();
+                
+                // Exceção: Se for a company_id padrão dele, ou ele for SuperAdmin
+                if (!$userBelongs && $user->company_id !== $company->id && !$user->isSuperAdmin()) {
+                    return response()->json(['error' => 'Unauthorized access to company context.'], 403);
+                }
+            }
         }
 
-        // 2. Resolve company from X-Active-Company-ID header
-        if (!$company && $request->hasHeader('X-Active-Company-ID')) {
-            $company = Company::find($request->header('X-Active-Company-ID'));
-        }
-
-        // 3. Resolve company from user's company_id
+        // Fallback para a padrão se não achar
         if (!$company && $user->company_id) {
             $company = Company::find($user->company_id);
         }
-
-        // Removed fallback for super_admin to prevent cross-tenant leak
 
         if ($company) {
             // Set TenantContext details
@@ -50,6 +52,7 @@ class SetTenantContext
             
             // Keep resolved company in request attributes for upstream middlewares
             $request->attributes->set('company', $company);
+            $request->attributes->set('company_id', $company->id);
         }
 
         return $next($request);

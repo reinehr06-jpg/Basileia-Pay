@@ -15,10 +15,10 @@ class VaultService
         $this->keyManager = $keyManager;
     }
 
-    public function encrypt(string $value): array
+    public function encrypt(string $value, ?int $companyId = null): array
     {
         $version = $this->keyManager->getCurrentVersion();
-        $encrypter = $this->getEncrypterForVersion($version);
+        $encrypter = $this->getEncrypterForVersion($version, $companyId);
         
         return [
             'encrypted_value' => $encrypter->encryptString($value),
@@ -27,9 +27,9 @@ class VaultService
         ];
     }
 
-    public function decrypt(string $encryptedValue, string $version): string
+    public function decrypt(string $encryptedValue, string $version, ?int $companyId = null): string
     {
-        $encrypter = $this->getEncrypterForVersion($version);
+        $encrypter = $this->getEncrypterForVersion($version, $companyId);
         return $encrypter->decryptString($encryptedValue);
     }
 
@@ -40,23 +40,57 @@ class VaultService
     }
 
     /**
-     * Resolve card token para dados do cartão (método estático para compatibilidade).
+     * Resolve card token para dados do cartão descriptografados.
      */
     public static function resolveToken(int $companyId, string $cardToken): ?array
     {
         $service = app(self::class);
-        // Implementar lógica de resolução de token
-        // Por ora, retorna null (placeholder)
-        return null;
+        
+        $record = \Illuminate\Support\Facades\DB::table('card_vault')
+            ->where('company_id', $companyId)
+            ->where('card_token', $cardToken)
+            ->first();
+
+        if (!$record) {
+            return null;
+        }
+
+        // Se usar o payload antigo com IV e TAG soltos (fallback)
+        if (empty($record->key_version)) {
+            $key = \App\Services\Vault\VaultKeyService::forCompany($companyId);
+            $plaintext = openssl_decrypt(
+                $record->ciphertext,
+                'aes-256-gcm',
+                $key,
+                OPENSSL_RAW_DATA,
+                $record->iv,
+                $record->tag
+            );
+            if ($plaintext === false) return null;
+            return json_decode($plaintext, true);
+        }
+
+        try {
+            $decrypted = $service->decrypt($record->ciphertext, $record->key_version, $companyId);
+            return json_decode($decrypted, true);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Falha ao resolver token de cartão", ['token' => $cardToken, 'error' => $e->getMessage()]);
+            return null;
+        }
     }
 
-    private function getEncrypterForVersion(string $version): Encrypter
+    private function getEncrypterForVersion(string $version, ?int $companyId = null): Encrypter
     {
-        if (!isset($this->encrypters[$version])) {
-            $key = $this->keyManager->getKeyForVersion($version);
-            $this->encrypters[$version] = new Encrypter($key, 'AES-256-GCM');
+        $cacheKey = $companyId ? "{$version}_{$companyId}" : $version;
+
+        if (!isset($this->encrypters[$cacheKey])) {
+            $key = $companyId 
+                ? $this->keyManager->getCompanyKeyForVersion($version, $companyId)
+                : $this->keyManager->getKeyForVersion($version);
+                
+            $this->encrypters[$cacheKey] = new Encrypter($key, 'AES-256-GCM');
         }
         
-        return $this->encrypters[$version];
+        return $this->encrypters[$cacheKey];
     }
 }

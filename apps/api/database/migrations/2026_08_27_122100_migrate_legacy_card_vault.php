@@ -14,6 +14,8 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if (!Schema::hasTable('card_vault')) { return; }
+
         // 1. Ensure key_version exists in card_vault
         if (!Schema::hasColumn('card_vault', 'key_version')) {
             Schema::table('card_vault', function (Blueprint $table) {
@@ -65,6 +67,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if (!Schema::hasTable('card_vault')) { return; }
+
         // Down migration can't safely restore to raw keys without risking data loss
         // Only dropping the column if it was added
         Schema::table('card_vault', function (Blueprint $table) {

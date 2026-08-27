@@ -9,7 +9,6 @@ use App\Models\CheckoutSession;
 use App\Models\Order;
 use App\Domain\Customer\Services\CustomerService;
 use App\Domain\Gateway\Services\GatewayResolver;
-use App\Domain\Payment\Idempotency\IdempotencyGuard;
 use App\Domain\Checkout\StateMachine\CheckoutSessionStateMachine;
 use App\Services\Audit\AuditService;
 use Illuminate\Http\JsonResponse;
@@ -19,7 +18,6 @@ class CheckoutSessionController extends Controller
     public function __construct(
         private CustomerService $customerService,
         private GatewayResolver $gatewayResolver,
-        private IdempotencyGuard $idempotency,
         private CheckoutSessionStateMachine $sessionStateMachine,
         private AuditService $audit
     ) {}
@@ -31,10 +29,8 @@ class CheckoutSessionController extends Controller
             return response()->json(['error' => 'Idempotency-Key header obrigatório.'], 422);
         }
 
-        $cached = $this->idempotency->check($idempotencyKey, 'checkout_session');
-        if ($cached) {
-            return response()->json($cached)->header('X-Idempotent-Replayed', 'true');
-        }
+        // Idempotência baseada em Header, agora ignorada a favor da UNIQUE Constraint no BD
+
 
         // Resolvido pelo ResolveApiKey middleware
         $company = \App\Services\TenantContext::company();
@@ -92,7 +88,6 @@ class CheckoutSessionController extends Controller
             'status'       => $session->status,
         ];
 
-        $this->idempotency->store($idempotencyKey, 'checkout_session', $result);
 
         $this->audit->log('checkout_session.created', $session);
 

@@ -42,12 +42,14 @@ class FinancialController extends Controller
     {
         $companyId = request()->attributes->get('company_id');
         $order = Order::where('company_id', $companyId)->findOrFail($id);
-        $payment = $order->payments()->latest()->firstOrFail();
-
+        
         $validated = $request->validate([
+            'payment_id' => 'required|integer|exists:payments,id',
             'amount' => 'required|integer|min:1',
             'reason' => 'required|string',
         ]);
+
+        $payment = $order->payments()->where('id', $validated['payment_id'])->firstOrFail();
 
         try {
             $refund = $this->refundService->requestRefund(

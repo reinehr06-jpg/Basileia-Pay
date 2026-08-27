@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Play, HelpCircle, X, Check, ShieldAlert, AlertTriangle, ArrowRight, Zap, RefreshCw } from 'lucide-react';
 import { RoutingSimulatorInput, RoutingSimulatorResult, RoutingRule } from '@/types/routing';
-import { MOCK_ROUTING_RULES } from '@/app/(dashboard)/dashboard/routing/__mocks__/routing';
+
 import { cn } from '@/lib/utils';
 
 interface RoutingSimulatorPanelProps {

@@ -34,3 +34,4 @@ login.json
 cookies.txt
 test-flow.php
 RECOVERY_INSTRUCTIONS.txt
+vendor/

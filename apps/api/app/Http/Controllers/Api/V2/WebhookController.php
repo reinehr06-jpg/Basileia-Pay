@@ -1,1 +1,0 @@
-<?php namespace App\Http\Controllers\Api\V2; use App\Http\Controllers\Controller; class WebhookController extends Controller { public function index(){} public function show(){} public function retry(){} }

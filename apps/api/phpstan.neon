@@ -4,8 +4,16 @@ parameters:
         - app
     excludePaths:
         - app/Providers
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
     ignoreErrors:
         - '#Unsafe usage of new static#'
         - '#Unsafe usage of new class#'
+    disallowedFunctionCalls:
+        -
+            function: 'dd()'
+            message: 'use some logger instead'
+        -
+            function: 'dump()'
+            message: 'use some logger instead'
+
+includes:
+    - vendor/spaze/phpstan-disallowed-calls/extension.neon

@@ -78,6 +78,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'jit' => \App\Http\Middleware\JitAccessMiddleware::class,
             'super.admin' => \App\Http\Middleware\EnsureUserIsSuperAdmin::class,
             'token.expiry' => \App\Http\Middleware\CheckTokenExpiration::class,
+            'server.only' => \App\Http\Middleware\ServerToServerMiddleware::class,
         ]);
 
         $middleware->web(append: [

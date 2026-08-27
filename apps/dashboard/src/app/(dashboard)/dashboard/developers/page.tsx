@@ -13,7 +13,6 @@ import { DeveloperSandboxPanel } from '@/components/developers/DeveloperSandboxP
 import { DeveloperWebhookSummary } from '@/components/developers/DeveloperWebhookSummary';
 import { DeveloperLogsTable } from '@/components/developers/DeveloperLogsTable';
 
-import { MOCK_DEVELOPER_SUMMARY, MOCK_API_KEYS, MOCK_DEVELOPER_LOGS } from './__mocks__/developers';
 import { DeveloperSummary, DeveloperApiKey, DeveloperLog, SandboxRequest } from '@/types/developers';
 import { cn } from '@/lib/utils';
 import { ShieldCheck, ShieldAlert, Key } from 'lucide-react';
@@ -23,7 +22,13 @@ export default function DevelopersPage() {
   const [activeTab, setActiveTab] = useState<DeveloperTabValue>('overview');
   const [apiKeys, setApiKeys] = useState<DeveloperApiKey[]>([]);
   const [logs, setLogs] = useState<DeveloperLog[]>([]);
-  const [summary, setSummary] = useState<DeveloperSummary>(MOCK_DEVELOPER_SUMMARY);
+  const [summary, setSummary] = useState<DeveloperSummary>({
+    apiKeysActive: 0,
+    sandboxRequests24h: 0,
+    apiCalls24h: 0,
+    activeWebhooks: 0,
+    apiStatus: { uptime: '100%', latencyP95: '45ms', errorP95: '0.01%', region: 'sa-east-1' }
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,13 +50,13 @@ export default function DevelopersPage() {
             createdBy: '',
           })));
         } else {
-          setApiKeys(MOCK_API_KEYS);
+          setApiKeys([]);
         }
-      } catch (err) { console.error('Failed to fetch API keys:', err); setApiKeys(MOCK_API_KEYS); } finally {
+      } catch (err) { console.error('Failed to fetch API keys:', err); setApiKeys([]); } finally {
         setLoading(false);
       }
     })();
-    setLogs(MOCK_DEVELOPER_LOGS);
+    setLogs([]);
   }, []);
   
   // Toast notifications

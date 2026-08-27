@@ -25,7 +25,7 @@ export default function TwoFactorSetupPage() {
     try {
       const csrfToken = getCsrfToken();
       const token = getAccessToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/2fa/setup?_t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/setup?_t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export default function TwoFactorSetupPage() {
     try {
       const csrfToken = getCsrfToken();
       const token = getAccessToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/2fa/enable?_t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/enable?_t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

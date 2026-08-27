@@ -6,7 +6,7 @@ export default async function CheckoutPage({ params }: { params: Promise<{ id: s
   const uuid = resolvedParams.id;
 
   // Fetch session data from backend API
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v2/checkout/session/${uuid}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/public/checkout-sessions/${uuid}`, {
     cache: 'no-store'
   });
 
