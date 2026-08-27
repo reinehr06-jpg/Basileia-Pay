@@ -14,8 +14,7 @@ services:
         condition: service_healthy
       dashboard:
         condition: service_healthy
-      checkout-studio:
-        condition: service_healthy
+
     networks:
       - proxy
     deploy:
@@ -103,22 +102,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # ── Checkout Studio (visual editor) ──
-  checkout-studio:
-    build:
-      context: ./checkout-studio
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      - VITE_API_URL=/api
-    networks:
-      - proxy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5173 || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
 
   # ── PostgreSQL (internal only) ──
   postgres:
