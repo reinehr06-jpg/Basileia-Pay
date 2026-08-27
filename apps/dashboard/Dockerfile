@@ -4,8 +4,9 @@
 # ── Stage 1: Dependencies ──
 FROM node:22-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --legacy-peer-deps
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; \
+    else npm install --legacy-peer-deps --no-audit --no-fund; fi
 
 # ── Stage 2: Build ──
 FROM node:22-alpine AS builder
