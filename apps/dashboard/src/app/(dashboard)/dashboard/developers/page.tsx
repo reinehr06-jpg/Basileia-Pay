@@ -26,8 +26,9 @@ export default function DevelopersPage() {
     apiKeysActive: 0,
     sandboxRequests24h: 0,
     apiCalls24h: 0,
+    successRate24h: 100,
     activeWebhooks: 0,
-    apiStatus: { uptime: '100%', latencyP95: '45ms', errorP95: '0.01%', region: 'sa-east-1' }
+    apiStatus: { uptime: 100, latencyP95: 45, errorP95: 0.01, region: 'sa-east-1' }
   });
   const [loading, setLoading] = useState(true);
 

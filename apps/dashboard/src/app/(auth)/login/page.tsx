@@ -38,7 +38,7 @@ function LoginContent() {
   const [lockoutTime, setLockoutTime] = useState(0);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoverySent, setRecoverySent] = useState(false);
-  const [_isRegistering, _setIsRegistering] = useState(false);
+
   const [toastMessage, setToastMessage] = useState('');
 
   // Check URL params for specific states
@@ -488,7 +488,7 @@ function LoginContent() {
 
                 <div className="new-account">
                   <span>Ainda não tem uma conta?</span>
-                  <a onClick={() => setIsRegistering(true)} style={{cursor: 'pointer'}}>Criar conta agora →</a>
+                  <a onClick={() => router.push('/register')} style={{cursor: 'pointer'}}>Criar conta agora →</a>
                 </div>
               </form>
             )}
