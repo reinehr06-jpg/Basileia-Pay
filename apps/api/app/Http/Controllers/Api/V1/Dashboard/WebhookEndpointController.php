@@ -32,7 +32,11 @@ class WebhookEndpointController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'url'       => 'required|url',
+            'url'       => ['required', 'url', function ($attribute, $value, $fail) {
+                if (!$this->isUrlSafeForWebhook($value)) {
+                    $fail('A URL informada é inválida ou aponta para um endereço restrito.');
+                }
+            }],
             'system_id' => 'required|exists:connected_systems,id',
             'events'    => 'required|array',
             'status'    => 'required|in:active,inactive',
@@ -82,7 +86,11 @@ class WebhookEndpointController extends Controller
             ->firstOrFail();
 
         $data = $request->validate([
-            'url'    => 'sometimes|url',
+            'url'    => ['sometimes', 'url', function ($attribute, $value, $fail) {
+                if (!$this->isUrlSafeForWebhook($value)) {
+                    $fail('A URL informada é inválida ou aponta para um endereço restrito.');
+                }
+            }],
             'events' => 'sometimes|array',
             'status' => 'sometimes|in:active,inactive',
         ]);
@@ -125,5 +133,34 @@ class WebhookEndpointController extends Controller
             'success' => true,
             'secret'  => $secret
         ]);
+    }
+
+    /**
+     * F16: Proteção contra SSRF. Verifica se a URL resolve para um IP seguro.
+     */
+    private function isUrlSafeForWebhook(string $url): bool
+    {
+        $parsed = parse_url($url);
+        $host = $parsed['host'] ?? null;
+        
+        if (!$host) return false;
+        
+        if (in_array(strtolower($parsed['scheme'] ?? ''), ['http', 'https']) === false) {
+            return false;
+        }
+
+        $ip = gethostbyname($host);
+        if ($ip === $host) {
+            // DNS resolution failed or it's an IP already
+            // Ensure it's a valid IP
+            if (!filter_var($ip, FILTER_VALIDATE_IP)) return false;
+        }
+
+        // Bloquear redes privadas, loopback, link-local, multicast
+        return filter_var(
+            $ip, 
+            FILTER_VALIDATE_IP, 
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) !== false;
     }
 }

@@ -56,21 +56,28 @@ class GatewayWebhookController extends Controller
                 return response()->json(['status' => 'already_processed']);
             }
 
-            // 5. Registrar evento
+            // 5. Normalizar payload (Mascarar PII F12)
+            $maskedPayload = $payload;
+            foreach (['customer_name', 'name', 'email', 'cpf', 'cnpj', 'document', 'cardNumber', 'creditCard'] as $field) {
+                if (isset($maskedPayload[$field]) || isset($maskedPayload['data'][$field])) {
+                    if (isset($maskedPayload[$field])) $maskedPayload[$field] = '***';
+                    if (isset($maskedPayload['data'][$field])) $maskedPayload['data'][$field] = '***';
+                }
+            }
+
+            // 6. Registrar evento
             $event = GatewayWebhookEvent::create([
                 'uuid'             => Str::uuid(),
                 'company_id'       => $gateway->company_id,
                 'gateway'          => $provider,
                 'gateway_event_id' => $gatewayEventId,
                 'event_type'       => $normalized['event_type'],
-                'payload_masked'   => $payload,
+                'payload_masked'   => $maskedPayload,
                 'status'           => 'received',
             ]);
 
-            // 6. Processar
-            $handler->handle($normalized);
-
-            $event->update(['status' => 'processed']);
+            // 7. Enfileirar processamento assíncrono (F5)
+            \App\Jobs\ProcessGatewayWebhookJob::dispatch($event);
 
             return response()->json(['success' => true, 'event_id' => $event->uuid]);
 
@@ -85,8 +92,8 @@ class GatewayWebhookController extends Controller
         $secret = $this->getWebhookSecret($gateway);
 
         if (!$secret) {
-            // Fallback: accept if no secret configured
-            return true;
+            // F2: Nunca retornar true no fallback. Uma falha de checagem deve falhar!
+            return false;
         }
 
         return match ($provider) {
@@ -137,7 +144,8 @@ class GatewayWebhookController extends Controller
     private function getWebhookSecret(GatewayAccount $gateway): ?string
     {
         try {
-            $decrypted = decrypt($gateway->credentials_encrypted);
+            $encryptionService = app(\App\Security\Encryption\EncryptionService::class);
+            $decrypted = $encryptionService->decrypt($gateway->credentials_encrypted);
             $credentials = json_decode($decrypted, true);
             return $credentials['webhook_secret']
                 ?? $credentials['webhookKey']

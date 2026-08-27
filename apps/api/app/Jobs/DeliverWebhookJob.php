@@ -37,7 +37,8 @@ class DeliverWebhookJob implements ShouldQueue
             $this->delivery->update([
                 'status' => $response->successful() ? 'success' : 'failed',
                 'response_status' => $response->status(),
-                'response_body' => $response->body(),
+                // F16: Nunca armazenar o body arbitrário por risco de exfiltração via SSRF (ex: AWS Metadata)
+                'response_body' => null,
             ]);
 
             if (!$response->successful()) {
