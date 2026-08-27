@@ -68,13 +68,23 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Start Infrastructure
-        run: docker compose up -d --wait postgres redis
+      - name: Generate .env
+        run: |
+          cat > .env <<EOF
+          APP_KEY=base64:$(openssl rand -base64 32)
+          DB_DATABASE=basileia
+          DB_USERNAME=basileia
+          DB_PASSWORD=ci_$(openssl rand -hex 8)
+          REDIS_PASSWORD=ci_$(openssl rand -hex 8)
+          SECURITY_ENCRYPTION_KEY=base64:$(openssl rand -base64 32)
+          SECURITY_IP_SALT=$(openssl rand -hex 16)
+          MASTER_TOTP_SEED=$(openssl rand -hex 32)
+          APP_URL=http://localhost:8000
+          SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
+          CORS_ALLOWED_ORIGINS=http://localhost:8000
+          EOF
 
-      - name: Run Migrations
-        run: docker compose run --rm api php artisan migrate --force
-
-      - name: Start all services
+      - name: Start Docker Compose
         run: docker compose up -d
 
       - name: Wait for Healthchecks
