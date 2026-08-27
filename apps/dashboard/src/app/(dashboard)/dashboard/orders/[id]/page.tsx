@@ -685,7 +685,7 @@ export default function OrderDetailPage({ params }: { params: Promise<{ id: stri
             <div className="bg-[#FAF8FF] border border-[#E8DDFD]/60 p-3 rounded-xl min-h-[50px] flex flex-col justify-center text-left">
               {order.notasCliente ? (
                 <p className="text-[11.5px] font-black text-slate-700 italic leading-relaxed">
-                  "{order.notasCliente}"
+                  &ldquo;{order.notasCliente}&rdquo;
                 </p>
               ) : (
                 <p className="text-[10px] font-bold text-slate-400 text-center italic">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, ArrowRight, Check, AlertTriangle, Copy } from 'lucide-react';
 import { fetchWithTimeout, getCsrfToken, getAccessToken, clearTokens, setTokens } from '@/lib/api';

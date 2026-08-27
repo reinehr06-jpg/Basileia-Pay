@@ -51,7 +51,7 @@ export default function CustomersPage() {
     return <ChevronDown className="w-3.5 h-3.5 opacity-20" />;
   };
 
-  let filteredList = [...MOCK_CUSTOMERS].filter(c => 
+  const filteredList = [...MOCK_CUSTOMERS].filter(c => 
     c.nome.toLowerCase().includes(buscaNome.toLowerCase()) && 
     (c.email.toLowerCase().includes(buscaEmail.toLowerCase()) || c.id.toLowerCase().includes(buscaEmail.toLowerCase()))
   );

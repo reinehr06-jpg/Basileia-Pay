@@ -7,7 +7,6 @@ import {
   Lock, 
   FileText, 
   ArrowRight, 
-  ArrowLeft,
   User,
   Mail,
   Building,
@@ -15,8 +14,7 @@ import {
   X,
   Eye,
   EyeOff,
-  Sparkles,
-  Globe
+  Sparkles
 } from 'lucide-react';
 import { fetchWithTimeout, getCsrfToken } from '@/lib/api';
 

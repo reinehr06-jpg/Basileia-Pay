@@ -9,9 +9,7 @@ import {
   FileText, 
   ArrowRight, 
   Check, 
-  ArrowLeft,
-  Key,
-  Monitor
+  ArrowLeft
 } from 'lucide-react';
 import { fetchWithTimeout, getCsrfToken, getAccessToken, setTokens } from '@/lib/api';
 

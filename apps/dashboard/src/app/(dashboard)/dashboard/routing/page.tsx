@@ -270,7 +270,7 @@ export default function RoutingPage() {
     const isHighRisk = input.riskScore > 80;
     
     const decisionChain: RoutingDecisionStep[] = rules.map((r) => {
-      let evaluated = true;
+      const evaluated = true;
       let satisfied = false;
 
       const conditionResults = r.conditions.map((cond) => {

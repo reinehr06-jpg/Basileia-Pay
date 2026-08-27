@@ -1116,7 +1116,7 @@ export default function AiSettingsPage() {
                 <span className="text-[9px] font-black text-slate-455 uppercase tracking-wider block text-left">Logs de Execução da Pipeline</span>
                 <div className="flex-1 bg-slate-950 border border-slate-900 rounded-xl p-3 font-mono text-[9px] leading-relaxed text-emerald-400 space-y-1 overflow-y-auto h-[140px] text-left">
                   {simLogs.length === 0 ? (
-                    <span className="text-slate-500 select-none block italic">Nenhuma simulação em execução. Clique em 'Iniciar Simulação'.</span>
+                    <span className="text-slate-500 select-none block italic">Nenhuma simulação em execução. Clique em &apos;Iniciar Simulação&apos;.</span>
                   ) : (
                     simLogs.map((log, idx) => (
                       <div key={idx} className="flex gap-1.5 items-start">
@@ -1137,7 +1137,7 @@ export default function AiSettingsPage() {
                 setSimLogs([]);
                 setSimActivePath([]);
                 
-                let logs = ["🔍 Iniciando simulação do pipeline de prompt..."];
+                const logs = ["🔍 Iniciando simulação do pipeline de prompt..."];
                 setSimActiveNode('input');
                 setSimLogs([...logs]);
                 
@@ -1156,7 +1156,7 @@ export default function AiSettingsPage() {
                     try {
                       const parsed = JSON.parse(simPayload);
                       score = parsed.risk_score !== undefined ? parsed.risk_score : 85;
-                    } catch (e) {}
+                    } catch (_e) { /* ignore parse errors */ }
 
                     const condPassed = score > 80;
                     logs.push(`🔍 Condição calculada: risk_score (${score}) > 80 => ${condPassed ? 'VERDADEIRO' : 'FALSO'}`);

@@ -38,7 +38,7 @@ function LoginContent() {
   const [lockoutTime, setLockoutTime] = useState(0);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoverySent, setRecoverySent] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
+  const [_isRegistering, _setIsRegistering] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
 
   // Check URL params for specific states

@@ -59,7 +59,7 @@ export default function PaymentLinksPage() {
     return <ChevronDown className="w-3.5 h-3.5 opacity-20" />;
   };
 
-  let filteredList = [...MOCK_LINKS].filter(
+  const filteredList = [...MOCK_LINKS].filter(
     (c) =>
       c.name.toLowerCase().includes(buscaNome.toLowerCase()) &&
       c.id.toLowerCase().includes(buscaId.toLowerCase())

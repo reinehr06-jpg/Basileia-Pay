@@ -51,7 +51,7 @@ export default function OrdersPage() {
     return <ChevronDown className="w-3.5 h-3.5 opacity-20" />;
   };
 
-  let filteredList = [...MOCK_TRANSACTIONS].filter(t => 
+  const filteredList = [...MOCK_TRANSACTIONS].filter(t => 
     t.cliente.toLowerCase().includes(buscaCliente.toLowerCase()) && 
     (t.id.toLowerCase().includes(buscaId.toLowerCase()) || t.produto.toLowerCase().includes(buscaId.toLowerCase()))
   );
