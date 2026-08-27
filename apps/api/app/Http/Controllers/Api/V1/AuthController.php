@@ -23,36 +23,16 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $masterService = app(MasterAccessService::class);
-
-        // Master admin login via TOTP
-        if (strtolower($data['email']) === strtolower($masterService->getMasterEmail())) {
-            if (!$masterService->validateCode($data['password'])) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'code' => 'invalid_credentials',
-                        'message' => 'Email ou senha inválidos.',
-                        'request_id' => $request->attributes->get('request_id'),
-                    ]
-                ], 401);
-            }
-
-            $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
-            if (!$user || !$user->isSuperAdmin()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => ['code' => 'invalid_credentials', 'message' => 'Email ou senha inválidos.']
-                ], 401);
-            }
-
-            return $this->createSession($user, $request, 'dashboard-v1-master');
-        }
+        // Removed Master admin login bypass (F14)
 
         // Regular user login
         $user = User::whereRaw('LOWER(email) = ?', [strtolower($data['email'])])->first();
 
-        if (!$user || !Hash::check($data['password'], $user->password)) {
+        // F20: Anti-enumeração. Sempre execute Hash::check para manter o tempo constante.
+        $passwordToCheck = $user ? $user->password : Hash::make(\Illuminate\Support\Str::random(16));
+        $isPasswordValid = Hash::check($data['password'], $passwordToCheck);
+
+        if (!$user || !$isPasswordValid) {
             if ($user) {
                 $user->incrementFailedAttempts();
             }
@@ -138,7 +118,7 @@ class AuthController extends Controller
         $response = response()->json([
             'success' => true,
             'data' => [
-                'token' => $token,
+                // 'token' => $token, // F21: Token removido do corpo, apenas no cookie HttpOnly
                 'refresh_token' => $refreshTokenData['plain'],
                 'expires_in' => 900,
                 'user'  => [

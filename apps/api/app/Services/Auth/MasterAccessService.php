@@ -13,18 +13,19 @@ class MasterAccessService
     {
         $configSeed = config('master.totp_seed');
         
-        $this->seed = $seed ?? $configSeed ?? $this->resolveSeed();
+        $resolvedSeed = $seed ?? $configSeed;
+        if (empty($resolvedSeed) || strlen($resolvedSeed) < 32) {
+            $this->resolveSeed(); // vai disparar a RuntimeException
+        }
+
+        $this->seed = $resolvedSeed;
     }
 
     private function resolveSeed(): string
     {
-        if (app()->environment('production')) {
-            throw new \RuntimeException(
-                'MASTER_TOTP_SEED não configurado. Gere com: php artisan master:generate-seed'
-            );
-        }
-        
-        return 'dev_only_seed_do_not_use_in_production';
+        throw new \RuntimeException(
+            'MASTER_TOTP_SEED não configurado. Defina uma chave forte de 32+ caracteres em produção.'
+        );
     }
 
     public function generateCode(): string

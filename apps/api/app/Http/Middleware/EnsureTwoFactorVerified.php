@@ -20,9 +20,22 @@ class EnsureTwoFactorVerified
             return $next($request);
         }
 
-        // Se o usuário não tem 2FA habilitado, segue fluxo
+        // F15: Forçar configuração de 2FA
+        // Se o usuário não tem 2FA habilitado, ele deve ser bloqueado com o código `needs_2fa_setup`,
+        // a não ser que ele esteja justamente acessando a rota de setup.
         if (!$user->two_factor_enabled) {
-            return $next($request);
+            // A exceção de rota (ex: /2fa/setup) é idealmente gerida agrupando rotas
+            // fora deste middleware, ou permitindo explicitamente aqui se for a intenção:
+            if ($request->is('api/v1/auth/2fa/setup*')) {
+                return $next($request);
+            }
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'needs_2fa_setup',
+                    'message' => 'Você precisa configurar o 2FA para acessar esta rota.',
+                ]
+            ], 403);
         }
 
         // 100% STATELESS E INFALÍVEL: Verifica se a "ability" de 2fa:verified está no token!

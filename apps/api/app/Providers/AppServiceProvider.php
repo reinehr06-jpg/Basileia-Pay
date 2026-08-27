@@ -57,7 +57,9 @@ class AppServiceProvider extends ServiceProvider
         
         // 1. Login (10 tentativas por email/IP em 10 minutos)
         \Illuminate\Support\Facades\RateLimiter::for('auth_login', function (\Illuminate\Http\Request $request) {
-            return \Illuminate\Cache\RateLimiting\Limit::perMinutes(10, 10)->by($request->input('email', $request->ip()));
+            $email = strtolower(trim((string) $request->input('email', '')));
+            $key = $email ? hash('sha256', $email) . '|' . $request->ip() : $request->ip();
+            return \Illuminate\Cache\RateLimiting\Limit::perMinutes(10, 10)->by($key);
         });
 
         // 2. Register (3 tentativas por IP/hora — anti-spam)
