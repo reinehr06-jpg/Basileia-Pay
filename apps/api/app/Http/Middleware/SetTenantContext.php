@@ -21,6 +21,8 @@ class SetTenantContext
             return $next($request);
         }
 
+        $company = null;
+
         // 1. Validate requested company ID
         $requestedCompanyId = $request->cookie('basileia_active_company') ?? $request->header('X-Active-Company-ID') ?? $user->company_id;
 
