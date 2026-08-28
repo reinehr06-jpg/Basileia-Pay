@@ -14,7 +14,7 @@ class TenantScope implements Scope
      */
     public function apply(Builder $builder, Model $model)
     {
-        $companyId = TenantContext::id();
+        $companyId = TenantContext::companyId();
 
         // Só aplica se houver um tenant setado na request/cli.
         // Se quisermos forçar que toda query tenha um company_id, faríamos uma Exception aqui
