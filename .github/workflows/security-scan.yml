@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        target: [apps/api, apps/dashboard]
+        target: [apps/api, apps/frontend]
     steps:
       - uses: actions/checkout@v4
       - uses: aquasecurity/trivy-action@master

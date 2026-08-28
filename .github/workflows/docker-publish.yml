@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'apps/api/**'
-      - 'apps/dashboard/**'
+      - 'apps/frontend/**'
       - '.github/workflows/docker-publish.yml'
   workflow_dispatch:
 
@@ -49,19 +49,19 @@ jobs:
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
 
-      - name: Extract metadata (tags, labels) for Dashboard
-        id: meta-dashboard
+      - name: Extract metadata (tags, labels) for Frontend
+        id: meta-frontend
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-dashboard
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend
           tags: |
             type=ref,event=branch
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push Dashboard Image
+      - name: Build and push Frontend Image
         uses: docker/build-push-action@v6
         with:
-          context: ./apps/dashboard
+          context: ./apps/frontend
           push: true
-          tags: ${{ steps.meta-dashboard.outputs.tags }}
-          labels: ${{ steps.meta-dashboard.outputs.labels }}
+          tags: ${{ steps.meta-frontend.outputs.tags }}
+          labels: ${{ steps.meta-frontend.outputs.labels }}

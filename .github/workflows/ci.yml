@@ -32,8 +32,8 @@ jobs:
         working-directory: ./apps/api
         run: php artisan test
 
-  dashboard-build:
-    name: Dashboard Build
+  frontend-build:
+    name: Frontend Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -47,23 +47,23 @@ jobs:
       - name: Install Dependencies
         run: npm ci
 
-      - name: Lint Dashboard
-        working-directory: ./apps/dashboard
+      - name: Lint Frontend
+        working-directory: ./apps/frontend
         run: npm run lint
 
-      - name: Type Check Dashboard
-        working-directory: ./apps/dashboard
+      - name: Type Check Frontend
+        working-directory: ./apps/frontend
         run: npx tsc --noEmit
 
-      - name: Build Dashboard
-        working-directory: ./apps/dashboard
+      - name: Build Frontend
+        working-directory: ./apps/frontend
         env:
           NODE_ENV: production
         run: npm run build
 
   e2e-tests:
     name: E2E QA Tests
-    needs: [api-tests, dashboard-build]
+    needs: [api-tests, frontend-build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -104,5 +104,5 @@ jobs:
       - name: Run E2E Tests
         run: |
           npm ci
-          cd apps/dashboard
+          cd apps/frontend
           npm run e2e
