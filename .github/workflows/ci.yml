@@ -11,12 +11,12 @@ jobs:
     name: Backend API Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_pgsql, pgsql
           coverage: none
 
@@ -36,12 +36,12 @@ jobs:
     name: Dashboard Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '22'
           cache: 'npm'
 
       - name: Install Dependencies
@@ -49,52 +49,60 @@ jobs:
 
       - name: Lint Dashboard
         working-directory: ./apps/dashboard
-        run: npm run lint || true
+        run: npm run lint
+
+      - name: Type Check Dashboard
+        working-directory: ./apps/dashboard
+        run: npx tsc --noEmit
 
       - name: Build Dashboard
         working-directory: ./apps/dashboard
-        run: npm run build
-
-  studio-build:
-    name: Checkout Studio Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Build Studio
-        working-directory: ./checkout-studio
+        env:
+          NODE_ENV: production
         run: npm run build
 
   e2e-tests:
     name: E2E QA Tests
-    needs: [api-tests, dashboard-build, studio-build]
+    needs: [api-tests, dashboard-build]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
+
+      - name: Generate .env
+        run: |
+          cat > .env <<EOF
+          APP_KEY=base64:$(openssl rand -base64 32)
+          DB_DATABASE=basileia
+          DB_USERNAME=basileia
+          DB_PASSWORD=ci_$(openssl rand -hex 8)
+          REDIS_PASSWORD=ci_$(openssl rand -hex 8)
+          SECURITY_ENCRYPTION_KEY=base64:$(openssl rand -base64 32)
+          SECURITY_IP_SALT=$(openssl rand -hex 16)
+          MASTER_TOTP_SEED=$(openssl rand -hex 32)
+          APP_URL=http://localhost:8000
+          SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
+          CORS_ALLOWED_ORIGINS=http://localhost:8000
+          EOF
 
       - name: Start Docker Compose
         run: docker compose up -d
 
       - name: Wait for Healthchecks
+        timeout-minutes: 2
         run: |
           sleep 10
-          while ! curl -s -f http://localhost:8000/api/health > /dev/null; do
+          while ! curl -A "CI-Healthcheck" -s -f http://localhost:8000/api/health > /dev/null; do
             echo "Waiting for API to be healthy..."
             sleep 5
           done
           echo "API is healthy!"
 
+      - name: Dump Docker logs on failure
+        if: failure()
+        run: docker compose logs api
+
       - name: Run E2E Tests
         run: |
           npm ci
-          # Simulating E2E tests script
-          npm run test:e2e || echo "E2E Placeholder"
+          cd apps/dashboard
+          npm run e2e

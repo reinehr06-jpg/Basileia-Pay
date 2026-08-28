@@ -7,7 +7,6 @@ import {
   Lock, 
   FileText, 
   ArrowRight, 
-  ArrowLeft,
   User,
   Mail,
   Building,
@@ -15,8 +14,7 @@ import {
   X,
   Eye,
   EyeOff,
-  Sparkles,
-  Globe
+  Sparkles
 } from 'lucide-react';
 import { fetchWithTimeout, getCsrfToken } from '@/lib/api';
 
@@ -95,7 +93,7 @@ export default function RegisterPage() {
       });
 
       const csrfToken = getCsrfToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/register`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}) },
         credentials: 'include',

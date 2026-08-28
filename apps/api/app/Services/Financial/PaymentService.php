@@ -109,7 +109,7 @@ class PaymentService
         return $payment;
     }
 
-    public function handleGatewayConfirmation(string $gatewayTransactionId, array $rawPayload, int $paidAmount = null): void
+    public function handleGatewayConfirmation(string $gatewayTransactionId, array $rawPayload, ?int $paidAmount = null): void
     {
         DB::transaction(function () use ($gatewayTransactionId, $rawPayload, $paidAmount) {
             $payment = Payment::where('gateway_payment_id', $gatewayTransactionId)

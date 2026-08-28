@@ -44,6 +44,19 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  const isAuthRoute =
+    pathname.startsWith('/login') ||
+    pathname.startsWith('/2fa') ||
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password');
+
+  const isPublicRoute =
+    pathname.startsWith('/session-expired') ||
+    pathname.startsWith('/restricted');
+
+  const hasToken = typeof window !== 'undefined' ? !!sessionStorage.getItem('basileia_access_token') : !!user;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F4F0FF]">
@@ -53,6 +66,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           </div>
           <div className="w-6 h-6 border-2 border-brand/30 border-t-brand rounded-full animate-spin" />
         </div>
+      </div>
+    );
+  }
+
+  // Se for rota protegida e não houver token, bloqueia a renderização dos filhos
+  if (!hasToken && !isAuthRoute && !isPublicRoute && !DEV_BYPASS) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F0FF]">
+        <p className="text-xs font-bold text-slate-400">Redirecionando para login...</p>
       </div>
     );
   }

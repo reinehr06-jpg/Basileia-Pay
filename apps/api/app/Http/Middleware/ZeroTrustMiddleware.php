@@ -58,20 +58,34 @@ class ZeroTrustMiddleware
             return $next($request);
         }
 
-        if ($session->ip_address !== $request->ip() || $session->user_agent !== $request->userAgent()) {
+        // F13: Permitir mudança de IP para não deslogar usuários em rede móvel (4G/5G).
+        // Apenas atualizar o IP se ele mudar, desde que o User-Agent permaneça idêntico.
+        if ($session->user_agent !== $request->userAgent()) {
             $token->delete();
             DB::table('user_sessions')->where('id', $session->id)->delete();
-            logger()->warning('ZeroTrust: session context changed', [
+            logger()->warning('ZeroTrust: session user_agent changed', [
+                'user_id' => $user->id,
+                'old_ua' => $session->user_agent,
+                'new_ua' => $request->userAgent(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'session_context_changed', 'message' => 'Sessão encerrada: Dispositivo alterado.'],
+            ], 401);
+        }
+
+        if ($session->ip_address !== $request->ip()) {
+            // Update the IP without killing the session
+            DB::table('user_sessions')
+                ->where('id', $session->id)
+                ->update(['ip_address' => $request->ip()]);
+            
+            logger()->info('ZeroTrust: session IP updated', [
                 'user_id' => $user->id,
                 'old_ip' => $session->ip_address,
                 'new_ip' => $request->ip(),
             ]);
-            return response()->json([
-                'success' => false,
-                'error' => ['code' => 'session_context_changed', 'message' => 'Sessão encerrada: IP ou device alterado.'],
-            ], 401);
         }
-
         // 3. User status checks
         if ($user->status !== 'active') {
             $token->delete();

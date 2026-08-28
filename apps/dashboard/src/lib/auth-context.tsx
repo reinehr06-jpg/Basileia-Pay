@@ -149,7 +149,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const headers: Record<string, string> = { 'Accept': 'application/json' };
       headers['Authorization'] = `Bearer ${token}`;
 
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/me`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/me`, {
         headers,
       });
 
@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const newHeaders: Record<string, string> = { 'Accept': 'application/json' };
             newHeaders['Authorization'] = `Bearer ${newAccess}`;
 
-            const meRes = await fetchWithTimeout(`${API_URL}/api/v2/auth/me`, {
+            const meRes = await fetchWithTimeout(`${API_URL}/api/v1/auth/me`, {
               headers: newHeaders,
             });
 

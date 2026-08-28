@@ -20,7 +20,7 @@ class VaultController extends Controller
         // F18: IDOR. Nunca usar company_id do body. Deve vir do contexto da request.
         // Como o token mTLS/interno pode não injetar company_id ainda, devemos inferir 
         // ou validar. Mas para mitigar hoje, se não vier no auth, bloqueamos se vier do body.
-        $companyId = app(\App\Services\TenantContext::class)::id() ?? (int) $request->input('company_id');
+        $companyId = app(\App\Services\TenantContext::class)::companyId() ?? (int) $request->input('company_id');
 
         if (!$companyId) {
             return response()->json(['error' => 'Company ID is required'], 400);
@@ -68,7 +68,7 @@ class VaultController extends Controller
      */
     public function resolve(Request $request)
     {
-        $companyId = app(\App\Services\TenantContext::class)::id() ?? (int) $request->input('company_id');
+        $companyId = app(\App\Services\TenantContext::class)::companyId() ?? (int) $request->input('company_id');
         $cardToken = $request->input('card_token');
 
         $data = VaultService::resolveToken($companyId, $cardToken);

@@ -32,66 +32,60 @@ import {
   Line,
 } from "recharts";
 
-// MRR Evolution Data (12 months)
-const mrrData = [
-  { name: "Set", mrr: 820000, churn: 32000 },
-  { name: "Out", mrr: 890000, churn: 28000 },
-  { name: "Nov", mrr: 945000, churn: 35000 },
-  { name: "Dez", mrr: 1020000, churn: 41000 },
-  { name: "Jan", mrr: 1085000, churn: 38000 },
-  { name: "Fev", mrr: 1120000, churn: 29000 },
-  { name: "Mar", mrr: 1180000, churn: 33000 },
-  { name: "Abr", mrr: 1210000, churn: 37000 },
-  { name: "Mai", mrr: 1265000, churn: 30000 },
-  { name: "Jun", mrr: 1310000, churn: 34000 },
-  { name: "Jul", mrr: 1342870, churn: 31000 },
-  { name: "Ago", mrr: 1398000, churn: 27000 },
-];
-
-// Subscription status distribution
-const statusData = [
-  { name: "Ativas", value: 12784, color: "#10B981" },
-  { name: "Pausadas", value: 342, color: "#3B82F6" },
-  { name: "Em atraso", value: 891, color: "#F59E0B" },
-  { name: "Canceladas", value: 1203, color: "#EF4444" },
-];
-
-// Churn rate data (last 6 months)
-const churnData = [
-  { name: "Mar", rate: 3.2 },
-  { name: "Abr", rate: 3.5 },
-  { name: "Mai", rate: 2.8 },
-  { name: "Jun", rate: 3.1 },
-  { name: "Jul", rate: 2.9 },
-  { name: "Ago", rate: 2.4 },
-];
-
-// Plan distribution
-const planData = [
-  { name: "PRO Mensal", assinaturas: 5842, receita: 758534 },
-  { name: "PRO Anual", assinaturas: 3241, receita: 421006 },
-  { name: "BASIC Mensal", assinaturas: 2108, receita: 105189 },
-  { name: "PREMIUM Anual", assinaturas: 1593, receita: 398036 },
-];
-
-// Payment method distribution
-const paymentMethodData = [
-  { name: "Cartão", value: 68, color: "#7C3AED" },
-  { name: "PIX", value: 24, color: "#10B981" },
-  { name: "Boleto", value: 8, color: "#F59E0B" },
-];
-
-// Renewal / Conversion data
-const renewalData = [
-  { name: "Mar", renovacoes: 1820, cancelamentos: 89 },
-  { name: "Abr", renovacoes: 1945, cancelamentos: 102 },
-  { name: "Mai", renovacoes: 2100, cancelamentos: 78 },
-  { name: "Jun", renovacoes: 2230, cancelamentos: 95 },
-  { name: "Jul", renovacoes: 2380, cancelamentos: 84 },
-  { name: "Ago", renovacoes: 2510, cancelamentos: 71 },
-];
-
 export default function SubscriptionsMetricsPage() {
+  const [data, setData] = useState<{
+    mrrData: any[];
+    statusData: any[];
+    churnData: any[];
+    planData: any[];
+    paymentMethodData: any[];
+    renewalData: any[];
+    kpis: any[];
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    async function fetchData() {
+      try {
+        // Integração real com o endpoint (que será desenvolvido no backend)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/dashboard/subscriptions/metrics`, {
+          headers: {
+            'Authorization': `Bearer ${sessionStorage.getItem('basileia_access_token') || ''}`,
+            'Accept': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          setData(result.data);
+        } else {
+          // Fallback vazio em caso de erro
+          setData({
+            mrrData: [], statusData: [], churnData: [], planData: [], paymentMethodData: [], renewalData: [], kpis: [
+              {
+                label: "MRR (Receita Recorrente)", value: "R$ 0", change: "0%", positive: true, icon: "DollarSign", iconBg: "bg-[#F4EEFF]", iconColor: "text-[#7C3AED]"
+              },
+              {
+                label: "Assinaturas Ativas", value: "0", change: "0%", positive: true, icon: "Users", iconBg: "bg-green-50", iconColor: "text-green-600"
+              },
+              {
+                label: "Taxa de Renovação", value: "0%", change: "0%", positive: true, icon: "CheckCircle2", iconBg: "bg-blue-50", iconColor: "text-blue-600"
+              },
+              {
+                label: "Churn Rate", value: "0%", change: "0%", positive: true, icon: "TrendingDown", iconBg: "bg-emerald-50", iconColor: "text-emerald-600"
+              }
+            ]
+          });
+        }
+      } catch (err) {
+        console.error('Erro ao buscar métricas de assinatura', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchData();
+  }, []);
+
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -99,44 +93,24 @@ export default function SubscriptionsMetricsPage() {
     }).format(val);
   };
 
-  const kpis = [
-    {
-      label: "MRR (Receita Recorrente)",
-      value: "R$ 1.342.870",
-      change: "+12,45%",
-      positive: true,
-      icon: DollarSign,
-      iconBg: "bg-[#F4EEFF]",
-      iconColor: "text-[#7C3AED]",
-    },
-    {
-      label: "Assinaturas Ativas",
-      value: "12.784",
-      change: "+8,21%",
-      positive: true,
-      icon: Users,
-      iconBg: "bg-green-50",
-      iconColor: "text-green-600",
-    },
-    {
-      label: "Taxa de Renovação",
-      value: "96,42%",
-      change: "+1,32%",
-      positive: true,
-      icon: CheckCircle2,
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-    },
-    {
-      label: "Churn Rate",
-      value: "2,4%",
-      change: "-0,5%",
-      positive: true,
-      icon: TrendingDown,
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-    },
-  ];
+  if (loading || !data) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="w-8 h-8 border-4 border-brand border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const { mrrData, statusData, churnData, planData, paymentMethodData, renewalData, kpis } = data;
+
+
+  const kpisWithIcons = kpis.map(kpi => {
+    let iconComp = DollarSign;
+    if (kpi.icon === 'Users') iconComp = Users;
+    if (kpi.icon === 'CheckCircle2') iconComp = CheckCircle2;
+    if (kpi.icon === 'TrendingDown') iconComp = TrendingDown;
+    return { ...kpi, icon: iconComp };
+  });
 
   return (
     <div className="flex flex-col gap-[16px] animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -161,7 +135,7 @@ export default function SubscriptionsMetricsPage() {
 
       {/* KPI CARDS — 4 cards em grid */}
       <div className="grid grid-cols-4 gap-[16px] shrink-0">
-        {kpis.map((kpi) => (
+        {kpisWithIcons.map((kpi) => (
           <div
             key={kpi.label}
             className="bg-white rounded-[12px] border border-[#E5E7EB] p-[14px_16px] flex flex-col justify-between shadow-[0_2px_8px_rgba(0,0,0,0.02)] min-h-[90px]"

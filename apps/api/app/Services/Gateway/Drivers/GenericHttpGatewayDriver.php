@@ -38,8 +38,8 @@ class GenericHttpGatewayDriver implements GatewayDriverInterface
     public function verifySignature(string $rawBody, string $signature, string $secret): bool
     {
         $webhookConfig = $this->config['webhook'] ?? [];
-        if (empty($webhookConfig['signature_algorithm'])) {
-            return true; // If not configured, we might bypass or fail. Bypassing for flexiblity.
+        if (empty($webhookConfig['signature_algorithm']) || empty($secret)) {
+            throw new \Exception('Configuração de segurança do Webhook ausente: impossível validar assinatura. Abortando.');
         }
 
         $algorithm = str_replace('hmac_', '', $webhookConfig['signature_algorithm']);

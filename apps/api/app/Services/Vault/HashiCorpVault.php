@@ -13,19 +13,48 @@ namespace App\Services\Vault;
  */
 class HashiCorpVault implements VaultInterface
 {
+    protected $client;
+    protected $token;
+    protected $url;
+
     public function __construct()
     {
-        throw new \RuntimeException('HashiCorpVault not yet implemented. Use EnvVault instead.');
+        $this->token = config('security.vault.token');
+        $this->url = config('security.vault.url', 'http://127.0.0.1:8200');
+
+        if (!$this->token) {
+            \Illuminate\Support\Facades\Log::warning('HashiCorpVault token not configured, using fallback.');
+        }
+
+        $this->client = \Illuminate\Support\Facades\Http::withHeaders([
+            'X-Vault-Token' => $this->token,
+        ])->baseUrl($this->url . '/v1/transit');
     }
 
     public function encrypt(string $plaintext): string
     {
-        throw new \RuntimeException('Not implemented');
+        $response = $this->client->post('/encrypt/basileia-cards', [
+            'plaintext' => base64_encode($plaintext)
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Vault Encrypt API error: ' . $response->body());
+        }
+
+        return $response->json('data.ciphertext');
     }
 
     public function decrypt(string $ciphertext): string
     {
-        throw new \RuntimeException('Not implemented');
+        $response = $this->client->post('/decrypt/basileia-cards', [
+            'ciphertext' => $ciphertext
+        ]);
+
+        if ($response->failed()) {
+            throw new \RuntimeException('Vault Decrypt API error: ' . $response->body());
+        }
+
+        return base64_decode($response->json('data.plaintext'));
     }
 
     public function keyVersion(): int

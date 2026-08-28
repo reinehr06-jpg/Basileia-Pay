@@ -335,4 +335,9 @@ class BasileiaCheckoutController extends Controller
         // NUNCA passa o objeto Transaction inteiro — apenas dados seguros
         return view('checkout.card.success', CheckoutService::buildSuccessData($resource));
     }
+
+    public function receipt(string $uuidOrToken)
+    {
+        return $this->success($uuidOrToken);
+    }
 }

@@ -12,14 +12,7 @@ trait BelongsToCompany
      */
     protected static function bootBelongsToCompany(): void
     {
-        static::addGlobalScope('company', function (Builder $builder) {
-            if ($company = \App\Services\TenantContext::company()) {
-                $builder->where(
-                    (new static)->getTable() . '.company_id',
-                    $company->id
-                );
-            }
-        });
+        static::addGlobalScope(new \App\Models\Scopes\TenantScope);
 
         static::creating(function ($model) {
             if (empty($model->company_id) && $company = \App\Services\TenantContext::company()) {

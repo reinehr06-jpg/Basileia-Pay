@@ -45,7 +45,7 @@ export function PaymentTabs({ checkoutId, amount }: PaymentTabsProps) {
         payload.card_cvv = cardCvv;
       }
 
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v2/checkout/${checkoutId}/process`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/public/checkout-sessions/${checkoutId}/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

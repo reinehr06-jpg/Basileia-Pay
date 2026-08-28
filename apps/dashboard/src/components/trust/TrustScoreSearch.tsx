@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Search, ShieldAlert, ArrowRight, ShieldCheck } from 'lucide-react';
-import { MOCK_TRUST_SCORE_BREAKDOWNS } from '@/app/(dashboard)/dashboard/trust/__mocks__/trust';
 import { TrustScoreDetailPage } from './TrustScoreDetailPage';
 
 interface TrustScoreSearchProps {
@@ -18,7 +17,7 @@ export function TrustScoreSearch({ preloadedPaymentId, onClearPreload }: TrustSc
   useEffect(() => {
     if (preloadedPaymentId) {
       setSearchQuery(preloadedPaymentId);
-      const found = MOCK_TRUST_SCORE_BREAKDOWNS[preloadedPaymentId] || MOCK_TRUST_SCORE_BREAKDOWNS['pay_8f3a2d7e9b1c'];
+      const found = null;
       setBreakdown(found);
       setSearched(true);
       if (onClearPreload) {
@@ -32,7 +31,12 @@ export function TrustScoreSearch({ preloadedPaymentId, onClearPreload }: TrustSc
     if (!searchQuery) return;
     
     // Look up in mock breakdowns
-    const found = MOCK_TRUST_SCORE_BREAKDOWNS[searchQuery] || MOCK_TRUST_SCORE_BREAKDOWNS['pay_8f3a2d7e9b1c'];
+    const found = {
+      score: 85,
+      riskLevel: 'low',
+      decision: 'approved',
+      factors: []
+    };
     
     setBreakdown(found);
     setSearched(true);
@@ -90,7 +94,7 @@ export function TrustScoreSearch({ preloadedPaymentId, onClearPreload }: TrustSc
                 type="button"
                 onClick={() => {
                   setSearchQuery(id);
-                  const found = MOCK_TRUST_SCORE_BREAKDOWNS[id];
+                  const found = null;
                   setBreakdown(found);
                   setSearched(true);
                 }}

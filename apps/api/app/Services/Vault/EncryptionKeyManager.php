@@ -37,4 +37,11 @@ class EncryptionKeyManager
             'SECURITY_ENCRYPTION_KEY não configurada. Gere com: php -r "echo \'base64:\' . base64_encode(random_bytes(32));"'
         );
     }
+
+    public function getCompanyKeyForVersion(string $version, int $companyId): string
+    {
+        $masterKey = $this->getKeyForVersion($version);
+        // HKDF para derivar uma chave de 256-bit (32 bytes) única por company_id
+        return hash_hkdf('sha256', $masterKey, 32, 'vault_company_' . $companyId);
+    }
 }

@@ -25,6 +25,9 @@ RUN apk add --no-cache \
         bcmath \
         zip \
         intl \
+    && apk add --no-cache $PHPIZE_DEPS \
+    && pecl install redis \
+    && docker-php-ext-enable redis \
     && rm -rf /var/cache/apk/* /tmp/*
 
 WORKDIR /var/www/html
@@ -63,7 +66,6 @@ COPY docker/supervisord.conf /etc/supervisord.conf
 # Remove build-only artifacts
 RUN rm -rf \
         docker/start.sh \
-        docker/entrypoint.sh \
         docker/nginx.conf \
         docker/supervisord.conf \
         docker/php.ini \
@@ -80,5 +82,9 @@ RUN mkdir -p /var/log/php-fpm /var/log/nginx /var/log/supervisor /run/nginx \
 VOLUME ["/var/www/html/storage"]
 
 EXPOSE 8000
+
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint
+RUN chmod +x /usr/local/bin/entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint"]
 
 CMD ["supervisord", "-c", "/etc/supervisord.conf"]

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Tests\TestCase;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Services\Alerts\AlertService;
 use App\Services\Alerts\AlertRuleEngine;
 use App\Services\AI\AiCheckoutPromptService;
@@ -21,6 +22,14 @@ use App\Models\CheckoutExperience;
 
 class Phase5PremiumTest extends TestCase
 {
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \App\Models\Company::factory()->create(['id' => 1]);
+    }
+
     // ═══════════════════════════════════════════════════════════════════
     // ALERTAS
     // ═══════════════════════════════════════════════════════════════════

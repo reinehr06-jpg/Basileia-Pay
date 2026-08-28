@@ -9,9 +9,7 @@ import {
   FileText, 
   ArrowRight, 
   Check, 
-  ArrowLeft,
-  Key,
-  Monitor
+  ArrowLeft
 } from 'lucide-react';
 import { fetchWithTimeout, getCsrfToken, getAccessToken, setTokens } from '@/lib/api';
 
@@ -20,7 +18,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 export default function TwoFactorPage() {
   const router = useRouter();
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const codeInputs = useRef<any[]>([]);
+  const codeInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -71,7 +69,7 @@ export default function TwoFactorPage() {
     try {
       const csrfToken = getCsrfToken();
       const token = getAccessToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/2fa/verify?_t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/verify?_t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

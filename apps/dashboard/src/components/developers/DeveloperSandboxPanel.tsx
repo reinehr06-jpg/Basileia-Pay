@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { FlaskConical, Play, ArrowRight, RefreshCw, Layers, Copy, Check, ShieldAlert, Sparkles, ExternalLink, Globe } from 'lucide-react';
-import { MOCK_SANDBOX_REQUESTS } from '@/app/(dashboard)/dashboard/developers/__mocks__/developers';
 import { SandboxRequest } from '@/types/developers';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +11,7 @@ interface DeveloperSandboxPanelProps {
 }
 
 export function DeveloperSandboxPanel({ onActionFeedback, onAddSandboxRequest }: DeveloperSandboxPanelProps) {
-  const [requests, setRequests] = useState<SandboxRequest[]>(MOCK_SANDBOX_REQUESTS);
+  const [requests, setRequests] = useState<SandboxRequest[]>([]);
   const [loadingReset, setLoadingReset] = useState(false);
   const [simulating, setSimulating] = useState(false);
 

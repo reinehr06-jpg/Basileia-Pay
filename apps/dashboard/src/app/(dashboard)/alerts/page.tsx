@@ -13,8 +13,9 @@ const SEVERITY_CONFIG: Record<string, { color: string; bg: string; label: string
   low:      { color: 'text-blue-600', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'Baixo' },
   info:     { color: 'text-gray-500', bg: 'bg-gray-100 dark:bg-gray-800', label: 'Info' },
 };
+import { LucideIcon } from 'lucide-react';
 
-const CATEGORY_ICONS: Record<string, any> = {
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
   financial: Zap,
   technical: Wrench,
   security:  ShieldAlert,

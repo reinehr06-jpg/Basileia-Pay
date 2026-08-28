@@ -59,7 +59,7 @@ export default function CheckoutsPage() {
     return <ChevronDown className="w-3.5 h-3.5 opacity-20" />;
   };
 
-  let filteredList = [...MOCK_CHECKOUTS].filter(
+  const filteredList = [...MOCK_CHECKOUTS].filter(
     (c) =>
       (c.name.toLowerCase().includes(buscaNome.toLowerCase()) ||
         c.system.toLowerCase().includes(buscaNome.toLowerCase())) &&

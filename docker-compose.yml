@@ -14,8 +14,7 @@ services:
         condition: service_healthy
       dashboard:
         condition: service_healthy
-      checkout-studio:
-        condition: service_healthy
+
     networks:
       - proxy
     deploy:
@@ -38,27 +37,27 @@ services:
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
-      - APP_KEY=${APP_KEY}
+      - APP_KEY=${APP_KEY:-base64:LcfW0Q+z6b1/fD3t9C8gZ4j6X6o8mD1T8a5Y3W7M3Gg=}
       - DB_CONNECTION=pgsql
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_DATABASE=${DB_DATABASE:-basileia}
       - DB_USERNAME=${DB_USERNAME:-basileia}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
       - SESSION_DRIVER=database
       - CACHE_STORE=database
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-secret}
       - QUEUE_CONNECTION=redis
       - APP_URL=${APP_URL:-https://secure.basileia.global}
       - FRONTEND_URL=${FRONTEND_URL:-https://secure.basileia.global}
-      - SANCTUM_STATEFUL_DOMAINS=${SANCTUM_STATEFUL_DOMAINS}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - SANCTUM_STATEFUL_DOMAINS=${SANCTUM_STATEFUL_DOMAINS:-localhost,127.0.0.1}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
       - SENTRY_LARAVEL_DSN=${SENTRY_LARAVEL_DSN:-}
       - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
-      - SECURITY_ENCRYPTION_KEY=${SECURITY_ENCRYPTION_KEY}
-      - SECURITY_IP_SALT=${SECURITY_IP_SALT}
-      - MASTER_TOTP_SEED=${MASTER_TOTP_SEED}
+      - SECURITY_ENCRYPTION_KEY=${SECURITY_ENCRYPTION_KEY:-secret}
+      - SECURITY_IP_SALT=${SECURITY_IP_SALT:-secret}
+      - MASTER_TOTP_SEED=${MASTER_TOTP_SEED:-secret}
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,7 +76,7 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
-      start_period: 20s
+      start_period: 60s
 
   # ── Dashboard (frontend) ──
   dashboard:
@@ -103,22 +102,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # ── Checkout Studio (visual editor) ──
-  checkout-studio:
-    build:
-      context: ./checkout-studio
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    environment:
-      - VITE_API_URL=/api
-    networks:
-      - proxy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:5173 || exit 1"]
-      interval: 15s
-      timeout: 10s
-      retries: 5
-      start_period: 30s
 
   # ── PostgreSQL (internal only) ──
   postgres:
@@ -129,7 +112,7 @@ services:
     environment:
       POSTGRES_DB: ${DB_DATABASE:-basileia}
       POSTGRES_USER: ${DB_USERNAME:-basileia}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -144,7 +127,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+    command: redis-server --requirepass ${REDIS_PASSWORD:-secret} --appendonly yes
     expose:
       - "6379"
     volumes:
@@ -176,10 +159,10 @@ services:
       - DB_PORT=5432
       - DB_DATABASE=${DB_DATABASE:-basileia}
       - DB_USERNAME=${DB_USERNAME:-basileia}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
       - QUEUE_CONNECTION=redis
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-secret}
     depends_on:
       api:
         condition: service_healthy
@@ -207,10 +190,10 @@ services:
       - DB_PORT=5432
       - DB_DATABASE=${DB_DATABASE:-basileia}
       - DB_USERNAME=${DB_USERNAME:-basileia}
-      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_PASSWORD=${DB_PASSWORD:-secret}
       - QUEUE_CONNECTION=redis
       - REDIS_HOST=redis
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-secret}
     depends_on:
       api:
         condition: service_healthy

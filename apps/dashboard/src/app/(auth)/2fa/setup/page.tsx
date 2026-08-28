@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shield, ArrowRight, Check, AlertTriangle, Copy } from 'lucide-react';
 import { fetchWithTimeout, getCsrfToken, getAccessToken, clearTokens, setTokens } from '@/lib/api';
@@ -14,7 +14,7 @@ export default function TwoFactorSetupPage() {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [code, setCode] = useState(['', '', '', '', '', '']);
-  const codeInputs = useRef<any[]>([]);
+  const codeInputs = useRef<(HTMLInputElement | null)[]>([]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +25,7 @@ export default function TwoFactorSetupPage() {
     try {
       const csrfToken = getCsrfToken();
       const token = getAccessToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/2fa/setup?_t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/setup?_t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export default function TwoFactorSetupPage() {
     try {
       const csrfToken = getCsrfToken();
       const token = getAccessToken();
-      const res = await fetchWithTimeout(`${API_URL}/api/v2/auth/2fa/enable?_t=${Date.now()}`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/enable?_t=${Date.now()}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

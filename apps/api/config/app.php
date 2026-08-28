@@ -41,10 +41,7 @@ return [
         'driver' => 'file',
     ],
 
-    'providers' => [
-        App\Providers\AppServiceProvider::class,
-        App\Providers\GatewayEngineServiceProvider::class,
-    ],
+
 
     'aliases' => [
         'App' => Illuminate\Support\Facades\App::class,
