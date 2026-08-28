@@ -12,23 +12,22 @@ class PaymentFlowTest extends TestCase
     public function test_tokenize_card_endpoint()
     {
         \Illuminate\Support\Facades\Config::set('security.internal_service_token', 'test-token');
-        $user = \App\Models\User::factory()->create();
+        $company = \App\Models\Company::factory()->create();
+        $user = \App\Models\User::factory()->create(['company_id' => $company->id]);
 
         $response = $this->actingAs($user)->postJson('/api/v1/internal/vault/tokenize', [
-            'card_number' => '411111111111111',
-            'cvv' => '123',
-            'expiry_month' => '12',
-            'expiry_year' => '2030',
-            'cardholder_name' => 'John Doe',
+            'number' => '4111111111111111',
+            'expiry' => '12/2030',
+            'company_id' => $company->id,
         ], [
-            'X-Company-ID' => '123',
+            'X-Active-Company-ID' => $company->id,
             'X-Internal-Service-Token' => 'test-token'
         ]);
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
             'card_token',
-            'last_4',
+            'last4',
             'brand'
         ]);
     }
