@@ -60,6 +60,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Route middleware aliases
         $middleware->alias([
+            'secure.token' => \App\Http\Middleware\EnforceSecureTokenization::class,
             'api.auth' => \App\Http\Middleware\AuthenticateApi::class,
             'reauth' => \App\Http\Middleware\RequireReauth::class,
             'resolve.api.key' => \App\Http\Middleware\ResolveApiKey::class,
