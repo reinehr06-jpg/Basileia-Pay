@@ -1,4 +1,4 @@
-import { PaymentTabs } from '@/components/PaymentTabs';
+import { PaymentTabs } from '@/components/checkout/PaymentTabs';
 import { notFound } from 'next/navigation';
 
 export default async function CheckoutPage({ params }: { params: Promise<{ id: string }> }) {
