@@ -43,39 +43,49 @@ class CreateSuperAdmin extends Command
 
         $existing = User::where('email', $email)->first();
 
+        $userData = [
+            'name' => $name,
+            'company_id' => null,
+            'status' => 'active',
+            'password' => Hash::make($password),
+            'email_verified_at' => now(),
+            'must_change_password' => false,
+            'two_factor_enabled' => false,
+            'failed_attempts' => 0,
+            'locked_at' => null,
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'role')) {
+            $userData['role'] = 'super_admin';
+        }
+
         if ($existing) {
             $this->warn("⚠️  Usuario com email {$email} ja existe. Atualizando para super_admin...");
-            $existing->update([
-                'role' => 'super_admin',
-                'company_id' => null,
-                'status' => 'active',
-                'password' => Hash::make($password),
-                'email_verified_at' => now(),
-                'must_change_password' => false,
-                'two_factor_enabled' => false,
-                'failed_attempts' => 0,
-                'locked_at' => null,
-            ]);
+            $existing->update($userData);
             $superAdmin = $existing;
         } else {
-            $superAdmin = User::create([
-                'uuid' => Str::uuid(),
-                'name' => $name,
-                'email' => $email,
-                'password' => Hash::make($password),
-                'role' => 'super_admin',
-                'company_id' => null,
-                'status' => 'active',
-                'email_verified_at' => now(),
-                'must_change_password' => false,
-                'two_factor_enabled' => false,
-                'failed_attempts' => 0,
-            ]);
+            $userData['uuid'] = Str::uuid();
+            $userData['email'] = $email;
+            $superAdmin = User::create($userData);
+        }
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('roles')) {
+            $superAdminRole = \App\Models\Role::firstOrCreate(
+                ['slug' => 'super-admin'],
+                [
+                    'name' => 'Super Admin',
+                    'description' => 'Acesso irrestrito a toda a plataforma',
+                    'company_id' => null,
+                ]
+            );
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('user_role_assignments')) {
+                $superAdmin->roles()->syncWithoutDetaching([$superAdminRole->id => ['company_id' => null]]);
+            }
         }
 
         $this->info("✅ Super admin criado/atualizado: {$email}");
         $this->line("   ID: {$superAdmin->uuid}");
-        $this->line("   Role: {$superAdmin->role}");
         $this->line("   Company ID: null (acesso total)");
 
         $this->newLine();

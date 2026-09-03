@@ -46,21 +46,41 @@ class DefaultAdminSeeder extends Seeder
 
         $company = Company::first();
 
-        User::updateOrCreate(
+        $userData = [
+            'company_id' => $company?->id,
+            'name' => 'Administrator',
+            'password' => Hash::make($adminPassword),
+            'status' => 'active',
+            'email_verified_at' => now(),
+            'must_change_password' => false,
+            'two_factor_enabled' => false,
+            'failed_attempts' => 0,
+            'locked_at' => null,
+        ];
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn('users', 'role')) {
+            $userData['role'] = 'super_admin';
+        }
+
+        $user = User::updateOrCreate(
             ['email' => $adminEmail],
-            [
-                'company_id' => $company?->id,
-                'name' => 'Administrator',
-                'password' => Hash::make($adminPassword),
-                'role' => 'super_admin',
-                'status' => 'active',
-                'email_verified_at' => now(),
-                'must_change_password' => false,
-                'two_factor_enabled' => false,
-                'failed_attempts' => 0,
-                'locked_at' => null,
-            ]
+            $userData
         );
+
+        if (\Illuminate\Support\Facades\Schema::hasTable('roles')) {
+            $superAdminRole = \App\Models\Role::firstOrCreate(
+                ['slug' => 'super-admin'],
+                [
+                    'name' => 'Super Admin',
+                    'description' => 'Acesso irrestrito a toda a plataforma',
+                    'company_id' => null,
+                ]
+            );
+
+            if (\Illuminate\Support\Facades\Schema::hasTable('user_role_assignments')) {
+                $user->roles()->syncWithoutDetaching([$superAdminRole->id => ['company_id' => $company?->id]]);
+            }
+        }
 
         $this->command->info("✅ Super admin configurado com sucesso: {$adminEmail}");
 

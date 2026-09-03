@@ -20,6 +20,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
         'status',
         'must_change_password',
         'password_changed_at',
@@ -100,7 +101,7 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->roles()->where('slug', 'super-admin')->exists();
+        return $this->role === 'super_admin' || $this->roles()->where('slug', 'super-admin')->exists();
     }
 
     public function canImpersonate(): bool
