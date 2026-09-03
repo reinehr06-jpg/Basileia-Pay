@@ -85,16 +85,22 @@ function LoginContent() {
     triggerToast('Autenticando...');
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+      await fetchWithTimeout(`${API_URL}/sanctum/csrf-cookie`, {
+        method: 'GET',
+        credentials: 'include',
+      }).catch(() => null);
+
       const csrfToken = getCsrfToken();
       
-      window.location.href="/dashboard"; return; const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/login`, {
+      const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken as string } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({ email, password }),
       });
 
@@ -109,7 +115,7 @@ function LoginContent() {
           setAuthState('restricted');
           triggerToast('Acesso de dispositivo não reconhecido.');
         } else {
-          triggerToast(data.message || 'Credenciais inválidas');
+          triggerToast(data.message || data.error?.message || 'Credenciais inválidas');
         }
         setLoading(false);
         return;
@@ -124,7 +130,13 @@ function LoginContent() {
       }
 
       // Success
-      setTokens(data.access_token, data.refresh_token, data.expires_at);
+      const accessToken = data.access_token || data.data?.access_token || data.token;
+      const refreshToken = data.refresh_token || data.data?.refresh_token;
+      const expiresAt = data.expires_at || data.data?.expires_at;
+
+      if (accessToken && refreshToken) {
+        setTokens(accessToken, refreshToken, expiresAt);
+      }
       triggerToast('Login efetuado com sucesso!');
       router.push('/dashboard');
       
@@ -146,7 +158,7 @@ function LoginContent() {
     triggerToast('Verificando código 2FA...');
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
       const csrfToken = getCsrfToken();
       
       const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/2fa/verify`, {
@@ -156,6 +168,7 @@ function LoginContent() {
           'Accept': 'application/json',
           ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({ email, code: twoFactorCode }),
       });
 
@@ -167,7 +180,13 @@ function LoginContent() {
         return;
       }
 
-      setTokens(data.access_token, data.refresh_token, data.expires_at);
+      const accessToken = data.access_token || data.data?.access_token || data.token;
+      const refreshToken = data.refresh_token || data.data?.refresh_token;
+      const expiresAt = data.expires_at || data.data?.expires_at;
+
+      if (accessToken && refreshToken) {
+        setTokens(accessToken, refreshToken, expiresAt);
+      }
       triggerToast('Autenticado com sucesso!');
       router.push('/dashboard');
       
@@ -189,7 +208,7 @@ function LoginContent() {
     triggerToast('Processando solicitação...');
 
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
       const csrfToken = getCsrfToken();
       
       const res = await fetchWithTimeout(`${API_URL}/api/v1/auth/password/forgot`, {
@@ -199,6 +218,7 @@ function LoginContent() {
           'Accept': 'application/json',
           ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({ email: recoveryEmail }),
       });
 

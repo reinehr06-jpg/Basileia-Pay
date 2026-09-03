@@ -12,11 +12,11 @@ class DefaultAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminEmail = null;
-        $adminPassword = null;
+        $adminEmail = env('ADMIN_EMAIL');
+        $adminPassword = env('ADMIN_PASSWORD');
 
-        // Se estiver rodando no terminal/console de forma interativa, solicitamos os dados de login
-        if (app()->runningInConsole() && $this->command) {
+        // Se estiver rodando no terminal/console de forma interativa e não houver env vars
+        if (empty($adminEmail) && app()->runningInConsole() && $this->command) {
             $this->command->info('=== Configuração Segura do Super Admin ===');
 
             // Solicita o email do administrador
@@ -34,7 +34,7 @@ class DefaultAdminSeeder extends Seeder
 
         // Fallbacks caso não seja interativo ou esteja vazio
         if (empty($adminEmail)) {
-            $this->command->error('Erro: Nenhum e-mail de administrador foi fornecido.');
+            $this->command->error('Erro: Nenhum e-mail de administrador foi fornecido (defina ADMIN_EMAIL no .env).');
             return;
         }
 

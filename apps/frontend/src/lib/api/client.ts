@@ -23,7 +23,7 @@ import { fetchWithTimeout, getCsrfToken, getAccessToken } from '@/lib/api';
 
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 export async function apiClient<T>(
   path: string,

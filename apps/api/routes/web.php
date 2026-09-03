@@ -3,7 +3,16 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return redirect(config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:3000')));
+    $frontendUrl = config('app.frontend_url') ?: env('FRONTEND_URL');
+    if (request()->wantsJson() || empty($frontendUrl) || $frontendUrl === url('/') || str_starts_with($frontendUrl, 'http://localhost')) {
+        return response()->json([
+            'status'  => 'ok',
+            'service' => 'Basileia Pay API',
+            'version' => config('app.version', '2.0'),
+            'time'    => now()->toIso8601String(),
+        ]);
+    }
+    return redirect($frontendUrl);
 });
 
 // /health behind IP allowlist if enabled; no sensitive info leaked

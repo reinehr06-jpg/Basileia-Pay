@@ -20,6 +20,7 @@ export function setTokens(access: string, refresh: string, expiresAt?: string): 
   if (expiresAt) {
     sessionStorage.setItem('basileia_token_expires_at', expiresAt);
   }
+  document.cookie = `basileia_access_token=${access}; path=/; SameSite=Lax; Max-Age=86400`;
 }
 
 export function clearTokens(): void {
@@ -27,6 +28,7 @@ export function clearTokens(): void {
   sessionStorage.removeItem('basileia_access_token');
   sessionStorage.removeItem('basileia_refresh_token');
   sessionStorage.removeItem('basileia_token_expires_at');
+  document.cookie = `basileia_access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`;
 }
 
 export function getTokenExpiresAt(): Date | null {
@@ -55,8 +57,8 @@ export function fetchWithTimeout(
 
 // ── Refresh token machinery ────────────────────────────────────────
 const API_URL = typeof process !== 'undefined'
-  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000')
-  : 'http://localhost:8000';
+  ? (process.env.NEXT_PUBLIC_API_URL || '')
+  : '';
 
 let isRefreshing = false;
 type QueueItem = {
